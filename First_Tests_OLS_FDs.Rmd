@@ -33,7 +33,11 @@ spi <- read_csv(url)
 #sdg excel from directory 
 sdg <- read_excel("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SDR2024-data.xlsx", sheet = "Backdated SDG Index")
 
-merged_L3 <- read_csv("~/Documents/GitHub/Timeseries-SDGs-SPI-Vars/merged_L3.csv")
+#sci csv from directory 
+sci <- read_csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SCI_All_Dim_TS.csv", col_types = cols(`Time Code` = col_skip())) 
+
+#Lab 3 merged 
+# merged_L3 <- read_csv("~/Documents/GitHub/Timeseries-SDGs-SPI-Vars/merged_L3.csv")
 ```
 
 ##Vdem Wrangling / Cleaning
@@ -69,7 +73,7 @@ vdem <- vdem %>%
 ```
 
 
-#SPI wrangling / cleaning 
+## SPI wrangling / cleaning 
 ```{r}
 #selecting and renaming spi vars 
 spi <- spi %>% 
@@ -83,6 +87,16 @@ spi <- spi %>%
   rename(p4_sources = SPI.INDEX.PIL4) %>% #SPI pillar, 4 Data sources 
   rename(p5_infra = SPI.INDEX.PIL5) #SPI pillar 5, Data infrastructure
 ```
+
+## SCI wrangling / cleaning 
+```{r}
+sci <- sci %>% 
+  dplyr::select(Country Name)
+, Country Code, Time, Overall Average [IQ.SCI.OVRL], Source data assessment of statistical capacity (scale 0 - 100) [IQ.SCI.SRCE], Periodicity and timeliness assessment of statistical capacity (scale 0 - 100) [IQ.SCI.PRDC], Methodology assessment of statistical capacity (scale 0 - 100) [IQ.SCI.MTHD], everything())
+
+```
+
+
 
 ##SDG wrangling / cleaning 
 ```{r}
