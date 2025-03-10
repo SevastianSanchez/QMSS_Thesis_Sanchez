@@ -18,6 +18,7 @@ library(dplyr)
 library(vdemdata) # call vdem package 
 library(readr) #loading data 
 library(readxl)
+library(stargazer)
 ```
 
 
@@ -34,7 +35,7 @@ spi <- read_csv(url)
 sdg <- read_excel("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SDR2024-data.xlsx", sheet = "Backdated SDG Index")
 
 #sci csv from directory 
-sci <- read_csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SCI_All_Dim_TS.csv", col_types = cols(`Time Code` = col_skip())) 
+sci <- read_csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SCI_All_Dim_TS.csv")
 
 #Lab 3 merged 
 # merged_L3 <- read_csv("~/Documents/GitHub/Timeseries-SDGs-SPI-Vars/merged_L3.csv")
@@ -44,7 +45,7 @@ sci <- read_csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SCI_All_Dim_TS
 ```{r}
 #selecting democracy indices and controls 
 vdem <- vdem %>%
-  dplyr::select(country_name, country_text_id, year, v2x_regime, v2x_regime_amb, v2x_polyarchy, v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2xel_frefair, v2x_accountability, v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, e_gdp, e_gdppc, e_wb_pop) %>%
+  dplyr::select(country_name, country_text_id, year, v2x_regime, v2x_regime_amb, v2x_polyarchy, v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2xel_frefair, v2x_accountability, v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, v2x_freexp_altinf, e_gdp, e_gdppc, e_wb_pop, v3ststybcov, v3ststybpub, v3stcensus, v3ststatag) %>%
   filter(year > 1999) %>% #Only 1999 and up 
   rename(country_code = country_text_id, #renaming country code (new_name = old_name)
          regime_type = v2x_regime, 
@@ -55,7 +56,7 @@ vdem <- vdem %>%
          delib_dem = v2x_delibdem,
          egal_dem = v2x_egaldem,
          freefair = v2xel_frefair,
-         freefair_ord = e_v2xel_frefair,
+         #freefair_ord = e_v2xel_frefair,
          accountability = v2x_accountability,
          vt_account = v2x_veracc,
          hz_account = v2x_horacc,
@@ -64,9 +65,14 @@ vdem <- vdem %>%
          freexp_altinfo = v2x_freexp_altinf,
          gdp = e_gdp,
          gdp_pc = e_gdppc,
-         population = e_wb_pop)
+         population = e_wb_pop,
+         stat_agency = v3ststatag,
+         stat_yb_cov = v3ststybcov,
+         stat_yb_pub = v3ststybpub,
+         census = v3stcensus,
+         )
   
-# To be added: 
+# To be added: e_v2xel_frefair,
 
 #vdem$v2xca_academ <- vdem$v2xca_academ*100
 #vdem$v2x_libdem <- vdem$v2x_libdem*100
@@ -78,6 +84,7 @@ vdem <- vdem %>%
 #selecting and renaming spi vars 
 spi <- spi %>% 
   select(country, iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, SPI.INDEX.PIL2, SPI.INDEX.PIL3, SPI.INDEX.PIL4, SPI.INDEX.PIL5) %>% 
+  rename(country_name = country) %>% 
   rename(country_code = iso3c) %>% 
   rename(year = date) %>% 
   rename(spi_comp = SPI.INDEX) %>% #SPI composite score, average of p1-5
@@ -90,45 +97,64 @@ spi <- spi %>%
 
 ## SCI wrangling / cleaning 
 ```{r}
+#full dataset 
 sci <- sci %>% 
-  dplyr::select(Country Name)
-, Country Code, Time, Overall Average [IQ.SCI.OVRL], Source data assessment of statistical capacity (scale 0 - 100) [IQ.SCI.SRCE], Periodicity and timeliness assessment of statistical capacity (scale 0 - 100) [IQ.SCI.PRDC], Methodology assessment of statistical capacity (scale 0 - 100) [IQ.SCI.MTHD], everything())
+  dplyr::select(country_name, country_code, Year, IQ.SCI.OVRL, IQ.SCI.MTHD, IQ.SCI.PRDC, IQ.SCI.SRCE, everything()) %>% 
+  rename(year = Year,
+         sci_overall = IQ.SCI.OVRL, 
+         sci_method = IQ.SCI.MTHD, 
+         sci_periodicity = IQ.SCI.PRDC,
+         sci_source = IQ.SCI.SRCE)
 
+#for merging (only sci score variables selected)
+sci_scores <- sci %>% 
+  select(country_name, country_code, year, sci_overall, sci_method, sci_periodicity, sci_source)
 ```
-
-
 
 ##SDG wrangling / cleaning 
 ```{r}
-#select vars 
+#select sdg goals & composite 
 sdg <- sdg %>% 
-  dplyr::select("country_code", "country_name", "year", "sdg_overall", "goal1", "goal2", "goal3", "goal4", "goal5", "goal6", "goal7", "goal8", "goal9", "goal10", "goal11", "goal12", "goal3", "goal14", "goal15", "goal16", "goal17")
+  dplyr::select("country_name", "country_code", "year", "sdg_overall", "goal1", "goal2", "goal3", "goal4", "goal5", "goal6", "goal7", "goal8", "goal9", "goal10", "goal11", "goal12", "goal3", "goal14", "goal15", "goal16", "goal17")
 
 ```
 
 # Merging & subsetting (case study: Spain)
 ```{r}
-#merge spi, sdg and vdem data 
-merged <- merge(sdg, vdem, by = c("country_code", "year")) 
-merged <- merge(merged, spi, by = c("country_code", "year"))
+#merge spi, sci, sdg and vdem data 
+merged <- merge(sdg, spi, by = c("country_code", "year")) 
+merged <- merge(merged, sci_scores, by = c("country_code", "year"))
+merged <- merge(merged, vdem, by = c("country_code", "year"))
+
+#rm duplicate col names 
+colnames(merged) <- make.unique(colnames(merged)) # Make column names unique
 
 #data type changes 
 merged$year <- as.integer(merged$year)
-merged <- merged %>% mutate_at(c("spi_overall", "spi_p1", "spi_p2", "spi_p3", "spi_p4", "spi_p5"), as.numeric)
+merged <- merged %>% 
+  mutate_at(c("spi_comp", "p1_use", "p2_services", "p3_products", "p4_sources", "p5_infra", "sci_overall", "sci_method", "sci_periodicity", "sci_source"), as.numeric)
 
-# subset for Spain 
-merged_ESP <- merged[merged$country_code=="ESP",]
-
-#subset for only 2019 
-merged_2019_L3 <- merged[merged$year==2019,]
-
-#explorting 2019 data; will save to current working directory 
-write.table(merged_2019_L3, file = "merged_2019_L3.csv", row.names=F, sep = ",")
-
-#explorting time data; will save to current working directory 
-write.table(merged, file = "merged_L3.csv", row.names=F, sep = ",") #### USING THIS DATA 
+#exporting time series data AS: merged_ts.csv ; will save to current working directory 
+write.table(merged, file = "merged_ts.csv", row.names=F, sep = ",") 
 ```
 
+## 2019 data only - Cross-Sectional Analysis 
+```{r}
+#subset for only 2019 
+merged_cs_2019 <- merged[merged$year==2019,]
+
+#exporting cross-sectional 2019 data AS: merged_cs2019; will save to current working directory 
+write.table(merged_cs_2019, file = "merged_cs2019.csv", row.names=F, sep = ",")
+```
+
+## Wrangling for Spain - Test Subject 
+```{r}
+# subset for Spain 
+merged_esp_ts <- merged[merged$country_code=="ESP",]
+
+#exporting Spain time series AS: merged_esp_ts; will save to current working directory 
+write.table(merged_esp_ts, file = "merged_esp_ts.csv", row.names=F, sep = ",")
+```
 
 ## NAIVE OLS 
 **Aggregated SPI & SDG Scores**
@@ -136,11 +162,19 @@ write.table(merged, file = "merged_L3.csv", row.names=F, sep = ",") #### USING T
 *H1: there is a statistically significant correlation between overall SPI and SDG composite scores*
 ```{r}
 #correlation 
-cor(merged_L3$sdg_overall, merged_L3$spi_overall)
+cor(merged$sdg_overall, merged$spi_comp)
 
 #OLS lm 
-lm1 <- lm(sdg_overall ~ spi_overall, data = merged_L3)
-lm1
+lm1 <- lm(sdg_overall ~ spi_comp, data = merged)
+
+#residules
+plot(lm1)
+
+#scatterplot 
+plot(merged$sdg_overall, merged$spi_comp)
+
+#summary 
+summary(lm1)
 ```
 
 ## OLS W/INTERACTIONS 
