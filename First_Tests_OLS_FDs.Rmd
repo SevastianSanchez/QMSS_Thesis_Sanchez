@@ -35,7 +35,7 @@ spi <- read_csv(url)
 sdg <- read_excel("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SDR2024-data.xlsx", sheet = "Backdated SDG Index")
 
 #sci csv from directory 
-sci <- read_csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SCI_All_Dim_TS.csv")
+sci_df <- read_csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SCI_All_Dim_TS.csv")
 
 #Lab 3 merged 
 # merged_L3 <- read_csv("~/Documents/GitHub/Timeseries-SDGs-SPI-Vars/merged_L3.csv")
@@ -98,13 +98,15 @@ spi <- spi %>%
 ## SCI wrangling / cleaning 
 ```{r}
 #full dataset 
-sci <- sci %>% 
+sci <- sci_df %>% 
   dplyr::select(country_name, country_code, Year, IQ.SCI.OVRL, IQ.SCI.MTHD, IQ.SCI.PRDC, IQ.SCI.SRCE, everything()) %>% 
   rename(year = Year,
          sci_overall = IQ.SCI.OVRL, 
          sci_method = IQ.SCI.MTHD, 
          sci_periodicity = IQ.SCI.PRDC,
          sci_source = IQ.SCI.SRCE)
+
+sci$year <- as.numeric(sci$year)
 
 #for merging (only sci score variables selected)
 sci_scores <- sci %>% 
@@ -122,9 +124,9 @@ sdg <- sdg %>%
 # Merging & subsetting (case study: Spain)
 ```{r}
 #merge spi, sci, sdg and vdem data 
-merged <- merge(sdg, spi, by = c("country_code", "year")) 
-merged <- merge(merged, sci_scores, by = c("country_code", "year"))
-merged <- merge(merged, vdem, by = c("country_code", "year"))
+merged <- left_join(sdg, spi, by = c("year", "country_code")) 
+merged <- left_join(merged, sci_scores, by = c("country_code", "year"))
+merged <- left_join(merged, vdem, by = c("country_code", "year"))
 
 #rm duplicate col names 
 colnames(merged) <- make.unique(colnames(merged)) # Make column names unique
@@ -156,26 +158,53 @@ merged_esp_ts <- merged[merged$country_code=="ESP",]
 write.table(merged_esp_ts, file = "merged_esp_ts.csv", row.names=F, sep = ",")
 ```
 
-## NAIVE OLS 
+## NAIVE OLS (BI-VARIATE)
 **Aggregated SPI & SDG Scores**
 *H0: Null, there is no relationship*
 *H1: there is a statistically significant correlation between overall SPI and SDG composite scores*
 ```{r}
-#correlation 
-cor(merged$sdg_overall, merged$spi_comp)
+# x & y variables 
+y_var <- merged$sdg_overall 
+x_var <- merged$spi_comp
+df <- data.frame(x_var, y_var)
 
-#OLS lm 
-lm1 <- lm(sdg_overall ~ spi_comp, data = merged)
+#correlation coefficient (x, y)
+df.omit <- na.omit(df) # removing NA's -needed for cor() function
+correlation <- cor(df.omit$x_var, df.omit$y_var)^2
+string_corcoef <- "Correlation coefficient:" 
+paste(string_corcoef, correlation) # pasting result 
 
-#residules
-plot(lm1)
-
-#scatterplot 
-plot(merged$sdg_overall, merged$spi_comp)
-
-#summary 
+#OLS lm & full summary table 
+lm1 <- lm(y_var ~ x_var, data=df)
 summary(lm1)
+#plotting residuals
+plot(lm1)
+#plotting scatterplot 
+plot(df$y_var, df$x_var)
 ```
+
+## NAIVE OLS W/Controls 
+```{r}
+# y & x vars + controls/
+y_var <- merged$sdg_overall 
+x1_var <- merged$spi_comp #insert x var 1
+x2_var <- merged$p1_use #insert x var 2
+x3_var <- merged$p2_services #insert x var 3
+x4_var <- merged$p3_products #insert x var 3
+x5_var <- merged$p4_sources #insert x var 3
+x6_var <- merged$p5_infra #insert x var 3
+df_2 <- data.frame(y_var, x1_var, x2_var, x3_var, x4_var, x5_var, x6_var)
+
+#OLS lm & full summary table 
+lm2 <- lm(y_var ~ x1_var + x2_var + x3_var + x4_var + x5_var + x6_var, data=df_2)
+summary(lm2)
+#plotting residuals
+plot(lm2)
+#plotting scatterplot 
+plot(df$y_var, df$x1_var)
+abline(lm2)
+```
+
 
 ## OLS W/INTERACTIONS 
 **SPIxDemocracyScore & SDG 
@@ -191,4 +220,17 @@ summary(lm1)
 ```
 
 
-## 
+## Testing Index Reliability (Cronbach's Alpha)
+```{r}
+
+```
+
+
+## First Difference Model 
+```{r}
+
+```
+
+
+
+
