@@ -198,12 +198,6 @@ abline(lm1)
 
 
 
-# ...
-#more possible predictors ...
-
-#paste results 
-paste(string_corcoef, sdg_spi_corr) # sdg x spi
-paste(string_corcoef, sdg_sci_corr) # sdg x sci
 
 ```
 We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. There is a 
@@ -253,17 +247,18 @@ abline(lm2)
 ```
 
 
-## Testing Index Reliability (Cronbach's Alpha)
+## First Difference Model 
+
 ```{r}
+
 
 ```
 
 
-## First Difference Model 
 
 
+## Testing Index Reliability (Cronbach's Alpha)
 ```{r}
-
 
 ```
 
