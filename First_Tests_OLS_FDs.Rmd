@@ -177,11 +177,31 @@ paste(string_corcoef, correlation) # pasting result
 #OLS lm & full summary table 
 lm1 <- lm(y_var ~ x_var, data=df)
 summary(lm1)
-#plotting residuals
-plot(lm1)
+
 #plotting scatterplot 
 plot(df$y_var, df$x_var)
+abline(lm1)
 ```
+## ASSESSING MODEL FIT (R-Squared)
+```{r}
+
+sdg_overall <- merged$sdg_overall 
+x_var_spi <- merged$spi_comp
+x_var_sci <- merged$sci_overall
+df <- data.frame(sdg_overall, x_var_spi, x_var_sci)
+df <- na.omit(df)
+# comparing correlation btw x-vars 
+sdg_spi_corr <- cor(df$sdg_overall, df$x_var_spi)^2 #x-var 1 = spi
+sdg_sci_corr <- cor(df$sdg_overall, df$x_var_sci)^2 #x-var 2 = sci
+# ...
+#more possible predictors ...
+
+#paste results 
+paste(string_corcoef, sdg_spi_corr) # sdg x spi
+paste(string_corcoef, sdg_sci_corr) # sdg x sci
+```
+
+
 
 ## NAIVE OLS W/Controls 
 ```{r}
@@ -206,15 +226,15 @@ abline(lm2)
 ```
 
 
-## OLS W/INTERACTIONS 
-**SPIxDemocracyScore & SDG 
+## MULTIPLE LINEAR REGRESSION 
+**Disaggregated by Development Status**
 ```{r}
 
 ```
 
 
-## MULTIPLE LINEAR REGRESSION 
-**Disaggregated by Development Status**
+## OLS W/INTERACTIONS 
+**SPIxDemocracyScore & SDG 
 ```{r}
 
 ```
@@ -227,7 +247,10 @@ abline(lm2)
 
 
 ## First Difference Model 
+
+
 ```{r}
+
 
 ```
 
