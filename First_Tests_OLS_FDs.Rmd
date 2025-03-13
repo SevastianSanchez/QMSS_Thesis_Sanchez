@@ -140,15 +140,6 @@ merged <- merged %>%
 write.table(merged, file = "merged_ts.csv", row.names=F, sep = ",") 
 ```
 
-## 2019 data only - Cross-Sectional Analysis 
-```{r}
-#subset for only 2019 
-merged_cs_2019 <- merged[merged$year==2019,]
-
-#exporting cross-sectional 2019 data AS: merged_cs2019; will save to current working directory 
-write.table(merged_cs_2019, file = "merged_cs2019.csv", row.names=F, sep = ",")
-```
-
 ## Wrangling for Spain - Test Subject 
 ```{r}
 # subset for Spain 
@@ -158,47 +149,69 @@ merged_esp_ts <- merged[merged$country_code=="ESP",]
 write.table(merged_esp_ts, file = "merged_esp_ts.csv", row.names=F, sep = ",")
 ```
 
+##Cross-Sectional Analysis - 2019 data only
+```{r}
+#subset for only 2019 
+merged_cs_2019 <- merged[merged$year==2019,]
+
+#exporting cross-sectional 2019 data AS: merged_cs2019; will save to current working directory 
+write.table(merged_cs_2019, file = "merged_cs2019.csv", row.names=F, sep = ",")
+```
+
 ## NAIVE OLS (BI-VARIATE)
 **Aggregated SPI & SDG Scores**
 *H0: Null, there is no relationship*
 *H1: there is a statistically significant correlation between overall SPI and SDG composite scores*
 ```{r}
 # x & y variables 
-y_var <- merged$sdg_overall 
-x_var <- merged$spi_comp
-df <- data.frame(x_var, y_var)
+y_var_sdg <- merged$sdg_overall 
+x_var_spi <- merged$spi_comp
+x_var_sci <- merged$sci_overall
+df_sdg_statcap <- data.frame(y_var_sdg, x_var_spi, x_var_sci)
+
+# how many na's?
+colSums(is.na(df_sdg_statcap))
+
+# omit na's 
+df_sdg_spi <- na.omit(data.frame(y_var_sdg, x_var_spi))
+df_sdg_sci <- na.omit(data.frame(y_var_sdg, x_var_sci))
+dim(df_sdg_spi) #spi observations, ommitted na's 
+dim(df_sdg_sci) #sci observations, ommitted na's 
 
 #correlation coefficient (x, y)
-df.omit <- na.omit(df) # removing NA's -needed for cor() function
-correlation <- cor(df.omit$x_var, df.omit$y_var)^2
+correlation_sdg_spi <- cor(df_sdg_spi$y_var_sdg, df_sdg_spi$x_var_spi)^2 #x-var 1 = spi
+correlation_sdg_sci <- cor(df_sdg_sci$y_var_sdg, df_sdg_sci$x_var_sci)^2 #x-var 2 = sci
 string_corcoef <- "Correlation coefficient:" 
-paste(string_corcoef, correlation) # pasting result 
+paste(string_corcoef, correlation_sdg_spi) # pasting result 
+paste(string_corcoef, correlation_sdg_sci) # pasting result 
+```
 
+
+```{r}
 #OLS lm & full summary table 
 lm1 <- lm(y_var ~ x_var, data=df)
 summary(lm1)
 
-#plotting scatterplot 
+#plotting scatter-plot 
 plot(df$y_var, df$x_var)
 abline(lm1)
-```
-## ASSESSING MODEL FIT (R-Squared)
-```{r}
 
-sdg_overall <- merged$sdg_overall 
-x_var_spi <- merged$spi_comp
-x_var_sci <- merged$sci_overall
-df <- data.frame(sdg_overall, x_var_spi, x_var_sci)
-df <- na.omit(df)
-# comparing correlation btw x-vars 
-sdg_spi_corr <- cor(df$sdg_overall, df$x_var_spi)^2 #x-var 1 = spi
-sdg_sci_corr <- cor(df$sdg_overall, df$x_var_sci)^2 #x-var 2 = sci
+
+
 # ...
 #more possible predictors ...
 
 #paste results 
 paste(string_corcoef, sdg_spi_corr) # sdg x spi
 paste(string_corcoef, sdg_sci_corr) # sdg x sci
+
+```
+We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. There is a 
+
+
+## ASSESSING MODEL FIT (R-Squared)
+```{r}
+
 ```
 
 
