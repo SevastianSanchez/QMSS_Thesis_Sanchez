@@ -167,6 +167,7 @@ write.table(merged_cs_2019, file = "merged_cs2019.csv", row.names=F, sep = ",")
 y_var_sdg <- merged$sdg_overall 
 x_var_spi <- merged$spi_comp
 x_var_sci <- merged$sci_overall
+controls <- merged %>% select(gdp, gdp_pc, population)
 df_sdg_statcap <- data.frame(y_var_sdg, x_var_spi, x_var_sci)
 
 # how many na's?
@@ -188,27 +189,43 @@ paste(string_corcoef, correlation_sdg_sci) # pasting result
 
 
 ```{r}
-#OLS lm & full summary table 
-lm1 <- lm(y_var ~ x_var, data=df)
-summary(lm1)
+# 1. OLS for SPI and SDG
+ols_spi <- lm(y_var_sdg ~ x_var_spi + merged$gdp + merged$gdp_pc + merged$population)
+summary(ols_spi)
 
-#plotting scatter-plot 
-plot(df$y_var, df$x_var)
-abline(lm1)
+# 2. OLS for SCI and SDG
+ols_sci <- lm(y_var_sdg ~ x_var_sci + merged$gdp + merged$gdp_pc + merged$population)
+summary(ols_sci)
 
+# 3. Multiple Regression with both SPI and SCI
+ols_multiple <- lm(y_var_sdg ~ x_var_spi + x_var_sci + merged$gdp + merged$gdp_pc + merged$population)
+summary(ols_multiple)
 
+#visualize differences in fit
+library(ggplot2)
+library(plotly)
 
+#define regression line colors
+spi_line <- "steelblue4"
+sci_line <- "darkgoldenrod"
 
+# Creating scatterplot with both SPI and SCI on the same plot
+Compare_fit <- ggplot(merged, aes(x = spi_comp, y = sdg_overall))+
+  geom_smooth(aes(x = spi_comp, y = sdg_overall), color = spi_line, method = "lm", se = FALSE)+ # Regression line SPI
+  geom_smooth(aes(x = sci_overall, y = sdg_overall), color = sci_line, method = "lm", se = FALSE)+ # Regression line for SCI
+  geom_point(aes(color = "spi_comp"), alpha=0.50, size = 0.5)+  # Scatter plot for SPI, colored distinctly
+  geom_point(aes(x = sci_overall, y = sdg_overall, color = "sci_overall"), alpha=0.5, size = 0.5)+ # Add SCI points w/different color
+  scale_color_manual(values = c("spi_comp" = "steelblue1", "sci_overall" = "darkgoldenrod1")) +  # Define colors
+  labs(title = "SDG vs. SPI and SCI",
+       x = "SPI / SCI",
+       y = "SDG",
+       color = "Index") +  # Title for legend
+  theme_bw() # Optional: adds a clean, black and white theme
+
+#make interactive
+ggplotly(Compare_fit)
 ```
-We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. There is a 
-
-
-## ASSESSING MODEL FIT (R-Squared)
-```{r}
-
-```
-
-
+We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. Holding all else constant, there is a positive moderate relationship between Statistical Performance (SPI) and SDG status. 
 
 ## NAIVE OLS W/Controls 
 ```{r}
