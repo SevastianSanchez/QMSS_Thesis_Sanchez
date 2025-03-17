@@ -138,7 +138,7 @@ merged <- merged %>%
   mutate_at(c("spi_comp", "p1_use", "p2_services", "p3_products", "p4_sources", "p5_infra", "sci_overall", "sci_method", "sci_periodicity", "sci_source"), as.numeric)
 
 #exporting time series data AS: merged_ts.csv ; will save to current working directory 
-write.table(merged, file = "merged_ts.csv", row.names=F, sep = ",") 
+#write.table(merged, file = "merged_ts.csv", row.names=F, sep = ",") 
 ```
 
 ## Wrangling for Spain - Test Subject 
@@ -147,7 +147,7 @@ write.table(merged, file = "merged_ts.csv", row.names=F, sep = ",")
 merged_esp_ts <- merged[merged$country_code=="ESP",]
 
 #exporting Spain time series AS: merged_esp_ts; will save to current working directory 
-write.table(merged_esp_ts, file = "merged_esp_ts.csv", row.names=F, sep = ",")
+#write.table(merged_esp_ts, file = "merged_esp_ts.csv", row.names=F, sep = ",")
 ```
 
 ##Cross-Sectional Analysis - 2019 data only
@@ -156,7 +156,7 @@ write.table(merged_esp_ts, file = "merged_esp_ts.csv", row.names=F, sep = ",")
 merged_cs_2019 <- merged[merged$year==2019,]
 
 #exporting cross-sectional 2019 data AS: merged_cs2019; will save to current working directory 
-write.table(merged_cs_2019, file = "merged_cs2019.csv", row.names=F, sep = ",")
+#write.table(merged_cs_2019, file = "merged_cs2019.csv", row.names=F, sep = ",")
 ```
 
 ## NAIVE OLS (BI-VARIATE)
@@ -214,8 +214,8 @@ sci_line <- "darkgoldenrod"
 
 # Creating scatterplot with both SPI and SCI on the same plot
 Compare_fit <- ggplot(merged, aes(x = spi_comp, y = sdg_overall))+
-  geom_smooth(aes(x = spi_comp, y = sdg_overall), color = spi_line, method = "lm", se = FALSE)+ # Regression line SPI
-  geom_smooth(aes(x = sci_overall, y = sdg_overall), color = sci_line, method = "lm", se = FALSE)+ # Regression line for SCI
+  geom_smooth(aes(x = spi_comp, y = sdg_overall), color = spi_line, method = "lm", linewidth = 0.75, se = FALSE)+ # Regression line SPI
+  geom_smooth(aes(x = sci_overall, y = sdg_overall), color = sci_line, method = "lm", linewidth = 0.75, se = FALSE)+ # Regression line for SCI
   geom_point(aes(color = "spi_comp"), alpha=0.50, size = 0.5)+  # Scatter plot for SPI, colored distinctly
   geom_point(aes(x = sci_overall, y = sdg_overall, color = "sci_overall"), alpha=0.5, size = 0.5)+ # Add SCI points w/different color
   scale_color_manual(values = c("spi_comp" = "steelblue1", "sci_overall" = "darkgoldenrod1")) +  # Define colors
@@ -291,37 +291,41 @@ model_comparison <- bind_rows(
 print(model_comparison)
 ```
 
-**Vizualize the slopes**
+```{r}
+# Convert income_level to factor with explicit labels
+merged_inc$income_level <- factor(merged_inc$income_level,
+                                 levels = c("H", "UM", "LM", "L"),
+                                 labels = c("High Income Countries", 
+                                           "Upper-Middle Income Countries", 
+                                           "Lower-Middle Income Countries", 
+                                           "Low Income Countries"))
+```
+
+**Visualize the slopes**
 ```{r}
 # Create a visualization with different regression lines by income group
-by_income_class <- ggplot(merged_inc, aes(x = spi_comp, y = sdg_overall, color = income_level)) +
-  geom_smooth(data = merged_inc, aes(x = spi_comp, y = sdg_overall, color = NULL), #adding overall regression
-              method = "lm", linewidth = 0.75, se = FALSE, color = "black") + #linetype = "dashed"
-  # Add income-specific points and regression lines
-  geom_point(alpha = 0.2) +
-  geom_smooth(method = "lm", linewidth = 0.65, se = FALSE) +
-  scale_color_manual(values = c("H" = "#1D6A96", 
-                                "UM" = "#4CB5AE", 
-                                "LM" = "#F3A738",
-                                "L" = "#C02942"),
-                    labels = c("High Income", 
-                              "Upper-Middle Income", 
-                              "Lower-Middle Income", 
-                              "Low Income")) +
-  # Add a label for the overall line in the legend
-  annotate("text", x = min(merged_inc$spi_comp, na.rm = TRUE), 
-           y = max(merged_inc$sdg_overall, na.rm = TRUE), 
-           label = "Overall trend", hjust = 0, vjust = 1) +
+by_income_class <- ggplot(data = merged_inc, aes(x = spi_comp, y = sdg_overall, color = income_level)) +
+  geom_point(alpha = 0.25, size = 0.75) + 
+  geom_smooth(method = "lm", linewidth = 0.65, se = FALSE) + # 4 regressions by income classes
+  scale_color_manual(values = c("High Income Countries" = "#1D6A96", 
+                                "Upper-Middle Income Countries" = "#4CB5AE", 
+                                "Lower-Middle Income Countries" = "#F3A738",
+                                "Low Income Countries" = "#C02942"))
+
+#Adding overall regression line 
+by_income_class <- by_income_class + geom_smooth(data = merged_inc, aes(x = spi_comp, y = sdg_overall), method = "lm",
+              linewidth = 0.75, se = FALSE, color = "black")
+
+# Applying theme and labels 
+by_income_class <- by_income_class + 
   labs(title = "Relationship between SPI and SDG by World Bank Income Classification",
        x = "Statistical Performance Indicators (SPI)",
        y = "Sustainable Development Goals (SDG)",
-       color = "Income Classification") +
+       color = "Income Classification" #legend title 
+       ) +
   theme_bw()
 
 ggplotly(by_income_class)
-
-
-
 ```
 
 
