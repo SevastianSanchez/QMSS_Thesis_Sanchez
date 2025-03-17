@@ -19,6 +19,7 @@ library(vdemdata) # call vdem package
 library(readr) #loading data 
 library(readxl)
 library(stargazer)
+library(broom)
 ```
 
 
@@ -186,14 +187,16 @@ string_corcoef <- "Correlation coefficient:"
 paste(string_corcoef, correlation_sdg_spi) # pasting result 
 paste(string_corcoef, correlation_sdg_sci) # pasting result 
 ```
+Number of observations in SPI: 1300; number of NA's 3068 (not all years captured)
+Number of observations in SCI: 2055; number of NA's 2313 (not all countries captured)
 
-
+# Comparing SPI & SCI to identify best model 
 ```{r}
-# 1. OLS for SPI and SDG
+# 1. OLS for SPI and SDG - Overall 
 ols_spi <- lm(y_var_sdg ~ x_var_spi + merged$gdp + merged$gdp_pc + merged$population)
 summary(ols_spi)
 
-# 2. OLS for SCI and SDG
+# 2. OLS for SCI and SDG - Overall 
 ols_sci <- lm(y_var_sdg ~ x_var_sci + merged$gdp + merged$gdp_pc + merged$population)
 summary(ols_sci)
 
@@ -227,6 +230,91 @@ ggplotly(Compare_fit)
 ```
 We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. Holding all else constant, there is a positive moderate relationship between Statistical Performance (SPI) and SDG status. 
 
+
+## MULTIPLE LINEAR REGRESSION 
+**Disaggregated by Development Status:**  
+*Make 4 regression models and then put them all together in a table compare the slopes.* 
+```{r}
+#WB GNI income categories 
+income_class <- read_csv("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs /world_bank_income_classifications.csv")
+
+# New df with income classifications 
+merged_inc <- merged %>% 
+  left_join(income_class, by = c("country_code", "year"))
+
+# Assuming your merged dataset contains:
+# X = spi_comp (SPI values)
+# Y = sdg_overall (SDG values)
+# Subset: income_level (income classification: "H", "UM", "LM", "L")
+
+# 1. Overall model (all countries)
+overall_lm <- lm(sdg_overall ~ spi_comp + gdp + gdp_pc + population,
+                        data = merged_inc)
+summary(overall_lm)
+
+# 2. High income countries
+high_inc_lm <- lm(sdg_overall ~ spi_comp + gdp + gdp_pc + population,
+                        data = merged_inc %>% 
+                          filter(income_level == "H"))
+summary(high_inc_lm)
+
+# 3. Upper-middle income countries
+upper_mid_lm <- lm(sdg_overall ~ spi_comp + gdp + gdp_pc + population,
+                         data = merged_inc %>% 
+                           filter(income_level == "UM"))
+summary(upper_mid_lm)
+
+# 4. Lower-middle income countries
+lower_mid_lm <- lm(sdg_overall ~ spi_comp + gdp + gdp_pc + population,
+                         data = merged_inc %>% 
+                           filter(income_level == "LM"))
+summary(lower_mid_lm)
+
+# 5. Low income countries
+low_inc_lm <- lm(sdg_overall ~ spi_comp + gdp + gdp_pc + population,
+                       data = merged_inc %>% 
+                         filter(income_level == "L"))
+summary(low_inc_lm)
+
+# Extract coefficients and create a comparison table
+model_comparison <- bind_rows(
+  tidy(overall_lm) %>% mutate(model = "Overall"),
+  tidy(high_inc_lm) %>% mutate(model = "High Income"),
+  tidy(upper_mid_lm) %>% mutate(model = "Upper-Middle Income"),
+  tidy(lower_mid_lm) %>% mutate(model = "Lower-Middle Income"),
+  tidy(low_inc_lm) %>% mutate(model = "Low Income")
+) %>%
+  select(model, term, estimate, std.error, p.value) %>% 
+  filter(term=='spi_comp')
+
+# Print the comparison table
+print(model_comparison)
+```
+
+**Vizualize the slopes**
+```{r}
+# Create a visualization with different regression lines by income group
+by_income_class <- ggplot(merged_inc, aes(x = spi_comp, y = sdg_overall, color = income_level)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", linewidth = 0.65, se = FALSE) +
+  scale_color_manual(values = c("H" = "#1D6A96", 
+                                "UM" = "#4CB5AE", 
+                                "LM" = "#F3A738",
+                                "L" = "#C02942"),
+                    labels = c("High Income", 
+                              "Upper-Middle Income", 
+                              "Lower-Middle Income", 
+                              "Low Income")) +
+  labs(title = "Relationship between SPI and SDG by World Bank Income Classification",
+       x = "Statistical Performance Indicators (SPI)",
+       y = "Sustainable Development Goals (SDG)",
+       color = "Income Classification") +
+  theme_bw()
+
+ggplotly(by_income_class)
+```
+
+
 ## NAIVE OLS W/Controls 
 ```{r}
 # y & x vars + controls/
@@ -248,13 +336,6 @@ plot(lm2)
 plot(df$y_var, df$x1_var)
 abline(lm2)
 ```
-
-## MULTIPLE LINEAR REGRESSION 
-**Disaggregated by Development Status**
-```{r}
-
-```
-
 
 ## Identify Regressing Countries 
 ```{r}
