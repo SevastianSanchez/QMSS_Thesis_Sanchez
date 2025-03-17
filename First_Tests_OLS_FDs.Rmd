@@ -249,7 +249,6 @@ plot(df$y_var, df$x1_var)
 abline(lm2)
 ```
 
-
 ## MULTIPLE LINEAR REGRESSION 
 **Disaggregated by Development Status**
 ```{r}
@@ -257,11 +256,21 @@ abline(lm2)
 ```
 
 
-## OLS W/INTERACTIONS 
-**SPIxDemocracyScore & SDG 
+## Identify Regressing Countries 
 ```{r}
+# 2015-present 
+
+
+
+
+
+
+# 2000-present 
+
 
 ```
+
+
 
 
 ## First Difference Model 
@@ -270,8 +279,6 @@ abline(lm2)
 
 
 ```
-
-
 
 
 ## Testing Index Reliability (Cronbach's Alpha)
