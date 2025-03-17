@@ -295,6 +295,9 @@ print(model_comparison)
 ```{r}
 # Create a visualization with different regression lines by income group
 by_income_class <- ggplot(merged_inc, aes(x = spi_comp, y = sdg_overall, color = income_level)) +
+  geom_smooth(data = merged_inc, aes(x = spi_comp, y = sdg_overall, color = NULL), #adding overall regression
+              method = "lm", linewidth = 0.75, se = FALSE, color = "black") + #linetype = "dashed"
+  # Add income-specific points and regression lines
   geom_point(alpha = 0.2) +
   geom_smooth(method = "lm", linewidth = 0.65, se = FALSE) +
   scale_color_manual(values = c("H" = "#1D6A96", 
@@ -305,6 +308,10 @@ by_income_class <- ggplot(merged_inc, aes(x = spi_comp, y = sdg_overall, color =
                               "Upper-Middle Income", 
                               "Lower-Middle Income", 
                               "Low Income")) +
+  # Add a label for the overall line in the legend
+  annotate("text", x = min(merged_inc$spi_comp, na.rm = TRUE), 
+           y = max(merged_inc$sdg_overall, na.rm = TRUE), 
+           label = "Overall trend", hjust = 0, vjust = 1) +
   labs(title = "Relationship between SPI and SDG by World Bank Income Classification",
        x = "Statistical Performance Indicators (SPI)",
        y = "Sustainable Development Goals (SDG)",
@@ -312,6 +319,9 @@ by_income_class <- ggplot(merged_inc, aes(x = spi_comp, y = sdg_overall, color =
   theme_bw()
 
 ggplotly(by_income_class)
+
+
+
 ```
 
 
