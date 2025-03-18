@@ -528,8 +528,10 @@ fd_errorbar <- ggplot(plot_data, aes(x = coefficient, y = model, color = signifi
   theme_bw() +
   theme(legend.position = "none")
 
+fd_errorbar
+
 #export fd_errorbar
-ggsave("fd_errorbar.png", width = 10, height = 6)
+# ggsave("fd_errorbar.png", width = 10, height = 6)
 ```
 
 **Scatter plot of FDs**
@@ -545,8 +547,10 @@ fd_scatter <- ggplot(fd_data %>%
        y = "Change in Sustainable Development (SDG)") +
   theme_bw()
 
+fd_scatter
+
 #export fd_scatter
-ggsave("fd_scatter.png", width = 10, height = 6)
+#ggsave("fd_scatter.png", width = 10, height = 6)
 ```
 
 ## NAIVE OLS W/Controls 
