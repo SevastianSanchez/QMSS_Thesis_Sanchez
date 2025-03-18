@@ -38,8 +38,8 @@ sdg <- read_excel("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SDR2024-data
 #sci csv from directory 
 sci_df <- read_csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SCI_All_Dim_TS.csv")
 
-#Lab 3 merged 
-# merged_L3 <- read_csv("~/Documents/GitHub/Timeseries-SDGs-SPI-Vars/merged_L3.csv")
+# set working directory 
+setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 ```
 
 ##Vdem Wrangling / Cleaning
@@ -227,13 +227,16 @@ Compare_fit <- ggplot(merged, aes(x = spi_comp, y = sdg_overall))+
 
 #make interactive
 ggplotly(Compare_fit)
+
+# Save to specific folder
+# ggsave("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs/fd_plot.png", p, width = 10, height = 6)
 ```
 We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. Holding all else constant, there is a positive moderate relationship between Statistical Performance (SPI) and SDG status. 
 
 
-## MULTIPLE LINEAR REGRESSION 
+# MULTIPLE LINEAR REGRESSION 
 **Disaggregated by Development Status:**  
-*Make 4 regression models and then put them all together in a table compare the slopes.* 
+*Make 4 regression models and then put them all together in a table to compare the slopes and R-sq values.* 
 ```{r}
 #WB GNI income categories 
 income_class <- read_csv("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs /world_bank_income_classifications.csv")
@@ -287,8 +290,14 @@ model_comparison <- bind_rows(
   select(model, term, estimate, std.error, p.value) %>% 
   filter(term=='spi_comp')
 
+# incorporate R-squares from each model 
+...
+
 # Print the comparison table
 print(model_comparison)
+
+# export model_comparison 
+# write.csv(model_comparison, file = "ols_model_comparison.csv", row.names=F) 
 ```
 
 ```{r}
@@ -326,8 +335,219 @@ by_income_class <- by_income_class +
   theme_bw()
 
 ggplotly(by_income_class)
+
+# Save to specific folder
+# ggsave("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs/fd_plot.png", p, width = 10, height = 6)
 ```
 
+# First Difference Models 
+**PART 1: Create lagged variables and first differences**
+```{r}
+library(plm)
+#library(dplyr)
+
+# Create a simplified dataframe with essential variables
+fd_data <- merged_inc %>%
+  select(country_code, year, sdg_overall, spi_comp, income_level)
+
+# PART 1: Create lagged variables and first differences with explicit dplyr reference
+fd_data <- fd_data %>%
+  arrange(country_code, year) %>% 
+  group_by(country_code) %>%
+  mutate(
+    # Create lagged variables with explicit dplyr reference
+    sdg_lag = dplyr::lag(sdg_overall, n = 1),
+    spi_lag = dplyr::lag(spi_comp, n = 1),
+    
+    # Calculate first differences
+    fd_sdg = sdg_overall - sdg_lag,
+    fd_spi = spi_comp - spi_lag
+  ) %>%
+  ungroup()
+
+# To verify the lag creation works correctly
+# head(fd_data %>% select(country_code, year, sdg_overall, sdg_lag, fd_sdg, spi_comp, spi_lag, fd_spi) %>% arrange(country_code, year), 10)
+```
+
+**PART 2: Run FD models for each income group**
+```{r}
+# Overall model
+fd_overall <- lm(fd_sdg ~ fd_spi, 
+                data = fd_data %>% 
+                  filter(!is.na(fd_sdg) & !is.na(fd_spi)))
+summary(fd_overall)
+
+# High income countries
+fd_high <- lm(fd_sdg ~ fd_spi, 
+             data = fd_data %>% 
+               filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
+                     income_level == "High Income Countries"))
+summary(fd_high)
+
+# Upper-middle income countries
+fd_upper <- lm(fd_sdg ~ fd_spi, 
+              data = fd_data %>% 
+                filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
+                      income_level == "Upper-Middle Income Countries"))
+summary(fd_upper)
+
+# Lower-middle income countries
+fd_lower <- lm(fd_sdg ~ fd_spi, 
+              data = fd_data %>% 
+                filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
+                      income_level == "Lower-Middle Income Countries"))
+summary(fd_lower)
+
+# Low income countries
+fd_low <- lm(fd_sdg ~ fd_spi, 
+            data = fd_data %>% 
+              filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
+                    income_level == "Low Income Countries"))
+summary(fd_low)
+```
+
+**PART 3: Create a comparison table**
+```{r}
+# Extract coefficients and statistics from each model
+fd_comparison <- data.frame(
+  model = c("Overall", "High Income", "Upper-Middle Income", 
+           "Lower-Middle Income", "Low Income"),
+  coefficient = c(
+    coef(fd_overall)["fd_spi"],
+    coef(fd_high)["fd_spi"],
+    coef(fd_upper)["fd_spi"],
+    coef(fd_lower)["fd_spi"],
+    coef(fd_low)["fd_spi"]
+  ),
+  intercept = c(
+    coef(fd_overall)["(Intercept)"],
+    coef(fd_high)["(Intercept)"],
+    coef(fd_upper)["(Intercept)"],
+    coef(fd_lower)["(Intercept)"],
+    coef(fd_low)["(Intercept)"]
+  ),
+  t_value = c(
+    summary(fd_overall)$coefficients["fd_spi", "t value"],
+    summary(fd_high)$coefficients["fd_spi", "t value"],
+    summary(fd_upper)$coefficients["fd_spi", "t value"],
+    summary(fd_lower)$coefficients["fd_spi", "t value"],
+    summary(fd_low)$coefficients["fd_spi", "t value"]
+  ),
+  p_value = c(
+    summary(fd_overall)$coefficients["fd_spi", "Pr(>|t|)"],
+    summary(fd_high)$coefficients["fd_spi", "Pr(>|t|)"],
+    summary(fd_upper)$coefficients["fd_spi", "Pr(>|t|)"],
+    summary(fd_lower)$coefficients["fd_spi", "Pr(>|t|)"],
+    summary(fd_low)$coefficients["fd_spi", "Pr(>|t|)"]
+  ),
+  r_squared = c(
+    summary(fd_overall)$r.squared,
+    summary(fd_high)$r.squared,
+    summary(fd_upper)$r.squared,
+    summary(fd_lower)$r.squared,
+    summary(fd_low)$r.squared
+  ),
+  adj_r_squared = c(
+    summary(fd_overall)$adj.r.squared,
+    summary(fd_high)$adj.r.squared,
+    summary(fd_upper)$adj.r.squared,
+    summary(fd_lower)$adj.r.squared,
+    summary(fd_low)$adj.r.squared
+  ),
+  n_obs = c(
+    nobs(fd_overall),
+    nobs(fd_high),
+    nobs(fd_upper),
+    nobs(fd_lower),
+    nobs(fd_low)
+  )
+)
+
+# Format the numbers for better display
+fd_comparison <- fd_comparison %>%
+  mutate(
+    coefficient = round(coefficient, 3),
+    intercept = round(intercept, 3),
+    t_value = round(t_value, 3),
+    p_value = round(p_value, 4),
+    r_squared = round(r_squared, 3),
+    adj_r_squared = round(adj_r_squared, 3)
+  )
+
+# Print the comparison table
+print(fd_comparison)
+
+#export fd_comparison 
+write.csv(fd_comparison, file = "fd_comparison.csv", row.names=F) 
+```
+
+**RESULTS:** 
+Your first-difference (FD) model results reveal several important insights about the relationship between changes in Statistical Performance Indicators (SPI) and changes in Sustainable Development Goals (SDG) scores across different income groups:
+
+[perplexity] The overall model shows a positive and statistically significant relationship (coefficient = 0.015, p = 0.0033) between improvements in statistical capacity and improvements in SDG performance. This confirms your hypothesis that better statistical systems contribute to better development outcomes.
+
+However, the income group breakdown reveals fascinating variations:
+
+1. **High Income Countries** show a negative coefficient (-0.012) that is not statistically significant (p = 0.2537). This suggests that for developed economies, improvements in statistical capacity don't necessarily translate to SDG improvements, possibly because they already have well-established statistical systems and other factors drive their SDG performance.
+
+2. **Upper-Middle Income Countries** show a stronger positive effect (0.021) that is statistically significant (p = 0.0163). This indicates that for these emerging economies, investments in statistical capacity yield meaningful SDG improvements.
+
+3. **Lower-Middle Income Countries** demonstrate an even stronger relationship (0.025) with high statistical significance (p = 0.0088). This is the most significant relationship among all income groups.
+
+4. **Low Income Countries** show the strongest coefficient (0.026), suggesting the largest potential impact, though with slightly lower statistical significance (p = 0.0459) than lower-middle income countries.
+
+The R-squared values are relatively low across all models (between 0.004 and 0.023), indicating that changes in statistical capacity explain only a small portion of the variation in SDG changes. This is common in first-difference models and suggests that many other factors also influence SDG progress.
+
+For your project, these findings suggest that:
+
+1. The relationship between statistical capacity and sustainable development follows an inverted U-shaped pattern across the development spectrum - minimal impact for high-income countries, strongest for middle-income countries, and slightly less strong (but still significant) for low-income countries.
+
+2. Statistical capacity improvements appear most beneficial for developing and emerging economies, suggesting that international efforts to strengthen statistical systems should prioritize these countries.
+
+3. The consistently positive intercepts (ranging from 0.224 to 0.364) indicate that SDG scores tend to improve over time regardless of changes in statistical capacity, though the rate of improvement varies by income level.
+
+These results provide empirical support for the importance of statistical capacity building as a development tool, particularly for countries in the middle and lower ranges of economic development.
+
+# Visual Analysis | FD Models 
+**Error-bar**
+```{r}
+# Create dataframe for plotting 
+plot_data <- fd_comparison %>%
+  select(model, coefficient, p_value) %>%
+  mutate(significant = p_value < 0.05)
+
+# Create Horizontal error-bar graph 
+fd_errorbar <- ggplot(plot_data, aes(x = coefficient, y = model, color = significant)) +
+  geom_point(size = 3) +
+  geom_errorbarh(aes(xmin = 0, xmax = coefficient), height = 0.2) + 
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_color_manual(values = c("gray", "blue")) +
+  labs(title = "Effect of SPI Change on SDG Change by Income Group",
+       x = "Coefficient (Effect Size)",
+       y = "") +
+  theme_bw() +
+  theme(legend.position = "none")
+
+#export fd_errorbar
+ggsave("fd_errorbar.png", width = 10, height = 6)
+```
+
+**Scatter plot of FDs**
+```{r}
+fd_scatter <- ggplot(fd_data %>% 
+         filter(!is.na(fd_sdg) & !is.na(fd_spi)), 
+       aes(x = fd_spi, y = fd_sdg, color = income_level)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~income_level) +
+  labs(title = "Relationship between Changes in SPI and SDG by Income Group",
+       x = "Change in Statistical Performance (SPI)",
+       y = "Change in Sustainable Development (SDG)") +
+  theme_bw()
+
+#export fd_scatter
+ggsave("fd_scatter.png", width = 10, height = 6)
+```
 
 ## NAIVE OLS W/Controls 
 ```{r}
