@@ -550,7 +550,7 @@ fd_scatter <- ggplot(fd_data %>%
 fd_scatter
 
 #export fd_scatter
-#ggsave("fd_scatter.png", width = 10, height = 6)
+# ggsave("iCloud_Drive/Documents/GitHub/QMSS_Thesis_Sanchez", width = 10, height = 6)
 ```
 
 ## NAIVE OLS W/Controls 
