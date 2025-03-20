@@ -251,7 +251,7 @@ merged_inc <- merged %>%
 # Subset: income_level (income classification: "H", "UM", "LM", "L")
 
 # 1. Overall model (all countries)
-overall_lm <- lm(sdg_overall ~ spi_comp + gdp + gdp_pc + population,
+overall_lm <- lm(sdg_overall ~ spi_comp + log(gdp_pc), #put log(GDP), check if pop is relevant, natural log (ln(GDP))
                         data = merged_inc)
 summary(overall_lm)
 
@@ -278,6 +278,16 @@ low_inc_lm <- lm(sdg_overall ~ spi_comp + gdp + gdp_pc + population,
                        data = merged_inc %>% 
                          filter(income_level == "L"))
 summary(low_inc_lm)
+
+
+# take best regression in R squared and try with variables and ensure their relevance, 
+# check to see if Open data is better, a proxy of SPI _ recommends for missing data proxy 
+# also look into SCI 
+# take few countries 
+# send github and and document 
+# comments of the limitations, specifically the time series \
+# SPI has 1 pillar with 
+# a good thesis is one that highlights the issues and being transparent 
 
 ```
 
@@ -608,6 +618,13 @@ fd_scatter
 #export fd_scatter
 # ggsave("iCloud_Drive/Documents/GitHub/QMSS_Thesis_Sanchez", width = 10, height = 6)
 ```
+
+
+
+
+
+
+
 
 ## NAIVE OLS W/Controls 
 ```{r}
