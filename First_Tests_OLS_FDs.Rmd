@@ -279,25 +279,81 @@ low_inc_lm <- lm(sdg_overall ~ spi_comp + gdp + gdp_pc + population,
                          filter(income_level == "L"))
 summary(low_inc_lm)
 
-# Extract coefficients and create a comparison table
-model_comparison <- bind_rows(
-  tidy(overall_lm) %>% mutate(model = "Overall"),
-  tidy(high_inc_lm) %>% mutate(model = "High Income"),
-  tidy(upper_mid_lm) %>% mutate(model = "Upper-Middle Income"),
-  tidy(lower_mid_lm) %>% mutate(model = "Lower-Middle Income"),
-  tidy(low_inc_lm) %>% mutate(model = "Low Income")
-) %>%
-  select(model, term, estimate, std.error, p.value) %>% 
-  filter(term=='spi_comp')
+```
 
-# incorporate R-squares from each model 
-...
+# Extract coefficients and statistics from each model to create comparison table 
+```{r}
+# Creating mod_compare_tab - comparison table
+mod_compare_tab <- data.frame(
+  model = c("Overall", "High Income", "Upper-Middle Income", 
+           "Lower-Middle Income", "Low Income"),
+  coefficient = c(
+    coef(overall_lm)["spi_comp"],
+    coef(high_inc_lm)["spi_comp"],
+    coef(upper_mid_lm)["spi_comp"],
+    coef(lower_mid_lm)["spi_comp"],
+    coef(low_inc_lm)["spi_comp"]
+  ),
+  intercept = c(
+    coef(overall_lm)["(Intercept)"],
+    coef(high_inc_lm)["(Intercept)"],
+    coef(upper_mid_lm)["(Intercept)"],
+    coef(lower_mid_lm)["(Intercept)"],
+    coef(low_inc_lm)["(Intercept)"]
+  ),
+  t_value = c(
+    summary(overall_lm)$coefficients["spi_comp", "t value"],
+    summary(high_inc_lm)$coefficients["spi_comp", "t value"],
+    summary(upper_mid_lm)$coefficients["spi_comp", "t value"],
+    summary(lower_mid_lm)$coefficients["spi_comp", "t value"],
+    summary(low_inc_lm)$coefficients["spi_comp", "t value"]
+  ),
+  p_value = c(
+    summary(overall_lm)$coefficients["spi_comp", "Pr(>|t|)"],
+    summary(high_inc_lm)$coefficients["spi_comp", "Pr(>|t|)"],
+    summary(upper_mid_lm)$coefficients["spi_comp", "Pr(>|t|)"],
+    summary(lower_mid_lm)$coefficients["spi_comp", "Pr(>|t|)"],
+    summary(low_inc_lm)$coefficients["spi_comp", "Pr(>|t|)"]
+  ),
+  r_squared = c(
+    summary(overall_lm)$r.squared,
+    summary(high_inc_lm)$r.squared,
+    summary(upper_mid_lm)$r.squared,
+    summary(lower_mid_lm)$r.squared,
+    summary(low_inc_lm)$r.squared
+  ),
+  adj_r_squared = c(
+    summary(overall_lm)$adj.r.squared,
+    summary(high_inc_lm)$adj.r.squared,
+    summary(upper_mid_lm)$adj.r.squared,
+    summary(lower_mid_lm)$adj.r.squared,
+    summary(low_inc_lm)$adj.r.squared
+  ),
+  n_obs = c(
+    nobs(overall_lm),
+    nobs(high_inc_lm),
+    nobs(upper_mid_lm),
+    nobs(lower_mid_lm),
+    nobs(low_inc_lm)
+  )
+)
+
+# rounding for better display
+mod_compare_tab <- mod_compare_tab %>%
+  mutate(
+    coefficient = round(coefficient, 3),
+    intercept = round(intercept, 3),
+    t_value = round(t_value, 3),
+    p_value = p_value,
+    r_squared = round(r_squared, 3),
+    adj_r_squared = round(adj_r_squared, 3)
+  )
 
 # Print the comparison table
-print(model_comparison)
+print(mod_compare_tab)
 
-# export model_comparison 
-# write.csv(model_comparison, file = "ols_model_comparison.csv", row.names=F) 
+# export mod_compare_tab 
+# write.csv(mod_compare_tab, file = "ols_model_comparison.csv", row.names=F) 
 ```
 
 ```{r}
