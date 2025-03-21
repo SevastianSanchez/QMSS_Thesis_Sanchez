@@ -251,7 +251,7 @@ merged_inc <- merged %>%
 # Subset: income_level (income classification: "H", "UM", "LM", "L")
 
 # 1. Overall model (all countries)
-overall_lm <- lm(sdg_overall ~ spi_comp + log(gdp_pc), #put log(GDP), check if pop is relevant, natural log (ln(GDP))
+overall_lm <- lm(sdg_overall ~ spi_comp + log(gdp_pc),
                         data = merged_inc)
 summary(overall_lm)
 
@@ -280,12 +280,13 @@ low_inc_lm <- lm(sdg_overall ~ spi_comp + gdp + gdp_pc + population,
 summary(low_inc_lm)
 
 
+# put log(GDP), check if pop is relevant, natural log (ln(GDP))
 # take best regression in R squared and try with variables and ensure their relevance, 
-# check to see if Open data is better, a proxy of SPI _ recommends for missing data proxy 
+# check to see if Open data is better, a proxy of SPI _ recommends for missing data proxy despite SPI having it.  
 # also look into SCI 
-# take few countries 
+# take few countries that are underinging regime change 
 # send github and and document 
-# comments of the limitations, specifically the time series \
+# describe the limitations, specifically the time series 
 # SPI has 1 pillar with 
 # a good thesis is one that highlights the issues and being transparent 
 
