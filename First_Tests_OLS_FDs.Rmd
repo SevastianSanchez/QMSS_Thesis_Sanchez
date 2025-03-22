@@ -73,10 +73,7 @@ vdem <- vdem %>%
          census = v3stcensus,
          )
   
-# To be added: e_v2xel_frefair,
-
-#vdem$v2xca_academ <- vdem$v2xca_academ*100
-#vdem$v2x_libdem <- vdem$v2x_libdem*100
+# To be added: e_v2xel_frefair
 ```
 
 
@@ -283,7 +280,6 @@ low_inc_lm <- lm(sdg_overall ~ spi_comp + log(gdp_pc) + population,
                        data = merged_inc %>% 
                          filter(income_level == "L"))
 summary(low_inc_lm)
-
 
 # put log(GDP), check if pop is relevant, natural log (ln(GDP))
 # take best regression in R squared and try with variables and ensure their relevance, 
@@ -650,7 +646,7 @@ abline(lm2)
 ## Identify Regressing Countries 
 ```{r}
 # 2015-present 
-
+regressing <- 
 
 
 
