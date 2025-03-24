@@ -646,9 +646,24 @@ abline(lm2)
 ## Identify Regressing Countries 
 ```{r}
 # 2015-present 
-regressing <- 
+autocracies <- df_years(yr1=2014) 
+autocracies <- autocracies %>% 
+  filter(regime_type < 2)
+
+length(df_name$regime_type < 2)
 
 
+plot(year, lib_dem, data=df_name)
+
+
+regime_type = v2x_regime, 
+         regime_type_amb = v2x_regime_amb,
+         elect_dem = v2x_polyarchy,
+         lib_dem = v2x_libdem,
+         part_dem = v2x_partipdem,
+         delib_dem = v2x_delibdem,
+         egal_dem = v2x_egaldem,
+         freefair
 
 
 
