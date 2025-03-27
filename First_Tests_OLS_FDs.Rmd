@@ -9,7 +9,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 ## Libraries 
 ```{r}
 library(devtools)
@@ -20,10 +19,9 @@ library(readr) #loading data
 library(readxl)
 library(stargazer)
 library(broom)
+library(car)
 ```
-
-
-##CLEANING / WRANGLING 
+#FIRST: Load data 
 ```{r}
 #Vdem package from github 
 vdem <- vdemdata::vdem  #loading data 
@@ -41,8 +39,18 @@ sci_df <- read_csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SCI_All_Dim
 # set working directory 
 setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 ```
+#SECOND: run function in r-script: df_years_function.R
+```{r}
+#df_years: used for extracting data from specified year to now 
 
-##Vdem Wrangling / Cleaning
+#load function
+source("~/Documents/GitHub/QMSS_Thesis_Sanchez/df_years_function.R")
+
+#specify start year 
+merged <- df_years(yr1 = 2000) 
+```
+
+##Vdem wrangling / cleaning (skip if df_years() used)
 ```{r}
 #selecting democracy indices and controls 
 vdem <- vdem %>%
@@ -76,8 +84,7 @@ vdem <- vdem %>%
 # To be added: e_v2xel_frefair
 ```
 
-
-## SPI wrangling / cleaning 
+## SPI wrangling / cleaning (skip if df_years() used)
 ```{r}
 #selecting and renaming spi vars 
 spi <- spi %>% 
@@ -93,7 +100,7 @@ spi <- spi %>%
   rename(p5_infra = SPI.INDEX.PIL5) #SPI pillar 5, Data infrastructure
 ```
 
-## SCI wrangling / cleaning 
+## SCI wrangling / cleaning (skip if df_years() used)
 ```{r}
 #full dataset 
 sci <- sci_df %>% 
@@ -111,7 +118,7 @@ sci_scores <- sci %>%
   select(country_name, country_code, year, sci_overall, sci_method, sci_periodicity, sci_source)
 ```
 
-##SDG wrangling / cleaning 
+##SDG wrangling / cleaning (skip if df_years() used)
 ```{r}
 #select sdg goals & composite 
 sdg <- sdg %>% 
@@ -119,7 +126,7 @@ sdg <- sdg %>%
 
 ```
 
-# Merging & subsetting (case study: Spain)
+# Merging & subsetting (skip if df_years() used)
 ```{r}
 #merge spi, sci, sdg and vdem data 
 merged <- left_join(sdg, spi, by = c("year", "country_code")) 
@@ -138,15 +145,6 @@ merged <- merged %>%
 #write.table(merged, file = "merged_ts.csv", row.names=F, sep = ",") 
 ```
 
-## Wrangling for Spain - Test Subject 
-```{r}
-# subset for Spain 
-merged_esp_ts <- merged[merged$country_code=="ESP",]
-
-#exporting Spain time series AS: merged_esp_ts; will save to current working directory 
-#write.table(merged_esp_ts, file = "merged_esp_ts.csv", row.names=F, sep = ",")
-```
-
 ##Cross-Sectional Analysis - 2019 data only
 ```{r}
 #subset for only 2019 
@@ -156,54 +154,131 @@ merged_cs_2019 <- merged[merged$year==2019,]
 #write.table(merged_cs_2019, file = "merged_cs2019.csv", row.names=F, sep = ",")
 ```
 
-## NAIVE OLS (BI-VARIATE)
-**Aggregated SPI & SDG Scores**
-*H0: Null, there is no relationship*
-*H1: there is a statistically significant correlation between overall SPI and SDG composite scores*
+## Wrangling for Spain - Test Subject 
+```{r}
+# subset for Spain 
+merged_esp_ts <- merged[merged$country_code=="ESP",]
+
+#exporting Spain time series AS: merged_esp_ts; will save to current working directory 
+#write.table(merged_esp_ts, file = "merged_esp_ts.csv", row.names=F, sep = ",")
+```
+
+##set up & missing data 
 ```{r}
 # x & y variables 
 y_var_sdg <- merged$sdg_overall 
 x_var_spi <- merged$spi_comp
 x_var_sci <- merged$sci_overall
-controls <- merged %>% select(country_code, year, spi_comp, gdp, gdp_pc, population)
 df_sdg_statcap <- data.frame(y_var_sdg, x_var_spi, x_var_sci)
 
 # how many na's?
 colSums(is.na(df_sdg_statcap))
-
-# omit na's 
-df_sdg_spi <- na.omit(data.frame(y_var_sdg, x_var_spi))
-df_sdg_sci <- na.omit(data.frame(y_var_sdg, x_var_sci))
-dim(df_sdg_spi) #spi observations, ommitted na's 
-dim(df_sdg_sci) #sci observations, ommitted na's 
-
-#correlation coefficient (x, y)
-correlation_sdg_spi <- cor(df_sdg_spi$y_var_sdg, df_sdg_spi$x_var_spi)^2 #x-var 1 = spi
-correlation_sdg_sci <- cor(df_sdg_sci$y_var_sdg, df_sdg_sci$x_var_sci)^2 #x-var 2 = sci
-string_corcoef <- "Correlation coefficient:" 
-paste(string_corcoef, correlation_sdg_spi) # pasting result 
-paste(string_corcoef, correlation_sdg_sci) # pasting result 
+#how many observations 
+colSums(!is.na(df_sdg_statcap))
 ```
 Number of observations in SPI: 1300; number of NA's 3068 (not all years captured)
 Number of observations in SCI: 2055; number of NA's 2313 (not all countries captured)
 
+## NAIVE OLS (BI-VARIATE)
+**Aggregated SPI & SDG Scores**
+*H0: Null, there is no relationship*
+*H1: there is a statistically significant relationship between overall SPI and SDG composite scores*
+```{r}
+#correlation coefficients (r-squared), WITHOUT control variables 
+
+#x-var 1 = spi
+correlation_sdg_spi <- cor(y_var_sdg, x_var_spi, use = "complete.obs")^2
+
+#x-var 2 = sci
+correlation_sdg_sci <- cor(y_var_sdg, x_var_sci, use = "complete.obs")^2 
+
+# pasting result 
+string_corcoef <- "Correlation coefficient:" 
+paste(string_corcoef, correlation_sdg_spi, "(SPI)", correlation_sdg_sci, "(SCI)")
+```
+Correlation coefficient/R-sq (SPI): 0.616037202309322 
+Correlation coefficient/R-sq (SCI): 0.417965563339242 
+
 # Comparing SPI & SCI to identify best model 
+*H0: Null, SCI model > SPI model*
+*H1: SPI model > SCI model*
 ```{r}
 # 1. OLS for SPI and SDG - Overall 
-ols_spi <- lm(y_var_sdg ~ x_var_spi + merged$gdp_pc + merged$population)
+ols_spi <- lm(y_var_sdg ~ x_var_spi + log(merged$gdp_pc) + merged$population)
 summary(ols_spi)
 
 # 2. OLS for SCI and SDG - Overall 
-ols_sci <- lm(y_var_sdg ~ x_var_sci + merged$gdp_pc + merged$population)
+ols_sci <- lm(y_var_sdg ~ x_var_sci + log(merged$gdp_pc) + merged$population)
 summary(ols_sci)
 
 # 3. Multiple Regression with both SPI and SCI
-ols_multiple <- lm(y_var_sdg ~ x_var_spi + x_var_sci + merged$gdp_pc + merged$population)
+ols_multiple <- lm(y_var_sdg ~ x_var_spi + x_var_sci + log(merged$gdp_pc) + merged$population)
 summary(ols_multiple)
-```
-We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. Holding all else constant, there is a positive moderate relationship between Statistical Performance (SPI) and SDG status. 
 
-SPI reveals a better fit than SCI (0.68 > 0.6585)
+#AIC/BIC - model fit 
+
+```
+We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. Holding all else constant (log gdp per capita and population), there is a positive moderate relationship between Statistical Performance (SPI) and SDG status. 
+
+ols_spi: 0.3139 (p-value < 0.001)
+ols_sci: 0.2134 (p-value < 0.001)
+ols_multiple: 
+  spi: 0.1443 (p-value < 0.001) 
+  sci: 0.1389 (p-value < 0.001)
+
+Comparing coefficients, SPI has a greater impact on SDG status (0.3139) than SCI (0.2134). However, in a multiple regression model containing both SPI and SCI, SCI has more of an impact on SDG status (0.1443) (net of SPI) than SPI (0.1389) (net of SCI). Here the coefficients represent the unique impact of each x variable on SDG status, net of all other variables.
+
+Model 1 (ols_spi) does not control for SCI and model 2 (ols_sci) does not control for spi -- this is okay. SPI was always an upgrade/predecessor of the SCI, sharing/data overlap, and so it is expected to have significant statistical correlation (multicollinearity). This is what explains the significant reduction of coefficients (from 0.3139 to 0.1443 for SPI, and from 0.2134 to 0.1389 for SCI) indicating that they're both capturing much of the same underlying relationship with SDG status. 
+
+# AIC/BIC Checking Fit [FIX TEST- #N DIFFERS BTW MODELS]
+```{r}
+
+# Compare all three models with AIC
+AIC(ols_spi, ols_sci, ols_multiple)
+
+# Compare all three models with BIC
+BIC(ols_spi, ols_sci, ols_multiple)
+```
+
+
+**Best fit:** ols_spi (Adj Rsq: 0.7749) (AIC/BIC: ___)
+
+
+# SPI & SCI colinearity VIF 
+```{r}
+# Check correlation between SPI and SCI
+cor(x_var_spi, x_var_sci, use = "complete.obs")
+
+# Check VIF (Variance Inflation Factor)
+vif(ols_multiple)
+```
+
+**colinearity:** there is significant co-linearity between SCI and SPI, with a correlation of 0.827. Upon integrating within the same model, SCI inflated the standard error of SPI from 0.01457 to 0.02864. SCI had a similar reaction fro the SPI with its standard error increasing from 0.007906 to 0.02728. 
+
+**VIF:** Such multicolinearity is reflected by the VIF test which accounts for all x variables in the model instead of just the two measures of statistical capacity (SCI & SPI). 
+
+x_var_spi: 3.58
+x_var_sci: 3.50
+merged$gdp_pc: 1.24
+merged$population: 1.03
+
+Unsurprisingly, the variance of the SPI coefficient is inflated by a factor of 3.58 due to correlation with other predictors. Similarly, the SCI coefficient’s variance is inflated by 3.5 times. However, it is acceptable to use in the same model as it will not severely impact estimates given both factors are less than 5.0. 
+
+**Selecting model:** My research question is about overall statistical capacity rather than comparing different measures. The SPI model reveals a better fit than the SCI model (Adj Rsq: 0.7749 > 0.7506). It is also a better fit compared to the multiple OLS model containing both SPI and SCI (Adj Rsq: 0.7749 > 0.7281).
+
+#Combine to single index: principle component analysis (FOR FUTURE)
+```{r}
+# Standardize both measures
+#spi_z <- scale(x_var_spi)
+#sci_z <- scale(x_var_sci)
+
+# Create composite (simple average)
+#stat_capacity_index <- (spi_z + sci_z)/2
+
+#extract common variance 
+#pca_result <- prcomp(cbind(x_var_spi, x_var_sci), scale = TRUE)
+#stat_capacity_pc1 <- pca_result$x[,1]  # First principal component
+```
 
 
 ```{r}
@@ -247,7 +322,7 @@ income_class <- read_csv("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs /wo
 merged_inc <- merged %>% 
   left_join(income_class, by = c("country_code", "year"))
 
-# Assuming your merged dataset contains:
+# Assuming merged dataset contains:
 # X = spi_comp (SPI values)
 # Y = sdg_overall (SDG values)
 # Subset: income_level (income classification: "H", "UM", "LM", "L")
@@ -549,7 +624,6 @@ write.csv(fd_comparison, file = "fd_comparison.csv", row.names=F)
 ```
 
 **RESULTS:** 
-Your first-difference (FD) model results reveal several important insights about the relationship between changes in Statistical Performance Indicators (SPI) and changes in Sustainable Development Goals (SDG) scores across different income groups:
 
 [perplexity] The overall model shows a positive and statistically significant relationship (coefficient = 0.015, p = 0.0033) between improvements in statistical capacity and improvements in SDG performance. This confirms your hypothesis that better statistical systems contribute to better development outcomes.
 
