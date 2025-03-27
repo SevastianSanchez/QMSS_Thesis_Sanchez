@@ -215,7 +215,7 @@ summary(ols_sci)
 ols_multiple <- lm(y_var_sdg ~ x_var_spi + x_var_sci + log(merged$gdp_pc) + merged$population)
 summary(ols_multiple)
 
-#AIC/BIC - model fit 
+
 
 ```
 We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. Holding all else constant (log gdp per capita and population), there is a positive moderate relationship between Statistical Performance (SPI) and SDG status. 
@@ -232,12 +232,11 @@ Model 1 (ols_spi) does not control for SCI and model 2 (ols_sci) does not contro
 
 # AIC/BIC Checking Fit [FIX TEST- #N DIFFERS BTW MODELS]
 ```{r}
-
 # Compare all three models with AIC
-AIC(ols_spi, ols_sci, ols_multiple)
+#AIC(ols_spi, ols_sci, ols_multiple)
 
 # Compare all three models with BIC
-BIC(ols_spi, ols_sci, ols_multiple)
+#BIC(ols_spi, ols_sci, ols_multiple)
 ```
 
 
@@ -265,21 +264,6 @@ merged$population: 1.03
 Unsurprisingly, the variance of the SPI coefficient is inflated by a factor of 3.58 due to correlation with other predictors. Similarly, the SCI coefficient’s variance is inflated by 3.5 times. However, it is acceptable to use in the same model as it will not severely impact estimates given both factors are less than 5.0. 
 
 **Selecting model:** My research question is about overall statistical capacity rather than comparing different measures. The SPI model reveals a better fit than the SCI model (Adj Rsq: 0.7749 > 0.7506). It is also a better fit compared to the multiple OLS model containing both SPI and SCI (Adj Rsq: 0.7749 > 0.7281).
-
-#Combine to single index: principle component analysis (FOR FUTURE)
-```{r}
-# Standardize both measures
-#spi_z <- scale(x_var_spi)
-#sci_z <- scale(x_var_sci)
-
-# Create composite (simple average)
-#stat_capacity_index <- (spi_z + sci_z)/2
-
-#extract common variance 
-#pca_result <- prcomp(cbind(x_var_spi, x_var_sci), scale = TRUE)
-#stat_capacity_pc1 <- pca_result$x[,1]  # First principal component
-```
-
 
 ```{r}
 #visualize differences in fit
@@ -310,6 +294,19 @@ ggplotly(Compare_fit)
 # ggsave("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs/fd_plot.png", p, width = 10, height = 6)
 ```
 
+#Combine to single index: principle component analysis (FOR FUTURE)
+```{r}
+# Standardize both measures
+#spi_z <- scale(x_var_spi)
+#sci_z <- scale(x_var_sci)
+
+# Create composite (simple average)
+#stat_capacity_index <- (spi_z + sci_z)/2
+
+#extract common variance 
+#pca_result <- prcomp(cbind(x_var_spi, x_var_sci), scale = TRUE)
+#stat_capacity_pc1 <- pca_result$x[,1]  # First principal component
+```
 
 # MULTIPLE LINEAR REGRESSION 
 **Disaggregated by Development Status:**  
@@ -322,9 +319,6 @@ income_class <- read_csv("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs /wo
 merged_inc <- merged %>% 
   left_join(income_class, by = c("country_code", "year"))
 
-# Assuming merged dataset contains:
-# X = spi_comp (SPI values)
-# Y = sdg_overall (SDG values)
 # Subset: income_level (income classification: "H", "UM", "LM", "L")
 
 # 1. Overall model (all countries)
@@ -355,16 +349,6 @@ low_inc_lm <- lm(sdg_overall ~ spi_comp + log(gdp_pc) + population,
                        data = merged_inc %>% 
                          filter(income_level == "L"))
 summary(low_inc_lm)
-
-# put log(GDP), check if pop is relevant, natural log (ln(GDP))
-# take best regression in R squared and try with variables and ensure their relevance, 
-# check to see if Open data is better, a proxy of SPI _ recommends for missing data proxy despite SPI having it.  
-# also look into SCI 
-# take few countries that are undergoing regime change 
-# describe the limitations, specifically the time series 
-# SPI has 1 pillar with 
-# a good thesis is one that highlights the issues and being transparent 
-
 ```
 
 # Extract coefficients and statistics from each model to create comparison table 
