@@ -214,9 +214,6 @@ summary(ols_sci)
 # 3. Multiple Regression with both SPI and SCI
 ols_multiple <- lm(y_var_sdg ~ x_var_spi + x_var_sci + log(merged$gdp_pc) + merged$population)
 summary(ols_multiple)
-
-
-
 ```
 We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. Holding all else constant (log gdp per capita and population), there is a positive moderate relationship between Statistical Performance (SPI) and SDG status. 
 
@@ -604,14 +601,14 @@ fd_comparison <- fd_comparison %>%
 print(fd_comparison)
 
 #export fd_comparison 
-write.csv(fd_comparison, file = "fd_comparison.csv", row.names=F) 
+#write.csv(fd_comparison, file = "fd_comparison.csv", row.names=F) 
 ```
 
 **RESULTS:** 
 
-[perplexity] The overall model shows a positive and statistically significant relationship (coefficient = 0.015, p = 0.0033) between improvements in statistical capacity and improvements in SDG performance. This confirms your hypothesis that better statistical systems contribute to better development outcomes.
+The overall model shows a positive and statistically significant relationship (coefficient = 0.015, p = 0.0033) between improvements in statistical capacity and improvements in SDG performance. Although this confirms my hypothesis that better statistical systems contribute to better development outcomes, the intercept indicates that when SPI remains constant, SDG scores progress by 0.286 anyway. 
 
-However, the income group breakdown reveals fascinating variations:
+The income group breakdown reveals fascinating variations:
 
 1. **High Income Countries** show a negative coefficient (-0.012) that is not statistically significant (p = 0.2537). This suggests that for developed economies, improvements in statistical capacity don't necessarily translate to SDG improvements, possibly because they already have well-established statistical systems and other factors drive their SDG performance.
 
@@ -703,6 +700,7 @@ abline(lm2)
 
 ## Identify Regressing Countries 
 ```{r}
+
 # 2015-present 
 autocracies <- df_years(yr1=2014) 
 autocracies <- autocracies %>% 
@@ -731,6 +729,17 @@ regime_type = v2x_regime,
 ```
 
 
+```{r}
+#incorperating regime type as control
+ols_testing <- lm(sdg_overall ~ spi_comp + regime_type + log(gdp_pc) + population,
+                        data = merged_inc)
+summary(ols_testing)
+
+#incorperating regime type as interaction term
+ols_testing2 <- lm(sdg_overall ~ spi_comp + regime_type*spi_comp + log(gdp_pc) + population,
+                        data = merged_inc)
+summary(ols_testing2)
+```
 
 
 ## First Difference Model 
