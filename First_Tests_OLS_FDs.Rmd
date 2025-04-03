@@ -771,6 +771,14 @@ summary(fe_model)
 
 ```
 
+
+#Correlation matrix (look it up!)
+```{r}
+# 5 spi pillars by 17 and sdgs 
+
+```
+
+
 ## Testing Index Reliability (Cronbach's Alpha)
 
 ```{r}

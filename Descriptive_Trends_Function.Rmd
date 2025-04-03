@@ -11,6 +11,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # load data 
 ```{r}
+#libraries 
+library(tidyverse)
+library(ggplot2)
+library(scales)
+
 source("~/Documents/GitHub/QMSS_Thesis_Sanchez/df_years_function.R")
 merged <- df_years(yr1 = 2000) 
 ```
@@ -18,10 +23,6 @@ merged <- df_years(yr1 = 2000)
 
 #Option 1:Max-min scale trend function 
 ```{r}
-library(tidyr)
-library(ggplot2)
-library(scales)
-
 # Define the function
 plot_trends <- function(data, country_name, start_year = 2015, end_year = 2025) {
   
@@ -87,8 +88,8 @@ plot_trends <- function(data, country_name, start_year = 2015, end_year = 2025) 
 }
 
 #Example: Brazil 
-#plot_trends(merged_inc, country_name = "Brazil", start_year = 2000, end_year = 2020)
-plot_trends(merged_inc, "Spain", 2015)
+#plot_trends(merged, country_name = "Brazil", start_year = 2000, end_year = 2020)
+plot_trends(merged, "Spain", 2015)
 ```
 
 #Option 2:z-score standardization trend function 
@@ -145,8 +146,8 @@ plot_trend_z <- function(data, country_name, start_year = 2015, end_year = 2025)
 }
 
 #example: Brazil
-brazil_plot <- plot_trend_z(merged_inc, "Brazil")
-poland_plot <- plot_trend_z(merged_inc, "Poland")
+brazil_plot <- plot_trend_z(merged, "Brazil")
+poland_plot <- plot_trend_z(merged, "Poland")
 
 ```
 
