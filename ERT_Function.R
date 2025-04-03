@@ -1,6 +1,6 @@
 
-#function to extract data from specified years 
-df_years <- function(name, df1=vdem, yr1=1999, #vdem data ONLY
+#function to extract ERT data from specified years 
+df_ert_years <- function(name, df1=ert, yr1=1999, #vdem data ONLY
                      df2=spi, yr2=yr1, #spi data ONLY
                      df3=sdg, yr3=yr1, #sdg data ONLY
                      df4=sci_df, yr4=yr1) { #sci data ONLY
@@ -14,7 +14,6 @@ df_years <- function(name, df1=vdem, yr1=1999, #vdem data ONLY
            regime_type = v2x_regime, 
            regime_type_amb = v2x_regime_amb,
            elect_dem = v2x_polyarchy,
-           lib_dem = v2x_libdem,
            part_dem = v2x_partipdem,
            delib_dem = v2x_delibdem,
            egal_dem = v2x_egaldem,
@@ -53,7 +52,7 @@ df_years <- function(name, df1=vdem, yr1=1999, #vdem data ONLY
   name3 <- df3 %>% 
     dplyr::select("country_name", "country_code", "year", "sdg_overall", "goal1", "goal2", "goal3", "goal4", "goal5", "goal6", "goal7", "goal8", "goal9", "goal10", "goal11", "goal12", "goal3", "goal14", "goal15", "goal16", "goal17") %>% 
     filter(year >= yr3)
-   
+  
   #SCI DATASET
   name4 <- df4 %>% 
     dplyr::select(country_name, country_code, Year, IQ.SCI.OVRL, IQ.SCI.MTHD, IQ.SCI.PRDC, IQ.SCI.SRCE) %>% 
@@ -80,6 +79,4 @@ df_years <- function(name, df1=vdem, yr1=1999, #vdem data ONLY
     dplyr::mutate_at(c("spi_comp", "p1_use", "p2_services", "p3_products", "p4_sources", "p5_infra", "sci_overall", "sci_method", "sci_periodicity", "sci_source"), as.numeric)
   
   return(name)
-  }
-
-
+}

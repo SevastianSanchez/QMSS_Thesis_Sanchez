@@ -13,3 +13,4 @@ dem_breakdown_info <- vdemdata::var_info("e_democracy_breakdowns")
 
 #Democratization:
 dem_transition_info <- vdemdata::var_info("e_democracy_trans")
+

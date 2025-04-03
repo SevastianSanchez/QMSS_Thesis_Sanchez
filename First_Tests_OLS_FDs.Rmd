@@ -18,11 +18,13 @@ library(devtools)
 library(tidyr)
 library(dplyr)
 library(vdemdata) # call vdem package 
+library(ERT) # call ERT package
 library(readr) #loading data 
 library(readxl)
 library(stargazer)
 library(broom)
 library(car)
+
 ```
 
 #FIRST: Load data
@@ -30,6 +32,9 @@ library(car)
 ```{r}
 #Vdem package from github 
 vdem <- vdemdata::vdem  #loading data 
+
+#ERT package from github
+ert <- read.csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/ert.csv")
 
 #spi csv from github 
 url <- "https://raw.githubusercontent.com/worldbank/SPI/refs/heads/master/03_output_data/SPI_index.csv"
@@ -59,10 +64,10 @@ merged <- df_years(yr1 = 2000)
 
 ##Vdem wrangling / cleaning (skip if df_years() used)
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 #selecting democracy indices and controls 
-vdem <- vdem %>%
-  dplyr::select(country_name, country_text_id, year, v2x_regime, v2x_regime_amb, v2x_polyarchy, v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2xel_frefair, v2x_accountability, v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, v2x_freexp_altinf, e_gdp, e_gdppc, e_wb_pop, v3ststybcov, v3ststybpub, v3stcensus, v3ststatag) %>%
+vdem <- vdem %>% 
+dplyr::select(country_name, country_text_id, year, v2x_regime, v2x_regime_amb, v2x_polyarchy, v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2xel_frefair, v2x_accountability, v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, v2x_freexp_altinf, e_gdp, e_gdppc, e_wb_pop, v3ststybcov, v3ststybpub, v3stcensus, v3ststatag) %>%
   filter(year > 1999) %>% #Only 1999 and up 
   rename(country_code = country_text_id, #renaming country code (new_name = old_name)
          regime_type = v2x_regime, 
@@ -94,7 +99,7 @@ vdem <- vdem %>%
 
 ## SPI wrangling / cleaning (skip if df_years() used)
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 #selecting and renaming spi vars 
 spi <- spi %>% 
   select(country, iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, SPI.INDEX.PIL2, SPI.INDEX.PIL3, SPI.INDEX.PIL4, SPI.INDEX.PIL5) %>% 
@@ -111,7 +116,7 @@ spi <- spi %>%
 
 ## SCI wrangling / cleaning (skip if df_years() used)
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 #full dataset 
 sci <- sci_df %>% 
   dplyr::select(country_name, country_code, Year, IQ.SCI.OVRL, IQ.SCI.MTHD, IQ.SCI.PRDC, IQ.SCI.SRCE, everything()) %>% 
@@ -121,7 +126,7 @@ sci <- sci_df %>%
          sci_periodicity = IQ.SCI.PRDC,
          sci_source = IQ.SCI.SRCE)
 
-sci$year <- as.numeric(sci$year)
+#sci$year <- as.numeric(sci$year)
 
 #for merging (only sci score variables selected)
 sci_scores <- sci %>% 
@@ -130,7 +135,7 @@ sci_scores <- sci %>%
 
 ##SDG wrangling / cleaning (skip if df_years() used)
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 #select sdg goals & composite 
 sdg <- sdg %>% 
   dplyr::select("country_name", "country_code", "year", "sdg_overall", "goal1", "goal2", "goal3", "goal4", "goal5", "goal6", "goal7", "goal8", "goal9", "goal10", "goal11", "goal12", "goal3", "goal14", "goal15", "goal16", "goal17")
@@ -139,7 +144,7 @@ sdg <- sdg %>%
 
 # Merging & subsetting (skip if df_years() used)
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 #merge spi, sci, sdg and vdem data 
 merged <- left_join(sdg, spi, by = c("year", "country_code")) 
 merged <- left_join(merged, sci_scores, by = c("country_code", "year"))
@@ -701,16 +706,18 @@ fd_scatter
 
 ```{r}
 # y & x vars + controls/
-y_var <- merged$sdg_overall 
+sdg_overall_score <- merged$sdg_overall 
 p_1 <- merged$p1_use #insert x var 2
 p_2 <- merged$p2_services #insert x var 3
 p_3 <- merged$p3_products #insert x var 3
 p_4 <- merged$p4_sources #insert x var 3
 p_5 <- merged$p5_infra #insert x var 3
-df_2 <- data.frame(p_1, p_2, p_3, p_4, p_5)
+gdp_pc <- merged$gdp_pc
+
+df_spi_p1to5 <- data.frame(p_1, p_2, p_3, p_4, p_5, gdp_pc)
 
 #OLS lm & full summary table 
-lm2 <- lm(y_var ~ p_1 + p_2 + p_3 + p_4 + p_5, data=df_2)
+lm2 <- lm(sdg_overall_score ~ p_1 + p_2 + p_3 + p_4 + p_5 + log(gdp_pc), data=df_spi_p1to5)
 summary(lm2)
 #plotting residuals
 plot(lm2)
