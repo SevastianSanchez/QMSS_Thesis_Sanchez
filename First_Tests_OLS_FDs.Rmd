@@ -494,7 +494,7 @@ ggplotly(by_income_class)
 library(plm)
 #library(dplyr)
 
-# Create a simplified dataframe with essential variables
+# Create a simplified data frame with essential variables
 fd_data <- merged_inc %>%
   select(country_code, year, sdg_overall, spi_comp, income_level)
 
@@ -705,7 +705,7 @@ fd_scatter
 ## Multiple Regression: Xs = p1-5
 
 ```{r}
-# y & x vars + controls/
+# y & x vars + controls
 sdg_overall_score <- merged$sdg_overall 
 p_1 <- merged$p1_use #insert x var 2
 p_2 <- merged$p2_services #insert x var 3
@@ -719,6 +719,7 @@ df_spi_p1to5 <- data.frame(p_1, p_2, p_3, p_4, p_5, gdp_pc)
 #OLS lm & full summary table 
 lm2 <- lm(sdg_overall_score ~ p_1 + p_2 + p_3 + p_4 + p_5 + log(gdp_pc), data=df_spi_p1to5)
 summary(lm2)
+
 #plotting residuals
 plot(lm2)
 #plotting scatterplot 
@@ -726,47 +727,28 @@ plot(df$y_var, df$x1_var)
 abline(lm2)
 ```
 
-## Identify Regressing Countries
-
-```{r}
-
-# 2015-present 
-autocracies <- df_years(yr1=2014) 
-autocracies <- autocracies %>% 
-  filter(regime_type < 2)
-
-length(df_name$regime_type < 2)
-
-
-plot(year, lib_dem, data=df_name)
-
-
-regime_type = v2x_regime, 
-         regime_type_amb = v2x_regime_amb,
-         elect_dem = v2x_polyarchy,
-         lib_dem = v2x_libdem,
-         part_dem = v2x_partipdem,
-         delib_dem = v2x_delibdem,
-         egal_dem = v2x_egaldem,
-         freefair
-
-
-
-# 2000-present 
-
-
-```
-
+##interaction term and control
 ```{r}
 #incorperating regime type as control
 ols_testing <- lm(sdg_overall ~ spi_comp + regime_type + log(gdp_pc) + population,
                         data = merged_inc)
 summary(ols_testing)
 
-#incorperating regime type as interaction term
-ols_testing2 <- lm(sdg_overall ~ spi_comp + regime_type*spi_comp + log(gdp_pc) + population,
+#incorperating regime type as interaction term & control
+ols_testing2 <- lm(sdg_overall ~ spi_comp + regime_type + regime_type*spi_comp + log(gdp_pc) + population,
                         data = merged_inc)
 summary(ols_testing2)
+```
+
+## R Stan, GLM, Markove  
+```{r}
+library(rstanarm)
+
+gml_testing <- stan_glm(sdg_overall ~ spi_comp + regime_type + regime_type*spi_comp + log(gdp_pc) + population, data = merged_inc)
+
+# glm_testing
+print(glm_testing)
+summary(gml_testing)
 ```
 
 ## Fixed Effects Model
@@ -774,8 +756,8 @@ summary(ols_testing2)
 library(plm)
 fe_model <- plm(sdg_overall ~ spi_comp + regime_type + gdp_pc + population,
                 data = merged_inc, index = c("country_code", "year"), model = "within")
-summary(fe_model)
 
+summary(fe_model)
 ```
 
 

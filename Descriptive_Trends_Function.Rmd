@@ -21,77 +21,6 @@ merged <- df_years(yr1 = 2000)
 ```
 
 
-#Option 1:Max-min scale trend function 
-```{r}
-# Define the function
-plot_trends <- function(data, country_name, start_year = 2015, end_year = 2025) {
-  
-  # Filter and prepare data for the specified country and time range
-  country_data <- data %>%
-    filter(country_name.x == country_name & year >= start_year & year <= end_year) %>%
-    select(
-      year,
-      p1_use, p2_services, p3_products, p4_sources, p5_infra,  
-      sdg_overall, lib_dem
-    ) %>%
-    mutate(across(-year, ~ rescale(.x)))  # Normalize all variables to 0-1 scale
-  
-  # Reshape data into long format for plotting
-  country_long <- country_data %>%
-    pivot_longer(
-      cols = -year,
-      names_to = "metric",
-      values_to = "value"
-    )
-  
-  # Define custom color scheme
-  custom_colors <- c(
-    "p1_use" = "#c6dbef",      # Light Blue
-    "p2_services" = "#6baed6", # Medium Blue
-    "p3_products" = "#2171b5", # Dark Blue
-    "p4_sources" = "#08306b",  # Navy Blue
-    "p5_infra" = "#08519c",    # Teal Blue
-    "sdg_overall" = "#fc8d59", # Orange
-    "lib_dem" = "#31a354"      # Green
-  )
-  
-  metric_labels <- c(
-    "p1_use" = "SPI: Data Use",
-    "p2_services" = "SPI: Services",
-    "p3_products" = "SPI: Products",
-    "p4_sources" = "SPI: Sources",
-    "p5_infra" = "SPI: Infrastructure",
-    "sdg_overall" = "SDG Overall",
-    "lib_dem" = "Liberal Democracy"
-  )
-  
-  # Create the plot
-  plot <- ggplot(country_long, aes(x = year, y = value, color = metric)) +
-    geom_line(linewidth = 1.2) +
-    geom_vline(xintercept = 2018, linetype = "dashed", color = "red") +  
-    scale_color_manual(values = custom_colors, labels = metric_labels) +
-    scale_y_continuous(labels = percent_format()) +  
-    labs(
-      title = paste(country_name, ": SPI Pillars, SDG Score, and Democracy Trends (", start_year, "-", end_year, ")", sep = ""),
-      x = "Year",
-      y = "Normalized Score (0-1)",
-      color = "Metric",
-      caption = paste("SPI data from WB Statistical Performance Index | Democracy data from V-Dem | SDG data from UN")
-    ) +
-    theme_minimal() +
-    theme(
-      legend.position = "bottom",
-      legend.text = element_text(size = 8)
-    )
-  
-  return(plot)
-}
-
-#Example: Brazil 
-#plot_trends(merged, country_name = "Brazil", start_year = 2000, end_year = 2020)
-plot_trends(merged, "Spain", 2015)
-```
-
 #Option 2:z-score standardization trend function 
 ```{r}
 library(tidyr)
@@ -147,7 +76,7 @@ plot_trend_z <- function(data, country_name, start_year = 2015, end_year = 2025)
 
 #example: Brazil
 brazil_plot <- plot_trend_z(merged, "Brazil")
-poland_plot <- plot_trend_z(merged, "Poland")
+brazil_plot
 
 ```
 
