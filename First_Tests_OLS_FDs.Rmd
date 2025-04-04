@@ -46,6 +46,15 @@ sdg <- read_excel("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SDR2024-data
 #sci csv from directory 
 sci_df <- read_csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SCI_All_Dim_TS.csv")
 
+#Information Capacity 
+info_cap <- read_csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/information_capacity.csv")
+
+#GDP per capita, Up to date 
+
+
+#ODIN 
+
+
 # set working directory 
 setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 ```

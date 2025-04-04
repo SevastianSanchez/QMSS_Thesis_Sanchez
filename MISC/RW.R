@@ -5,12 +5,13 @@ testing_df <- df_years(yr1 = 2005)
 vdemdata::find_var("gdp") #finds variables based on key words 
 
 
-region_info <- vdemdata::var_info("e_regionpol_6C") #info on variables 
-region_info$responses
+#Distribution of all countries that experienced democratization from 1900-2021
+hist(ert$year[df$reg_trans==1])
+#Distribution of all countries that experienced democratic backsliding from 1900-2021
+hist(df$year[df$reg_trans==-1])
+#Distribution of all countries that have not experienced change  1900-2021
+hist(df$year[df$reg_trans==0])
 
-#backsliding:
-dem_breakdown_info <- vdemdata::var_info("e_democracy_breakdowns")
-
-#Democratization:
-dem_transition_info <- vdemdata::var_info("e_democracy_trans")
-
+#frequency/proportion table: instances of backsliding, stability, democratization from 1900-2021
+table(df$reg_trans) # frequency
+prop.table(table(df$reg_trans)) # proportions 
