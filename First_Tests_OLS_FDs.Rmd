@@ -345,7 +345,6 @@ merged_inc <- merged %>%
   left_join(income_class, by = c("country_code", "year"))
 
 
-
 # Subset: income_level (income classification: "H", "UM", "LM", "L")
 
 # 1. Overall model (all countries)
@@ -756,7 +755,7 @@ library(rstanarm)
 gml_testing <- stan_glm(sdg_overall ~ spi_comp + regime_type + regime_type*spi_comp + log(gdp_pc) + population, data = merged_inc)
 
 # glm_testing
-print(glm_testing)
+print(gml_testing)
 summary(gml_testing)
 ```
 
