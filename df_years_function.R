@@ -37,7 +37,7 @@ df_years <- function(name, df1=vdem, yr1=1999, #vdem data ONLY
   #SPI DATASET
   
   name2 <- df2 %>% 
-    select(country, iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, SPI.INDEX.PIL2, SPI.INDEX.PIL3, SPI.INDEX.PIL4, SPI.INDEX.PIL5) %>% 
+    dplyr::select(country, iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, SPI.INDEX.PIL2, SPI.INDEX.PIL3, SPI.INDEX.PIL4, SPI.INDEX.PIL5) %>% 
     rename(country_name = country) %>% 
     rename(country_code = iso3c) %>% 
     rename(year = date) %>% 
@@ -51,7 +51,7 @@ df_years <- function(name, df1=vdem, yr1=1999, #vdem data ONLY
   
   #SDG DATASET
   name3 <- df3 %>% 
-    dplyr::select("country_name", "country_code", "year", "sdg_overall", "goal1", "goal2", "goal3", "goal4", "goal5", "goal6", "goal7", "goal8", "goal9", "goal10", "goal11", "goal12", "goal3", "goal14", "goal15", "goal16", "goal17") %>% 
+    dplyr::select("country_name", "country_code", "year", "sdg_overall", "goal1", "goal2", "goal3", "goal4", "goal5", "goal6", "goal7", "goal8", "goal9", "goal10", "goal11", "goal12", "goal13", "goal14", "goal15", "goal16", "goal17") %>% 
     filter(year >= yr3)
    
   #SCI DATASET

@@ -5,9 +5,10 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
                      df3=sdg, sdg_yr=yr1, #sdg data ONLY
                      df4=sci_df, sci_yr=yr1, #sci data ONLY
                      df5=ert, ert_yr=yr1, #ert data ONLY
-                     df6=info_cap, info_cap_yr=yr1, #info_cap data ONLY
-                     df7=gdppc_dta, gdppc_dta=yr1, #gdppc_dta data ONLY
-                     df8=odin, odin_yr=yr1){ #odin data ONLY
+                     df6=gdppc_df, gdppc_yr=yr1 #, #gdppc_dta data ONLY
+                     #df7=info_cap, info_cap_yr=yr1, #info_cap data ONLY
+                     #df8=odin, odin_yr=yr1
+                     ){ #odin data ONLY
   
   #VDEM DATASET
   
@@ -43,7 +44,7 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
   
   #SPI DATASET
   name2 <- df2 %>% 
-    select(country, iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, SPI.INDEX.PIL2, SPI.INDEX.PIL3, SPI.INDEX.PIL4, SPI.INDEX.PIL5) %>% 
+    dplyr::select(country, iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, SPI.INDEX.PIL2, SPI.INDEX.PIL3, SPI.INDEX.PIL4, SPI.INDEX.PIL5) %>% 
     rename(country_name = country) %>% 
     rename(country_code = iso3c) %>% 
     rename(year = date) %>% 
@@ -57,7 +58,7 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
   
   #SDG DATASET
   name3 <- df3 %>% 
-    dplyr::select("country_name", "country_code", "year", "sdg_overall", "goal1", "goal2", "goal3", "goal4", "goal5", "goal6", "goal7", "goal8", "goal9", "goal10", "goal11", "goal12", "goal3", "goal14", "goal15", "goal16", "goal17") %>% 
+    dplyr::select("country_name", "country_code", "year", "sdg_overall", "goal1", "goal2", "goal3", "goal4", "goal5", "goal6", "goal7", "goal8", "goal9", "goal10", "goal11", "goal12", "goal13", "goal14", "goal15", "goal16", "goal17") %>% 
     filter(year >= sdg_yr)
   
   #SCI DATASET
@@ -90,11 +91,21 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
            aut_ep_start_yr = aut_ep_start_year,
            aut_ep_end_yr = aut_ep_end_year)
   
+  #GDP Per Capita # TO EDIT!!
+  name6 <- df6 %>% 
+    dplyr::select('Country Name', 'Country Code', year, gdp_pc) %>% 
+    rename(country_code = 'Country Code',
+           gdppc = gdp_pc) %>% 
+    filter(year >= gdppc_yr)
+   
+  name6$year <- as.numeric(name6$year) 
+  
   #MERGING spi, sci, sdg and vdem data 
   namex <- left_join(name3, name2, by = c("year", "country_code")) 
   namex <- left_join(namex, name4, by = c("country_code", "year"))
   namex <- left_join(namex, name1, by = c("country_code", "year"))
   namex <- left_join(namex, name5, by = c("country_code", "year"))
+  namex <- left_join(namex, name6, by = c("country_code", "year"))
   
   #rm duplicate col names 
   colnames(namex) <- make.unique(colnames(namex)) # Make column names unique

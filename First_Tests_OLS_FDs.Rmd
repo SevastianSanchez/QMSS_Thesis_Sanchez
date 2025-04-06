@@ -33,7 +33,7 @@ library(car)
 #Vdem package from github 
 vdem <- vdemdata::vdem  #loading data 
 
-#ERT package from github
+#ERT package
 ert <- read.csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/ert.csv")
 
 #spi csv from github 
@@ -46,11 +46,11 @@ sdg <- read_excel("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SDR2024-data
 #sci csv from directory 
 sci_df <- read_csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/SCI_All_Dim_TS.csv")
 
+#GDP per capita, Up to date 
+gdppc_df <- read_csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/gdppc_df_long.csv")
+
 #Information Capacity 
 info_cap <- read_csv("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/information_capacity.csv")
-
-#GDP per capita, Up to date 
-
 
 #ODIN 
 
@@ -151,6 +151,17 @@ sdg <- sdg %>%
 
 ```
 
+##GDP_PC wrangling / cleaning (skip if df_years() used)
+
+```{r}
+gdppc_df <- gdppc_df %>%  #pivot back to long format
+  pivot_longer(3:66, #use any way to select all columns (he used range)
+               names_to = "year", # new var using cols 2:13 as values
+               values_to = "gdp_pc") #new var containing all values within cols 2:13 as values 
+View(gdppc_df)
+```
+
+
 # Merging & subsetting (skip if df_years() used)
 
 ```{r eval=FALSE, include=FALSE}
@@ -171,7 +182,7 @@ merged <- merged %>%
 #write.table(merged, file = "merged_ts.csv", row.names=F, sep = ",") 
 ```
 
-##Cross-Sectional Analysis - 2019 data only
+## All countries 2019 data only
 
 ```{r}
 #subset for only 2019 
@@ -181,7 +192,7 @@ merged_cs_2019 <- merged[merged$year==2019,]
 #write.table(merged_cs_2019, file = "merged_cs2019.csv", row.names=F, sep = ",")
 ```
 
-## Wrangling for Spain - Test Subject
+## Spain years 2000-present - Test Subject
 
 ```{r}
 # subset for Spain 

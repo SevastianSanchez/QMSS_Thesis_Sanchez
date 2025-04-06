@@ -1,0 +1,77 @@
+---
+title: "correlation_matrix_SDG_SPI"
+author: "Sevastian Sanchez"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r cars}
+library(tidyverse)
+library(ggplot2)
+library(scales)
+library(dplyr)
+library(ppcor)  # For partial correlation calculations
+
+source("~/Documents/GitHub/QMSS_Thesis_Sanchez/df_years_function.R")
+merged_matrix <- df_years() 
+```
+
+#Partial correlation & package 
+Partial correlation controls for confounding variables: Ensures correlations between SPI pillars and SDG goals are adjusted for external factors like log(GDP) and population (control1, control2).
+
+Focus on Direct Relationships: Removes indirect effects of controls on both SPI and SDG metrics.
+```{r}
+# Example: Filter relevant columns
+matrix_data <- merged_matrix %>%
+  dplyr::select(p1_use, p2_services, p3_products, p4_sources, p5_infra,
+         goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8,
+         goal9, goal10, goal11, goal12, goal13, goal14, goal15,
+         goal16, goal17, gdp_pc, population)
+
+```
+
+```{r}
+# Initialize an empty matrix to store results
+spi_pillars <- c("p1_use", "p2_services", "p3_products", "p4_sources", "p5_infra")
+sdg_goals <- paste0("goal", 1:17)
+partial_corr_matrix <- matrix(NA, nrow = length(spi_pillars), ncol = length(sdg_goals),
+                              dimnames = list(spi_pillars, sdg_goals))
+
+# Loop through SPI pillars and SDG goals
+for (spi in spi_pillars) {
+  for (sdg in sdg_goals) {
+    # Extract partial correlation controlling for control variables
+    result <- pcor(matrix_data[, c(spi, sdg, "gdp_pc", "population")])
+    partial_corr_matrix[spi, sdg] <- result$estimate[1, 2]  # Partial correlation coefficient
+  }
+}
+
+# Convert to data frame for easier visualization
+matrix_df <- as.data.frame(partial_corr_matrix)
+
+```
+
+#Visualize Correlation Matrix
+```{r}
+library(ggplot2)
+
+# Melt matrix into long format for ggplot
+library(reshape2)
+matrix_long <- melt(matrix_df)
+
+ggplot(matrix_long, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+                       midpoint = 0, limit = c(-1, 1), space = "Lab",
+                       name="Partial\nCorrelation") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Partial Correlation Matrix: SPI Pillars vs SDG Goals",
+       x = "SDG Goals", y = "SPI Pillars")
+
+```
+
