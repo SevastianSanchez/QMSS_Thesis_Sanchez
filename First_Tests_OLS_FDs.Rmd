@@ -24,7 +24,6 @@ library(readxl)
 library(stargazer)
 library(broom)
 library(car)
-
 ```
 
 #FIRST: Load data

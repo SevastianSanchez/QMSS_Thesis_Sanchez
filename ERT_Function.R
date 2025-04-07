@@ -6,8 +6,8 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
                      df5=ert, ert_yr=yr1, #ert data ONLY
                      df6=gdppc_df, gdppc_yr=yr1, #, #gdppc_dta data ONLY
                      df7=info_cap, info_cap_yr=yr1 #info_cap data ONLY
-                     #df8=odin, odin_yr=yr1
-                     ){ #odin data ONLY
+                     #df8=odin, odin_yr=yr1 #odin data ONLY
+                     ){ 
   
   #VDEM DATASET
   
@@ -18,6 +18,7 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
                   e_wb_pop, v3ststybcov, v3ststybpub, v3stcensus, v3ststatag) %>%
     filter(year >= yr1) %>% #Only 1999 and up 
     rename(country_code = country_text_id, #renaming country code (new_name = old_name)
+           country_id = country_id,
            regime_type_4 = v2x_regime, 
            regime_type_10 = v2x_regime_amb,
            elect_dem = v2x_polyarchy,
