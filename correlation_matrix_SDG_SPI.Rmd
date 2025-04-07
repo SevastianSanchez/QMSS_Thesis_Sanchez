@@ -15,9 +15,10 @@ library(ggplot2)
 library(scales)
 library(dplyr)
 library(ppcor)  # For partial correlation calculations
+library(mice)
 
 source("~/Documents/GitHub/QMSS_Thesis_Sanchez/df_years_function.R")
-merged_matrix <- df_years() 
+merged_matrix <- df_years(yr1=2015) 
 ```
 
 #Partial correlation & package 
@@ -33,6 +34,7 @@ matrix_data <- merged_matrix %>%
          goal16, goal17, gdp_pc, population)
 
 ```
+
 
 ```{r}
 # Initialize an empty matrix to store results

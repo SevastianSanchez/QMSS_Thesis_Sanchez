@@ -6,14 +6,14 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
                      df4=sci_df, sci_yr=yr1, #sci data ONLY
                      df5=ert, ert_yr=yr1, #ert data ONLY
                      df6=gdppc_df, gdppc_yr=yr1 #, #gdppc_dta data ONLY
-                     #df7=info_cap, info_cap_yr=yr1, #info_cap data ONLY
+                     df7=info_cap, info_cap_yr=yr1, #info_cap data ONLY
                      #df8=odin, odin_yr=yr1
                      ){ #odin data ONLY
   
   #VDEM DATASET
   
   name1 <- df1 %>%
-    dplyr::select(country_name, country_text_id, year, v2x_regime, v2x_regime_amb, v2x_polyarchy, 
+    dplyr::select(country_name, country_text_id, country_id, year, v2x_regime, v2x_regime_amb, v2x_polyarchy, 
                   v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2xel_frefair, v2x_accountability, 
                   v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, v2x_freexp_altinf, e_gdp, e_gdppc, 
                   e_wb_pop, v3ststybcov, v3ststybpub, v3stcensus, v3ststatag) %>%
@@ -93,12 +93,18 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
   
   #GDP Per Capita # TO EDIT!!
   name6 <- df6 %>% 
-    dplyr::select('Country Name', 'Country Code', year, gdp_pc) %>% 
-    rename(country_code = 'Country Code',
-           gdppc = gdp_pc) %>% 
+    dplyr::select(country_name, country_code, year, gdp_pc) %>% 
+    rename(gdppc = gdp_pc) %>% 
     filter(year >= gdppc_yr)
    
   name6$year <- as.numeric(name6$year) 
+  
+  #INFO CAPACITY
+  name7 <- df7 %>% 
+    dplyr::select(cname, VDemcode, year, infcap_irt, infcap_pca) %>% 
+    rename(country_id = VDemcode, 
+           country_name = cname) %>% 
+    filter(year >= info_cap_yr)
   
   #MERGING spi, sci, sdg and vdem data 
   namex <- left_join(name3, name2, by = c("year", "country_code")) 
@@ -106,6 +112,7 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
   namex <- left_join(namex, name1, by = c("country_code", "year"))
   namex <- left_join(namex, name5, by = c("country_code", "year"))
   namex <- left_join(namex, name6, by = c("country_code", "year"))
+  namex <- left_join(namex, name7, by = c("country_id", "year"))
   
   #rm duplicate col names 
   colnames(namex) <- make.unique(colnames(namex)) # Make column names unique

@@ -8,7 +8,7 @@ df_years <- function(name, df1=vdem, yr1=1999, #vdem data ONLY
   #VDEM DATASET
   
   name1 <- df1 %>%
-    dplyr::select(country_name, country_text_id, year, v2x_regime, v2x_regime_amb, v2x_polyarchy, v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2xel_frefair, v2x_accountability, v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, v2x_freexp_altinf, e_gdp, e_gdppc, e_wb_pop, v3ststybcov, v3ststybpub, v3stcensus, v3ststatag) %>%
+    dplyr::select(country_name, country_text_id, year, country_id, v2x_regime, v2x_regime_amb, v2x_polyarchy, v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2xel_frefair, v2x_accountability, v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, v2x_freexp_altinf, e_gdp, e_gdppc, e_wb_pop, v3ststybcov, v3ststybpub, v3stcensus, v3ststatag) %>%
     filter(year >= yr1) %>% #Only 1999 and up 
     rename(country_code = country_text_id, #renaming country code (new_name = old_name)
            regime_type = v2x_regime, 
