@@ -113,7 +113,7 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
   namex <- left_join(namex, name1, by = c("country_code", "year"))
   namex <- left_join(namex, name5, by = c("country_code", "year"))
   namex <- left_join(namex, name6, by = c("country_code", "year"))
-  namex <- left_join(namex, name7, by = c("country_id", "year"))
+  namex <- left_join(namex, name7, by = c("country_code", "year"))
   
   #rm duplicate col names 
   colnames(namex) <- make.unique(colnames(namex)) # Make column names unique
