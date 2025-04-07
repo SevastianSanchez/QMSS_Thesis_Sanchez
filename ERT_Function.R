@@ -1,12 +1,11 @@
-
 #function to extract data from specified years 
 df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
                      df2=spi, spi_yr=yr1, #spi data ONLY
                      df3=sdg, sdg_yr=yr1, #sdg data ONLY
                      df4=sci_df, sci_yr=yr1, #sci data ONLY
                      df5=ert, ert_yr=yr1, #ert data ONLY
-                     df6=gdppc_df, gdppc_yr=yr1 #, #gdppc_dta data ONLY
-                     df7=info_cap, info_cap_yr=yr1, #info_cap data ONLY
+                     df6=gdppc_df, gdppc_yr=yr1, #, #gdppc_dta data ONLY
+                     df7=info_cap, info_cap_yr=yr1 #info_cap data ONLY
                      #df8=odin, odin_yr=yr1
                      ){ #odin data ONLY
   
@@ -44,7 +43,8 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
   
   #SPI DATASET
   name2 <- df2 %>% 
-    dplyr::select(country, iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, SPI.INDEX.PIL2, SPI.INDEX.PIL3, SPI.INDEX.PIL4, SPI.INDEX.PIL5) %>% 
+    dplyr::select(country, iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, SPI.INDEX.PIL2, SPI.INDEX.PIL3, 
+                  SPI.INDEX.PIL4, SPI.INDEX.PIL5) %>% 
     rename(country_name = country) %>% 
     rename(country_code = iso3c) %>% 
     rename(year = date) %>% 
@@ -77,7 +77,8 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
   name5 <- df5 %>%
     dplyr::select(country_name, country_text_id, year, reg_type, v2x_polyarchy, 
                   row_regch_event, reg_trans, dem_ep, dem_pre_ep_year, dem_ep_start_year, 
-                  dem_ep_end_year, aut_ep, aut_pre_ep_year, aut_ep_start_year, aut_ep_end_year, everything()) %>%
+                  dem_ep_end_year, aut_ep, aut_pre_ep_year, aut_ep_start_year, aut_ep_end_year, 
+                  everything()) %>%
     filter(year >= ert_yr) %>% #default only 1999 and up 
     rename(country_code = country_text_id, #renaming country code (new_name = old_name)
            regime_type_2 = reg_type,
@@ -106,7 +107,7 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
            country_name = cname) %>% 
     filter(year >= info_cap_yr)
   
-  #MERGING spi, sci, sdg and vdem data 
+  #MERGING spi, sci, sdg, vdem data 
   namex <- left_join(name3, name2, by = c("year", "country_code")) 
   namex <- left_join(namex, name4, by = c("country_code", "year"))
   namex <- left_join(namex, name1, by = c("country_code", "year"))
@@ -120,7 +121,8 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
   #data type changes 
   namex$year <- as.integer(namex$year)
   name <- namex %>% 
-    dplyr::mutate_at(c("spi_comp", "p1_use", "p2_services", "p3_products", "p4_sources", "p5_infra", "sci_overall", "sci_method", "sci_periodicity", "sci_source"), as.numeric)
+    dplyr::mutate_at(c("spi_comp", "p1_use", "p2_services", "p3_products", "p4_sources", "p5_infra", 
+                       "sci_overall", "sci_method", "sci_periodicity", "sci_source"), as.numeric)
   
   return(name)
 }
