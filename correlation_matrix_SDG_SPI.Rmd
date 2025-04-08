@@ -11,11 +11,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r cars}
 library(tidyverse)
-library(ggplot2)
 library(scales)
-library(dplyr)
 library(ppcor)  # For partial correlation calculations
 library(mice)
+#library(ggplot2)
+#library(dplyr)
 
 source("~/Documents/GitHub/QMSS_Thesis_Sanchez/df_years_function.R")
 merged_matrix <- df_years(yr1=2015) 

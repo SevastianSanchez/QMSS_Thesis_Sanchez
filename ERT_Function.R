@@ -1,3 +1,5 @@
+library(tidyverse)
+
 #function to extract data from specified years 
 df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
                      df2=spi, spi_yr=yr1, #spi data ONLY

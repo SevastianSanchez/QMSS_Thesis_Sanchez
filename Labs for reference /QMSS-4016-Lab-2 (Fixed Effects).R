@@ -69,7 +69,8 @@ firstD <- function(var, group, df){
   bad <- (missing(group) & !missing(df))
   if (bad) stop("if df is specified then group must also be specified")
   
-  fD <- function(j){ c(NA, diff(j)) }
+  fD <- function(j){
+    c(NA, diff(j)) }
   
   var.is.alone <- missing(group) & missing(df)
   
