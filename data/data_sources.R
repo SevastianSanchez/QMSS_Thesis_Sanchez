@@ -1,15 +1,18 @@
 library(tidyverse)
+library(readxl)
 #library(car)
 #library(tidyr)
 #library(dplyr)
 #library(readr) 
-#library(readxl)
 #library(broom)
 library(devtools)
 library(vdemdata) # call vdem package 
 library(ERT) # call ERT package
 
-#SOURCES 
+# set working directory 
+setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
+
+#SOURCES
 
 #Vdem package from github 
 vdem <- vdemdata::vdem  #loading data 
@@ -34,3 +37,4 @@ gdppc_df <- read_csv("data/gdppc_df_long.csv")
 info_cap <- read_csv("data/information_capacity.csv")
 
 #ODIN 
+
