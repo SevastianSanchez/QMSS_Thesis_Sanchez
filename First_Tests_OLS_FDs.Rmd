@@ -34,10 +34,11 @@ library(mice)
 
 ```{r}
 #load data 
-source("~/Documents/GitHub/QMSS_Thesis_Sanchez/data/data_sources.R")
-
 # set working directory 
 setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
+
+source("data/data_sources.R")
+
 ```
 
 #SECOND: run function in r-script: df_years_function.R
@@ -46,7 +47,7 @@ setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 #df_years: used for extracting data from specified year to now 
 
 #load function
-source("~/Documents/GitHub/QMSS_Thesis_Sanchez/df_years_function.R")
+source("df_years()_Function.R")
 
 #specify start year 
 merged <- df_years(yr1 = 2000) 
