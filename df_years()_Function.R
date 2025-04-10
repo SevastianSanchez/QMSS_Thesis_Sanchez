@@ -1,7 +1,7 @@
 library(tidyverse)
 
 #function to extract data from specified years 
-df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
+df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
                      df2=spi, spi_yr=yr1, #spi data ONLY
                      df3=sdg, sdg_yr=yr1, #sdg data ONLY
                      df4=sci_df, sci_yr=yr1, #sci data ONLY
@@ -14,13 +14,12 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
   #VDEM DATASET
   
   name1 <- df1 %>%
-    dplyr::select(country_name, country_text_id, country_id, year, v2x_regime, v2x_regime_amb, v2x_polyarchy, 
+    dplyr::select(country_name, country_text_id, year, v2x_regime, v2x_regime_amb, v2x_polyarchy, 
                   v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2xel_frefair, v2x_accountability, 
-                  v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, v2x_freexp_altinf, e_gdp, e_gdppc, 
-                  e_wb_pop, v3ststybcov, v3ststybpub, v3stcensus, v3ststatag) %>%
+                  v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, v2x_freexp_altinf, 
+                  e_wb_pop) %>%
     filter(year >= yr1) %>% #Only 1999 and up 
     rename(country_code = country_text_id, #renaming country code (new_name = old_name)
-           country_id = country_id,
            regime_type_4 = v2x_regime, 
            regime_type_10 = v2x_regime_amb,
            elect_dem = v2x_polyarchy,
@@ -36,13 +35,7 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
            diag_account = v2x_diagacc,
            academ_free = v2xca_academ,
            freexp_altinfo = v2x_freexp_altinf,
-           gdp = e_gdp,
-           gdp_pc = e_gdppc,
-           population = e_wb_pop,
-           stat_agency = v3ststatag,
-           stat_yb_cov = v3ststybcov,
-           stat_yb_pub = v3ststybpub,
-           census = v3stcensus)
+           population = e_wb_pop)
   
   #SPI DATASET
   name2 <- df2 %>% 
@@ -78,7 +71,7 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
   
   #ERT DATASET 
   name5 <- df5 %>%
-    dplyr::select(country_name, country_text_id, year, reg_type, v2x_polyarchy, 
+    dplyr::select(country_name, country_id, country_text_id, year, reg_type, v2x_polyarchy, 
                   row_regch_event, reg_trans, dem_ep, dem_pre_ep_year, dem_ep_start_year, 
                   dem_ep_end_year, aut_ep, aut_pre_ep_year, aut_ep_start_year, aut_ep_end_year, 
                   everything()) %>%
@@ -105,9 +98,7 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
   
   #INFO CAPACITY
   name7 <- df7 %>% 
-    dplyr::select(cname, VDemcode, year, infcap_irt, infcap_pca) %>% 
-    rename(country_id = VDemcode, 
-           country_name = cname) %>% 
+    dplyr::select(country_name, country_id, year, infcap_irt, infcap_pca, everything()) %>% 
     filter(year >= info_cap_yr)
   
   #MERGING spi, sci, sdg, vdem data 
@@ -121,12 +112,12 @@ df_years_test <- function(df1=vdem, yr1=2000, #vdem data ONLY
   #rm duplicate col names 
   colnames(namex) <- make.unique(colnames(namex)) # Make column names unique
   
-  #data type changes 
+  #data type changes & reordering 
   namex$year <- as.integer(namex$year)
   name <- namex %>% 
+    dplyr::select(country_name, country_code, country_id, year, everything()) %>% 
     dplyr::mutate_at(c("spi_comp", "p1_use", "p2_services", "p3_products", "p4_sources", "p5_infra", 
                        "sci_overall", "sci_method", "sci_periodicity", "sci_source"), as.numeric)
   
   return(name)
 }
-testingg <- df_years_test()
