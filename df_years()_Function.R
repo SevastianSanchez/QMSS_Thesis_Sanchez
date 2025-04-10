@@ -1,4 +1,5 @@
 library(tidyverse)
+source("data/data_sources.R")
 
 #function to extract data from specified years 
 df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
@@ -40,9 +41,8 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   
   #SPI DATASET
   name2 <- df2 %>% 
-    dplyr::select(country, iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, SPI.INDEX.PIL2, SPI.INDEX.PIL3, 
+    dplyr::select(iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, SPI.INDEX.PIL2, SPI.INDEX.PIL3, 
                   SPI.INDEX.PIL4, SPI.INDEX.PIL5, income, region, weights) %>% 
-    rename(country_name = country) %>% 
     rename(country_code = iso3c) %>% 
     rename(year = date) %>% 
     rename(spi_comp = SPI.INDEX) %>% #SPI composite score, average of p1-5
@@ -58,12 +58,12 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   
   #SDG DATASET
   name3 <- df3 %>% 
-    dplyr::select("country_name", "country_code", "year", "sdg_overall", "goal1", "goal2", "goal3", "goal4", "goal5", "goal6", "goal7", "goal8", "goal9", "goal10", "goal11", "goal12", "goal13", "goal14", "goal15", "goal16", "goal17") %>% 
+    dplyr::select(country_name, country_code, year, sdg_overall, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17) %>% 
     filter(year >= sdg_yr)
   
   #SCI DATASET
   name4 <- df4 %>% 
-    dplyr::select(country_name, country_code, Year, IQ.SCI.OVRL, IQ.SCI.MTHD, IQ.SCI.PRDC, IQ.SCI.SRCE) %>% 
+    dplyr::select(country_code, Year, IQ.SCI.OVRL, IQ.SCI.MTHD, IQ.SCI.PRDC, IQ.SCI.SRCE) %>% 
     filter(Year >= sci_yr) %>% 
     rename(year = Year,
            sci_overall = IQ.SCI.OVRL, 
@@ -77,10 +77,9 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   name5 <- df5 %>%
     dplyr::select(country_name, country_id, country_text_id, year, reg_type, v2x_polyarchy, 
                   row_regch_event, reg_trans, dem_ep, dem_pre_ep_year, dem_ep_start_year, 
-                  dem_ep_end_year, aut_ep, aut_pre_ep_year, aut_ep_start_year, aut_ep_end_year, 
-                  everything()) %>%
-    filter(year >= ert_yr) %>% #default only 1999 and up 
-    rename(country_code = country_text_id, #renaming country code (new_name = old_name)
+                  dem_ep_end_year, aut_ep, aut_pre_ep_year, aut_ep_start_year, aut_ep_end_year) %>%
+    filter(year >= ert_yr) %>% 
+    rename(country_code = country_text_id, 
            regime_type_2 = reg_type,
            elect_dem_ert = v2x_polyarchy,
            regch_event = row_regch_event,
@@ -94,7 +93,7 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   
   #GDP Per Capita
   name6 <- df6 %>% 
-    dplyr::select(country_name, country_code, year, gdp_pc) %>% 
+    dplyr::select(country_code, year, gdp_pc) %>% 
     rename(gdppc = gdp_pc) %>% 
     filter(year >= gdppc_yr)
    
@@ -102,7 +101,7 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   
   #INFO CAPACITY
   name7 <- df7 %>% 
-    dplyr::select(country_name, country_id, year, infcap_irt, infcap_pca, everything()) %>% 
+    dplyr::select(country_id, year, infcap_irt, infcap_pca, everything()) %>% 
     filter(year >= info_cap_yr)
   
  #WB Income Classifications 
@@ -124,10 +123,11 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   #data type changes & reordering 
   namex$year <- as.integer(namex$year)
   name <- namex %>% 
-    dplyr::select(country_name, country_code, country_id, year, everything()) %>% 
+    dplyr::select(country_name.x, country_code, country_id, year, everything()) %>% 
     dplyr::mutate_at(c("spi_comp", "p1_use", "p2_services", "p3_products", "p4_sources", "p5_infra", 
                        "sci_overall", "sci_method", "sci_periodicity", "sci_source"), as.numeric)
   
   return(name)
 }
 
+test <- df_years(yr1=2000)

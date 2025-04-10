@@ -1,0 +1,287 @@
+---
+title: "Temporal_Lags_FD_FE"
+author: "Sevastian Sanchez"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#TEMPORAL ANALYSIS: First Difference, Fixed Effects, Checks...
+
+##libraries
+```{r}
+#load libraries 
+source("packages.R")
+
+#load data
+source("data/data_sources.R")
+
+#load df_years() function
+fd_fe_data <- df_years(yr1=2015)
+```
+
+#first difference
+```{r}
+fd_model <- plm(
+  spi_comp ~ aut_ep + log(gdppc) + population + factor(year),
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "fd"
+)
+
+summary(fd_model)
+
+# Check for serial correlation
+lmtest::dwtest(fd_model)
+
+```
+
+#fixed effects 
+```{r}
+library(plm)
+
+fe_model <- plm(
+  spi_comp ~ aut_ep + log(gdppc) + population + factor(year),
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "within"
+)
+
+# Check for time effects
+summary(fe_model)
+
+```
+
+#Model SPI’s effect on SDG outcomes with regime change as mediator
+```{r}
+library(mediation)
+
+med_model <- mediate(
+  model.m = lm(spi_comp ~ aut_ep + log(gdppc) + population, data = fd_fe_data),
+  model.y = lm(sdg_overall ~ spi_comp + aut_ep + gdppc + population, data = fd_fe_data),
+  treat = "aut_ep",
+  mediator = "spi_comp"
+)
+
+summary(med_model)
+
+```
+
+
+# First Difference Models - Robustness check
+
+**PART 1: Create lagged variables and first differences**
+
+```{r}
+# Create a simplified data frame with essential variables
+fd_data <- fd_fe_data %>%
+  dplyr::select(country_name.x, country_code, year, sdg_overall, spi_comp, lib_dem, income_level)
+
+# PART 1: Create lagged variables and first differences
+fd_data <- fd_data %>%
+  arrange(country_code, year) %>% 
+  group_by(country_code) %>%
+  mutate(
+    # Create lagged variables with explicit dplyr reference
+    sdg_lag = dplyr::lag(sdg_overall, n = 1),
+    spi_lag = dplyr::lag(spi_comp, n = 1),
+    libdem_lag = dplyr::lag(lib_dem, n = 1),
+    
+    # Calculate first differences
+    fd_sdg = sdg_overall - sdg_lag,
+    fd_spi = spi_comp - spi_lag,
+    fd_libdem = lib_dem - libdem_lag
+  ) %>%
+  ungroup()
+
+# To verify the lag creation works correctly
+head(fd_data %>% dplyr::select(country_code, year, sdg_overall, sdg_lag, fd_sdg, spi_comp, spi_lag, fd_spi) %>% arrange(country_code, year), 10)
+```
+
+**PART 2: Run FD models for each income group**
+
+```{r}
+# Overall model
+fd_overall <- lm(fd_sdg ~ fd_spi, 
+                data = fd_data %>% 
+                  filter(!is.na(fd_sdg) & !is.na(fd_spi)))
+summary(fd_overall)
+
+# High income countries
+fd_high <- lm(fd_sdg ~ fd_spi, 
+             data = fd_data %>% 
+               filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
+                     income_level == "High Income Countries"))
+summary(fd_high)
+
+# Upper-middle income countries
+fd_upper <- lm(fd_sdg ~ fd_spi, 
+              data = fd_data %>% 
+                filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
+                      income_level == "Upper-Middle Income Countries"))
+summary(fd_upper)
+
+# Lower-middle income countries
+fd_lower <- lm(fd_sdg ~ fd_spi, 
+              data = fd_data %>% 
+                filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
+                      income_level == "Lower-Middle Income Countries"))
+summary(fd_lower)
+
+# Low income countries
+fd_low <- lm(fd_sdg ~ fd_spi, 
+            data = fd_data %>% 
+              filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
+                    income_level == "Low Income Countries"))
+summary(fd_low)
+```
+
+**PART 3: Create a comparison table**
+
+```{r}
+# Extract coefficients and statistics from each model
+fd_comparison <- data.frame(
+  model = c("Overall", "High Income", "Upper-Middle Income", 
+           "Lower-Middle Income", "Low Income"),
+  coefficient = c(
+    coef(fd_overall)["fd_spi"],
+    coef(fd_high)["fd_spi"],
+    coef(fd_upper)["fd_spi"],
+    coef(fd_lower)["fd_spi"],
+    coef(fd_low)["fd_spi"]
+  ),
+  intercept = c(
+    coef(fd_overall)["(Intercept)"],
+    coef(fd_high)["(Intercept)"],
+    coef(fd_upper)["(Intercept)"],
+    coef(fd_lower)["(Intercept)"],
+    coef(fd_low)["(Intercept)"]
+  ),
+  t_value = c(
+    summary(fd_overall)$coefficients["fd_spi", "t value"],
+    summary(fd_high)$coefficients["fd_spi", "t value"],
+    summary(fd_upper)$coefficients["fd_spi", "t value"],
+    summary(fd_lower)$coefficients["fd_spi", "t value"],
+    summary(fd_low)$coefficients["fd_spi", "t value"]
+  ),
+  p_value = c(
+    summary(fd_overall)$coefficients["fd_spi", "Pr(>|t|)"],
+    summary(fd_high)$coefficients["fd_spi", "Pr(>|t|)"],
+    summary(fd_upper)$coefficients["fd_spi", "Pr(>|t|)"],
+    summary(fd_lower)$coefficients["fd_spi", "Pr(>|t|)"],
+    summary(fd_low)$coefficients["fd_spi", "Pr(>|t|)"]
+  ),
+  r_squared = c(
+    summary(fd_overall)$r.squared,
+    summary(fd_high)$r.squared,
+    summary(fd_upper)$r.squared,
+    summary(fd_lower)$r.squared,
+    summary(fd_low)$r.squared
+  ),
+  adj_r_squared = c(
+    summary(fd_overall)$adj.r.squared,
+    summary(fd_high)$adj.r.squared,
+    summary(fd_upper)$adj.r.squared,
+    summary(fd_lower)$adj.r.squared,
+    summary(fd_low)$adj.r.squared
+  ),
+  n_obs = c(
+    nobs(fd_overall),
+    nobs(fd_high),
+    nobs(fd_upper),
+    nobs(fd_lower),
+    nobs(fd_low)
+  )
+)
+
+# Format the numbers for better display
+fd_comparison <- fd_comparison %>%
+  mutate(
+    coefficient = round(coefficient, 3),
+    intercept = round(intercept, 3),
+    t_value = round(t_value, 3),
+    p_value = round(p_value, 4),
+    r_squared = round(r_squared, 3),
+    adj_r_squared = round(adj_r_squared, 3)
+  )
+
+# Print the comparison table
+print(fd_comparison)
+
+#export fd_comparison 
+#write.csv(fd_comparison, file = "fd_comparison.csv", row.names=F) 
+```
+
+**RESULTS:**
+
+The overall model shows a positive and statistically significant relationship (coefficient = 0.015, p = 0.0033) between improvements in statistical capacity and improvements in SDG performance. Although this confirms my hypothesis that better statistical systems contribute to better development outcomes, the intercept indicates that when SPI remains constant, SDG scores progress by 0.286 anyway.
+
+The income group breakdown reveals fascinating variations:
+
+1.  **High Income Countries** show a negative coefficient (-0.012) that is not statistically significant (p = 0.2537). This suggests that for developed economies, improvements in statistical capacity don't necessarily translate to SDG improvements, possibly because they already have well-established statistical systems and other factors drive their SDG performance.
+
+2.  **Upper-Middle Income Countries** show a stronger positive effect (0.021) that is statistically significant (p = 0.0163). This indicates that for these emerging economies, investments in statistical capacity yield meaningful SDG improvements.
+
+3.  **Lower-Middle Income Countries** demonstrate an even stronger relationship (0.025) with high statistical significance (p = 0.0088). This is the most significant relationship among all income groups.
+
+4.  **Low Income Countries** show the strongest coefficient (0.026), suggesting the largest potential impact, though with slightly lower statistical significance (p = 0.0459) than lower-middle income countries.
+
+The R-squared values are relatively low across all models (between 0.004 and 0.023), indicating that changes in statistical capacity explain only a small portion of the variation in SDG changes. This is common in first-difference models and suggests that many other factors also influence SDG progress.
+
+1.  The relationship between statistical capacity and sustainable development follows an inverted U-shaped pattern across the development spectrum - minimal impact for high-income countries, strongest for middle-income countries, and slightly less strong (but still significant) for low-income countries.
+
+2.  Statistical capacity improvements appear most beneficial for developing and emerging economies, suggesting that international efforts to strengthen statistical systems should prioritize these countries.
+
+3.  The consistently positive intercepts (ranging from 0.224 to 0.364) indicate that SDG scores tend to improve over time regardless of changes in statistical capacity, though the rate of improvement varies by income level.
+
+
+# Visual Analysis | FD Models
+
+**Error-bar**
+
+```{r}
+# Create dataframe for plotting 
+plot_data <- fd_comparison %>%
+  select(model, coefficient, p_value) %>%
+  mutate(significant = p_value < 0.05)
+
+# Create Horizontal error-bar graph 
+fd_errorbar <- ggplot(plot_data, aes(x = coefficient, y = model, color = significant)) +
+  geom_point(size = 3) +
+  geom_errorbarh(aes(xmin = 0, xmax = coefficient), height = 0.2) + 
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_color_manual(values = c("gray", "blue")) +
+  labs(title = "Effect of SPI Change on SDG Change by Income Group",
+       x = "Coefficient (Effect Size)",
+       y = "") +
+  theme_bw() +
+  theme(legend.position = "none")
+
+fd_errorbar
+
+#export fd_errorbar
+# ggsave("fd_errorbar.png", width = 10, height = 6)
+```
+
+**Scatter plot of FDs**
+
+```{r}
+fd_scatter <- ggplot(fd_data %>% 
+         filter(!is.na(fd_sdg) & !is.na(fd_spi)), 
+       aes(x = fd_spi, y = fd_sdg, color = income_level)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~income_level) +
+  labs(title = "Relationship between Changes in SPI and SDG by Income Group",
+       x = "Change in Statistical Performance (SPI)",
+       y = "Change in Sustainable Development (SDG)") +
+  theme_bw()
+
+fd_scatter
+
+#export fd_scatter
+# ggsave("iCloud_Drive/Documents/GitHub/QMSS_Thesis_Sanchez", width = 10, height = 6)
+```

@@ -10,34 +10,29 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r cars}
-library(tidyverse)
-library(scales)
-library(ppcor)  # For partial correlation calculations
-library(mice)
-#library(ggplot2)
-#library(dplyr)
+#load libraries/packages
+source("packages.R")
 
-source("~/Documents/GitHub/QMSS_Thesis_Sanchez/df_years_function.R")
-merged_matrix <- df_years(yr1=2015) 
+#load function 
+source("df_years()_Function.R")
+merged_matrix <- df_years(yr1 = 2015) 
 ```
 
 #Partial correlation & package 
 Partial correlation controls for confounding variables: Ensures correlations between SPI pillars and SDG goals are adjusted for external factors like log(GDP) and population (control1, control2).
 
-Focus on Direct Relationships: Removes indirect effects of controls on both SPI and SDG metrics.
+Focuses on Direct Relationships: Removes indirect effects of controls on both SPI and SDG metrics.
 ```{r}
 # Example: Filter relevant columns
 matrix_data <- merged_matrix %>%
   dplyr::select(p1_use, p2_services, p3_products, p4_sources, p5_infra,
-         goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8,
-         goal9, goal10, goal11, goal12, goal13, goal14, goal15,
-         goal16, goal17, gdp_pc, population)
-
+                goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8,
+                goal9, goal10, goal11, goal12, goal13, goal14, goal15,
+                goal16, goal17, gdppc, population)
 ```
 
-
-```{r}
 # Initialize an empty matrix to store results
+```{r}
 spi_pillars <- c("p1_use", "p2_services", "p3_products", "p4_sources", "p5_infra")
 sdg_goals <- paste0("goal", 1:17)
 partial_corr_matrix <- matrix(NA, nrow = length(spi_pillars), ncol = length(sdg_goals),
@@ -46,34 +41,68 @@ partial_corr_matrix <- matrix(NA, nrow = length(spi_pillars), ncol = length(sdg_
 # Loop through SPI pillars and SDG goals
 for (spi in spi_pillars) {
   for (sdg in sdg_goals) {
-    # Extract partial correlation controlling for control variables
-    result <- pcor(matrix_data[, c(spi, sdg, "gdp_pc", "population")])
-    partial_corr_matrix[spi, sdg] <- result$estimate[1, 2]  # Partial correlation coefficient
+    # Create temporary dataset with complete cases
+    temp_data <- matrix_data[, c(spi, sdg, "gdppc", "population")] %>%  # Fixed: added quotes
+      na.omit()
+    
+    # Only calculate if sufficient data remains
+    if (nrow(temp_data) >= 4) {
+      result <- ppcor::pcor(temp_data)  # Explicit package reference
+      partial_corr_matrix[spi, sdg] <- result$estimate[1, 2]
+    }
   }
 }
 
-# Convert to data frame for easier visualization
+# Convert to data frame
 matrix_df <- as.data.frame(partial_corr_matrix)
 
 ```
 
-#Visualize Correlation Matrix
+#Visualize Correlation Matrix - option 1
 ```{r}
-library(ggplot2)
+# Reshape the matrix into long format
+melted_cormat <- melt(partial_corr_matrix)
 
-# Melt matrix into long format for ggplot
-library(reshape2)
-matrix_long <- melt(matrix_df)
-
-ggplot(matrix_long, aes(x = Var2, y = Var1, fill = value)) +
-  geom_tile(color = "white") +
-  scale_fill_gradient2(low = "blue", high = "red", mid = "white",
-                       midpoint = 0, limit = c(-1, 1), space = "Lab",
-                       name="Partial\nCorrelation") +
+# Visualize 
+ggplot(data = melted_cormat, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile(color = "white") +  # Add grid lines
+  scale_fill_gradient2(low = "purple", mid = "white", high = "darkgreen", midpoint = 0,
+                       limits = c(-1, 1), name = "Correlation") +  # Adjust color scale
+  geom_tile(data = subset(melted_cormat, is.na(value)), aes(x = Var2, y = Var1), 
+            fill = "grey", color = "white") +  # Grey tiles for NA values
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Correlation Matrix Heatmap",
+       x = "SDG Goals",
+       y = "SPI Pillars") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+#Visualize Correlation Matrix - option 2
+```{r}
+ggplot(data = melted_cormat, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "purple", mid = "white", high = "darkgreen", midpoint = 0,
+                       limits = c(-1, 1), name = "Correlation") +
+  # Add correlation values (2 decimal places)
+  geom_text(aes(label = ifelse(is.na(value), "", round(value, 2))), 
+            color = "black", size = 3) +
+  # Grey tiles for NA values
+  geom_tile(data = subset(melted_cormat, is.na(value)), 
+            aes(x = Var2, y = Var1), fill = "grey90", color = "white") +
+  theme_minimal() +
   labs(title = "Partial Correlation Matrix: SPI Pillars vs SDG Goals",
-       x = "SDG Goals", y = "SPI Pillars")
+       x = "SDG Goals", 
+       y = "SPI Pillars") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
+        axis.text.y = element_text(size = 9),
+        legend.position = "right") +
+  coord_fixed()  # Maintain square aspect ratio
+
+geom_text(aes(color = abs(value) > 0.5), 
+          label = ifelse(is.na(value), "", round(value, 2)), 
+          size = 3) +
+scale_color_manual(guide = "none", values = c("black", "white"))
 
 ```
 
