@@ -7,8 +7,9 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
                      df4=sci_df, sci_yr=yr1, #sci data ONLY
                      df5=ert, ert_yr=yr1, #ert data ONLY
                      df6=gdppc_df, gdppc_yr=yr1, #, #gdppc_dta data ONLY
-                     df7=info_cap, info_cap_yr=yr1 #info_cap data ONLY
-                     #df8=odin, odin_yr=yr1 #odin data ONLY
+                     df7=info_cap, info_cap_yr=yr1, #info_cap data ONLY
+                     df8=gni_class, gni_yr=yr1 #, #gni_class data ONLY
+                     #df9=odin, odin_yr=yr1 #odin data ONLY
                      ){ 
   
   #VDEM DATASET
@@ -40,7 +41,7 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   #SPI DATASET
   name2 <- df2 %>% 
     dplyr::select(country, iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, SPI.INDEX.PIL2, SPI.INDEX.PIL3, 
-                  SPI.INDEX.PIL4, SPI.INDEX.PIL5) %>% 
+                  SPI.INDEX.PIL4, SPI.INDEX.PIL5, income, region, weights) %>% 
     rename(country_name = country) %>% 
     rename(country_code = iso3c) %>% 
     rename(year = date) %>% 
@@ -50,6 +51,9 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
     rename(p3_products = SPI.INDEX.PIL3) %>% #SPI pillar, 3 Data products  
     rename(p4_sources = SPI.INDEX.PIL4) %>% #SPI pillar, 4 Data sources 
     rename(p5_infra = SPI.INDEX.PIL5) %>% #SPI pillar 5, Data infrastructure
+    rename(income_spi = income) %>%
+    rename(region_spi = region) %>%
+    rename(weights_spi = weights) %>%
     filter(year >= spi_yr)
   
   #SDG DATASET
@@ -88,7 +92,7 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
            aut_ep_start_yr = aut_ep_start_year,
            aut_ep_end_yr = aut_ep_end_year)
   
-  #GDP Per Capita # TO EDIT!!
+  #GDP Per Capita
   name6 <- df6 %>% 
     dplyr::select(country_name, country_code, year, gdp_pc) %>% 
     rename(gdppc = gdp_pc) %>% 
@@ -101,6 +105,10 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
     dplyr::select(country_name, country_id, year, infcap_irt, infcap_pca, everything()) %>% 
     filter(year >= info_cap_yr)
   
+ #WB Income Classifications 
+  name8 <- df8 %>% 
+    filter(year >= gni_yr)
+  
   #MERGING spi, sci, sdg, vdem data 
   namex <- left_join(name3, name2, by = c("year", "country_code")) 
   namex <- left_join(namex, name4, by = c("country_code", "year"))
@@ -108,6 +116,7 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   namex <- left_join(namex, name5, by = c("country_code", "year"))
   namex <- left_join(namex, name6, by = c("country_code", "year"))
   namex <- left_join(namex, name7, by = c("country_id", "year"))
+  namex <- left_join(namex, name8, by = c("country_code", "year"))
   
   #rm duplicate col names 
   colnames(namex) <- make.unique(colnames(namex)) # Make column names unique
@@ -121,3 +130,4 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   
   return(name)
 }
+

@@ -36,5 +36,9 @@ gdppc_df <- read_csv("data/gdppc_df_long.csv")
 #Information Capacity 
 info_cap <- read_csv("data/information_capacity.csv")
 
+#WB GNI Classifications 
+gni_class <- read_csv("Output_CSVs /world_bank_income_classifications.csv")
+
+
 #ODIN 
 
