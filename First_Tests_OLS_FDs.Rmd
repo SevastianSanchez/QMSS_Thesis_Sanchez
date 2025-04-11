@@ -125,8 +125,7 @@ sdg <- sdg %>%
 
 
 ##GDP_PC wrangling / cleaning (skip if df_years() used)
-
-```{r}
+```{r eval=FALSE, include=FALSE}
 gdppc_df <- gdppc_df %>%  #pivot back to long format
   pivot_longer(3:66, #use any way to select all columns (he used range)
                names_to = "year", # new var using cols 2:13 as values
@@ -284,6 +283,8 @@ cor(x_var_spi, x_var_sci, use = "complete.obs")
 
 # Check VIF (Variance Inflation Factor)
 vif(ols_multiple)
+
+
 ```
 
 **colinearity:** there is significant co-linearity between SCI and SPI, with a correlation of 0.8277. Upon integrating within the same model, SCI inflated the standard error of SPI from ___ to ___ SCI had a similar reaction fro the SPI with its standard error increasing from ___ to ___.
@@ -349,15 +350,7 @@ ggplotly(Compare_fit)
 *Make 4 regression models and then put them all together in a table to compare the slopes and R-sq values.*
 
 ```{r}
-#WB GNI income categories 
-#income_class <- read_csv("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs /world_bank_income_classifications.csv")
-
-# New df with income classifications 
-#merged_inc <- merged %>% 
-#  left_join(income_class, by = c("country_code", "year"))
-
-
-# Subset: income_level (income classification: "H", "UM", "LM", "L")
+#WB GNI income categories: income_level (income classification: "H", "UM", "LM", "L")
 
 # 1. Overall model (all countries)
 overall_lm <- lm(sdg_overall ~ spi_comp + log(gdppc) + population,
@@ -480,11 +473,6 @@ print(mod_compare_tab)
 #write.csv(mod_compare_tab, file = "ols_model_comparison.csv", row.names=F) 
 ```
 
-#Alternative Approach: Interaction 
-```{r}
-#TBD
-```
-
 ## Vizualizing slopes: changing variable type and labels 
 ```{r}
 # Convert income_level to factor with explicit labels
@@ -496,8 +484,8 @@ merged$income_level <- factor(merged$income_level,
                                            "Low Income Countries"))
 ```
 
-##Visualizing Slopes: plotting
 
+##Visualizing Slopes: plotting
 ```{r}
 # Create a visualization with different regression lines by income group
 viz_gni_class <- ggplot(data = merged, aes(x = spi_comp, y = sdg_overall, color = income_level)) +
@@ -528,16 +516,39 @@ ggplotly(viz_gni_class)
 ```
 
 
+
+
+
+
 #mediation analysis 
-To test if SPI mediates the relationship between regime type and SDG outcomes 
+To test if SPI mediates the relationship between regime type and SDG outcomes: Democratic backsliding → reduces SPI → slows SDG progress  
+- ACME (Average Causal Mediation Effect): SPI’s indirect effect.
+- ADE (Average Direct Effect): Regime type’s direct effect, excluding SPI
 ```{r}
 
-#Direct effect of regime change on SPI
-lm_spi <- lm(spi_comp ~ regime_type + gdppc + population, data = merged)
+library(mediation)
+
+#Total Effect: Check if regime type directly affects SDG scores (without SPI)
+lm_sdg <- lm(sdg_overall ~ regime_type, data = merged_inc)
+summary(lm_sdg)
+
+#Mediator model: Check if regime type affects SPI
+lm_spi <- lm(spi_comp ~ regime_type, data = merged_inc)
 summary(lm_spi)
 
+#outcome model: Check if SPI affects SDG scores while controlling for regime type
+lm_sdg_controlled <- lm(sdg_overall ~ spi_comp + regime_type, data = merged_inc)
+summary(lm_sdg_controlled)
 
-library(mediation)
+#Mediation test: Quantify how much of regime type’s effect on SDGs operates through SPI
+med_model <- mediate(lm_spi, lm_sdg_controlled, treat = "regime_type", mediator = "spi_comp")
+summary(med_model)
+
+
+lm_spi <- lm(spi_comp ~ regime_type + gdp_pc + population, data = merged_inc)
+summary(lm_spi)
+
+lm_reg
 
 med_spi_model <- mediate(model.m = lm_spi, model.y = lm_sdg, treat = "regime_type", mediator = "spi_comp")
 summary(med_model)

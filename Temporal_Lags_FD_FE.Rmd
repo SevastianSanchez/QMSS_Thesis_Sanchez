@@ -138,6 +138,7 @@ fd_low <- lm(fd_sdg ~ fd_spi,
                     income_level == "Low Income Countries"))
 summary(fd_low)
 ```
+- No need for time variable
 
 **PART 3: Create a comparison table**
 

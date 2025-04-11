@@ -1,0 +1,94 @@
+---
+title: "model_testing"
+output: html_document
+---
+
+```{r}
+#load libraries/packages
+source("packages.R")
+
+#load function 
+source("df_years()_Function.R")
+merged_testing <- df_years(yr1 = 2015) 
+```
+
+
+# OLS: including regime variable [which is best?]
+```{r}
+# 1. regime_type_2 (0 or 1) control
+lm1_reg2 <- lm(sdg_overall ~ spi_comp + regime_type_2 + log(gdppc) + population,
+                        data = merged_testing)
+summary(lm1_reg2)
+
+# 2. lib_dem (continuous 0-1) control
+lm2_regcont <- lm(sdg_overall ~ spi_comp + lib_dem + log(gdppc) + population,
+                        data = merged_testing)
+summary(lm2_regcont)
+
+# 3. regime_type_2 (0 or 1) interaction 
+lm3_reg2_int <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log(gdppc) + population,
+                        data = merged_testing)
+summary(lm3_reg2_int)
+
+# 4. lib_dem (continuous 0-1) interaction
+lm4_libd_int <- lm(sdg_overall ~ spi_comp + spi_comp*lib_dem + log(gdppc) + population,
+                        data = merged_testing)
+summary(lm4_libd_int)
+
+# 5. regime_type_2 (0 or 1) interaction + control
+lm5_reg2_int_cont <- lm(sdg_overall ~ spi_comp + regime_type_2 + spi_comp*regime_type_2 + log(gdppc) + population,
+                        data = merged_testing)
+
+summary(lm5_reg2_int_cont)
+
+# 6. lib_dem (continuous 0-1) interaction + control 
+lm6_libd_int_cont <- lm(sdg_overall ~ spi_comp + lib_dem + spi_comp*lib_dem + log(gdppc) + population,
+                        data = merged_testing)
+summary(lm6_libd_int_cont)
+
+# just interaction?
+lm7_libd_int_cont <- lm(sdg_overall ~ spi_comp + spi_comp*lib_dem + log(gdppc) + population,
+                        data = merged_testing)
+summary(lm7_libd_int)
+```
+- Interactions are not statistically significant (lib_dem or )
+
+
+#mediation analysis 
+To test if SPI mediates the relationship between regime type and SDG outcomes: Democratic backsliding → reduces SPI → slows SDG progress  
+- ACME (Average Causal Mediation Effect): SPI’s indirect effect.
+- ADE (Average Direct Effect): Regime type’s direct effect, excluding SPI
+```{r}
+library(mediation)
+
+#Total Effect: Check if regime type directly affects SDG scores (without SPI)
+lm_sdg <- lm(sdg_overall ~ regime_type_2, data = merged_testing)
+summary(lm_sdg)
+
+#Mediator model: Check if regime type affects SPI
+lm_spi <- lm(spi_comp ~ regime_type_2, data = merged_testing)
+summary(lm_spi)
+
+#outcome model: Check if SPI affects SDG scores while controlling for regime type
+lm_sdg_controlled <- lm(sdg_overall ~ spi_comp + regime_type_2, data = merged_testing)
+summary(lm_sdg_controlled)
+
+#Mediation test: Quantify how much of regime type’s effect on SDGs operates through SPI
+med_model <- mediate(lm_spi, lm_sdg_controlled, treat = "regime_type_2", mediator = "spi_comp")
+summary(med_model)
+
+
+#validate with sensitivity test 
+sensmediation::sensmed(model_m, model_y, sims = 500)
+```
+
+#Direct effect of regime change on SPI (necessary?)
+```{r}
+lm_spi <- lm(spi_comp ~ regime_type + gdppc + population, data = merged_testing)
+summary(lm_spi)
+```
+
+#Alternative Approach: Interaction 
+```{r}
+#TBD
+```
