@@ -9,8 +9,9 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
                      df5=ert, ert_yr=yr1, #ert data ONLY
                      df6=gdppc_df, gdppc_yr=yr1, #, #gdppc_dta data ONLY
                      df7=info_cap, info_cap_yr=yr1, #info_cap data ONLY
-                     df8=gni_class, gni_yr=yr1 #, #gni_class data ONLY
-                     #df9=odin, odin_yr=yr1 #odin data ONLY
+                     df8=gni_class, gni_yr=yr1, #gni_class data ONLY
+                     df9=di, di_yr=yr1 # di data ONLY 
+                     #df10=odin, odin_yr=yr1 #odin data ONLY
                      ){ 
   
   #VDEM DATASET
@@ -106,7 +107,19 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   
  #WB Income Classifications 
   name8 <- df8 %>% 
+    dplyr::mutate(income_level = na_if(income_level, "..")) %>% 
+    dplyr::mutate(income_level_lab = factor(income_level, 
+      levels = c("H", "UM", "LM", "L"),  # Desired order
+      labels = c("High Income Countries", 
+                 "Upper-Middle Income Countries", 
+                 "Lower-Middle Income Countries", 
+                 "Low Income Countries")  # Full descriptive labels
+    )) %>% 
     filter(year >= gni_yr)
+  
+  #EIU Democracy Index  
+  name9 <- df9 %>% 
+    filter(year >= di_yr)
   
   #MERGING spi, sci, sdg, vdem data 
   namex <- left_join(name3, name2, by = c("year", "country_code")) 
@@ -116,6 +129,7 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   namex <- left_join(namex, name6, by = c("country_code", "year"))
   namex <- left_join(namex, name7, by = c("country_id", "year"))
   namex <- left_join(namex, name8, by = c("country_code", "year"))
+  namex <- left_join(namex, name9, by = c("country_code", "year"))
   
   #rm duplicate col names 
   colnames(namex) <- make.unique(colnames(namex)) # Make column names unique
@@ -123,11 +137,12 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   #data type changes & reordering 
   namex$year <- as.integer(namex$year)
   name <- namex %>% 
-    dplyr::select(country_name.x, country_code, country_id, year, everything()) %>% 
-    dplyr::mutate_at(c("spi_comp", "p1_use", "p2_services", "p3_products", "p4_sources", "p5_infra", 
-                       "sci_overall", "sci_method", "sci_periodicity", "sci_source"), as.numeric)
+  # Convert specific columns to factor and numeric
+    dplyr::mutate(year_fct = as.factor(year)) %>% 
+    dplyr::mutate(across(c(income_level, regime_type_2, regime_type_4, regime_type_10, income_spi, region_spi), as.factor), # Convert col3 and col4 to numeric
+      across(c(sci_overall, sci_method, sci_periodicity, sci_source), as.numeric)) %>% 
+    dplyr::select(country_name.x, country_code, country_id, year, year_fct, income_level, sdg_overall, spi_comp, di_score, everything())
   
   return(name)
 }
 
-test <- df_years(yr1=2000)

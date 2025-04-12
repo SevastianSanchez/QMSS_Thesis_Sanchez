@@ -1,10 +1,5 @@
 library(tidyverse)
 library(readxl)
-#library(car)
-#library(tidyr)
-#library(dplyr)
-#library(readr) 
-#library(broom)
 library(devtools)
 library(vdemdata) # call vdem package 
 library(ERT) # call ERT package
@@ -39,6 +34,8 @@ info_cap <- read_csv("data/information_capacity.csv")
 #WB GNI Classifications 
 gni_class <- read_csv("Output_CSVs /world_bank_income_classifications.csv")
 
+#EIU Democracy Index 
+di <- read_csv("data/democracy-index-eiu.csv")
 
-#ODIN 
+#ODIN
 
