@@ -13,6 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ##libraries
 ```{r}
+setwd()
+
 #load libraries 
 source("packages.R")
 
