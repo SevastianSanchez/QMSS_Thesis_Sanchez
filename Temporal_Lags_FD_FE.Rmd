@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #TEMPORAL ANALYSIS: First Difference, Fixed Effects, Checks...
 
+
 ##libraries
 ```{r}
 setwd()
@@ -23,6 +24,23 @@ source("data/data_sources.R")
 
 #load df_years() function
 fd_fe_data <- df_years(yr1=2015)
+```
+
+```{r}
+# x & y variables 
+y_var_sdg <- merged$sdg_overall 
+x_var_spi <- merged$spi_comp
+x_var_sci <- merged$sci_overall
+df_sdg_statcap <- data.frame(y_var_sdg, x_var_spi, x_var_sci)
+
+# how many na's?
+colSums(is.na(df_sdg_statcap))
+#how many observations 
+colSums(!is.na(df_sdg_statcap))
+
+hist(x_var_spi)
+hist(x_var_sci)
+hist(y_var_sdg)
 ```
 
 #first difference

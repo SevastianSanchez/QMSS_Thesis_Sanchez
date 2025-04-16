@@ -11,26 +11,21 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-#FIRST: Libraries
-
-```{r}
-#load libraries 
-source("packages.R")
-
-```
-
-#SECOND: Load data
+#FIRST: Libraries, Directory & Data 
 
 ```{r}
 # set working directory 
 setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 
+#load libraries 
+source("packages.R")
+
 #load data 
 source("data/data_sources.R")
-
 ```
 
-#THIRD: run function in r-script: df_years_function.R
+
+#SECOND: run function in r-script: df_years_function.R
 
 ```{r}
 #df_years: used for extracting data from specified year to now 
@@ -170,7 +165,7 @@ merged_cs_2019 <- merged[merged$year==2019,]
 
 
 
-## Spain years 2000-present - Test Subject
+## Countries, years 2000-present - Test Subjects
 ```{r eval=FALSE, include=FALSE}
 # subset for Brazil 
 merged_bra_ts <- merged[merged$country_code=="BRA",]
@@ -207,11 +202,15 @@ df_sdg_statcap <- data.frame(y_var_sdg, x_var_spi, x_var_sci)
 colSums(is.na(df_sdg_statcap))
 #how many observations 
 colSums(!is.na(df_sdg_statcap))
+
+hist(x_var_spi)
+hist(x_var_sci)
+hist(y_var_sdg)
 ```
 
 Number of observations in SPI: 1300; number of NA's 3068 (not all years captured) Number of observations in SCI: 2055; number of NA's 2313 (not all countries captured)
 
-## NAIVE OLS (BI-VARIATE)
+# COMPARING SPI & SCI X VARIABLES
 
 **Aggregated SPI & SDG Scores**  
 *H0: Null, there is no relationship*  
@@ -234,7 +233,27 @@ paste(string_corcoef, correlation_sdg_spi, "(SPI)", correlation_sdg_sci, "(SCI)"
 Correlation coefficient/R-sq (SPI): 0.616037202309322  
 Correlation coefficient/R-sq (SCI): 0.417965563339242
 
-# Comparing SPI & SCI to identify best model
+## Comparing SPI & SCI to identify best model, w/o controls 
+Finding estimated impact of variables on SDG status prior to adding controls 
+```{r}
+ols_spi_naive <- lm(y_var_sdg ~ x_var_spi)
+summary(ols_spi_naive)
+
+# 2. OLS for SCI and SDG - Overall 
+ols_sci_naive <- lm(y_var_sdg ~ x_var_sci)
+summary(ols_sci_naive)
+
+# 3. Multiple Regression with both SPI and SCI
+ols_multiple_naive <- lm(y_var_sdg ~ x_var_spi + x_var_sci)
+summary(ols_multiple_naive)
+```
+ols_spi_naive: 0.47806 (p-value < 0.001)  
+ols_sci_naive: 0.39209 (p-value < 0.001)  
+ols_multiple_naive: spi: 0.28779 (p-value < 0.001); sci: 0.15311 (p-value < 0.001)
+
+The impact of SCI on SDG and SPI on SDG are statistically significant, in all models. SPI appears to have a greater impact on SDGs compared to that of SCI, regardless of the model. All of this is wothout controls. 
+
+## Comparing SPI & SCI to identify best model, WITH controls 
 
 *H0: Null, SCI model > SPI model*  
 *H1: SPI model > SCI model*
@@ -263,7 +282,7 @@ Comparing coefficients, SPI has a greater impact on SDG status (0.280) than SCI 
 
 Model 1 (ols_spi) does not control for SCI and model 2 (ols_sci) does not control for spi -- this is okay. SPI is the predecessor of the SCI, sharing/data overlap, and so it is expected to have significant statistical correlation (multicollinearity). This is likely what explains the significant reduction of coefficients (from 0.280 to 0.1216 for SPI, and from 0.268 to 0.1288 for SCI) indicating that they're both capturing much of the same underlying relationship with SDG status.
 
-# AIC/BIC Checking Fit [FIX TEST- #N DIFFERS BTW MODELS]
+### AIC/BIC Checking Fit [FIX TEST- #N DIFFERS BTW MODELS]
 
 ```{r}
 # Compare all three models with AIC
@@ -275,7 +294,7 @@ Model 1 (ols_spi) does not control for SCI and model 2 (ols_sci) does not contro
 
 **Best fit:** ols_spi (Adj Rsq: 0.7696) (AIC/BIC: ___)
 
-# SPI & SCI colinearity VIF
+### SPI & SCI colinearity VIF
 
 ```{r}
 # Check correlation between SPI and SCI
@@ -283,10 +302,9 @@ cor(x_var_spi, x_var_sci, use = "complete.obs")
 
 # Check VIF (Variance Inflation Factor)
 vif(ols_multiple)
-
 ```
 
-**colinearity:** there is significant co-linearity between SCI and SPI, with a correlation of 0.8277. Upon integrating within the same model, SCI inflated the standard error of SPI from ___ to ___ SCI had a similar reaction fro the SPI with its standard error increasing from ___ to ___.
+**colinearity:** there is significant co-linearity between SCI and SPI, with a correlation of 0.8277. Upon integrating within the same model, SCI inflated the standard error of SPI from 0.0115 to 0.0231. SCI had a similar reaction fro the SPI with its standard error increasing from 0.00796 to 0.0215.
 
 **VIF:** Such multicolinearity is reflected by the VIF test which accounts for all x variables in the model instead of just the two measures of statistical capacity (SCI & SPI).
 
@@ -297,8 +315,24 @@ population: 1.02
 
 Unsurprisingly, the variance of the SPI coefficient is inflated by a factor of 3.34 due to correlation with other predictors. Similarly, the SCI coefficient’s variance is inflated by 3.21 times. However, it is acceptable to use in the same model as it will not severely impact estimates given both factors are less than 5.0.
 
+###Combine to single index: principle component analysis (FOR FUTURE)
+
+```{r}
+# Standardize both measures
+#spi_z <- scale(x_var_spi)
+#sci_z <- scale(x_var_sci)
+
+# Create composite (simple average)
+#stat_capacity_index <- (spi_z + sci_z)/2
+
+#extract common variance 
+#pca_result <- prcomp(cbind(x_var_spi, x_var_sci), scale = TRUE)
+#stat_capacity_pc1 <- pca_result$x[,1]  # First principal component
+```
+
 **Selecting model:** My research question is about overall statistical capacity rather than comparing different measures. The SPI model reveals a better fit than the SCI model (Adj Rsq: 0.7696 > 0.7235). It is also a slightly better fit compared to the multiple OLS model containing both SPI and SCI (Adj Rsq: 0.7696 > 0.7624).
 
+### Visual Analysis: SCI & SPI x SDG
 ```{r}
 #visualize differences in fit
 library(ggplot2)
@@ -328,24 +362,14 @@ ggplotly(Compare_fit)
 # ggsave("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs/fd_plot.png", p, width = 10, height = 6)
 ```
 
-#Combine to single index: principle component analysis (FOR FUTURE)
 
+# INTERACTIONS AND SUBGROUP ANALYSIS
+
+##Potential interactions: 
+- Is there a need for subgroup analysis, and if so, by what kind of group? 
+- Options: GNI Classification (income_level), regime_type_2, regime_type_4, di_score
 ```{r}
-# Standardize both measures
-#spi_z <- scale(x_var_spi)
-#sci_z <- scale(x_var_sci)
-
-# Create composite (simple average)
-#stat_capacity_index <- (spi_z + sci_z)/2
-
-#extract common variance 
-#pca_result <- prcomp(cbind(x_var_spi, x_var_sci), scale = TRUE)
-#stat_capacity_pc1 <- pca_result$x[,1]  # First principal component
-```
-
-#Interactions 
-```{r}
-#interaction: does GNI Classification (income_level) affect the relationzhip between x (spi) & y (sdg)?
+#interaction: does GNI Classification (income_level) affect the relationship between x (spi) & y (sdg)?
 inc_lev_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*income_level + log(gdppc) + population,
                         data = merged)
 summary(inc_lev_interaction)
@@ -374,10 +398,8 @@ summary(reg_type_di_interaction)
 *Continuous di_score [0-1] Regime type: No* there is no statistically significant interactions found from regime type (infinate between 0-1) that affects the relationship between spi and sdgs. 
 
 
-# SUBGROUP ANALYSIS BY WB GNI CLASSIFICATIONS 
+## WB GNI Classifications: income_level ("H", "UM", "LM", "L")
 **Disaggregated by Development Status:** Test models on low-income vs. middle-income countries to isolate resource-dependent mechanisms. *Make 4 regression models and then put them all together in a table to compare the slopes and R-sq values.*
-
-##WB GNI income categories: income_level (income classification: "H", "UM", "LM", "L")
 ```{r}
 # 1. Overall model (all countries)
 overall_lm <- lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population,
@@ -409,7 +431,7 @@ low_inc_lm <- lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population,
 summary(low_inc_lm)
 ```
 
-### Extract coefficients and statistics for Multiple Linear Regression Models to compare 
+### Extract coefficients and statistics for Subgrouped Regressions to compare 
 ```{r}
 # Creating mod_compare_tab - comparison table
 mod_compare_tab <- data.frame(
@@ -516,11 +538,16 @@ print(mod_compare_tab)
 ```
 
 
+
+
 ##Visualizing Slopes: plotting
 ```{r}
 viz_gni_class <- ggplot(data = merged, aes(x = spi_comp, y = sdg_overall, color = income_level_lab)) +
   geom_point(alpha = 0.25, size = 0.75) + 
+  # Group-specific regression lines
   geom_smooth(method = "lm", linewidth = 0.65, se = FALSE) +
+  # Overall regression line (black)
+  geom_smooth(aes(group = 1), method = "lm", linewidth = 0.75, se = FALSE, color = "black") +
   scale_color_manual(
     values = c("High Income Countries" = "#1D6A96", 
                "Upper-Middle Income Countries" = "#4CB5AE",
@@ -531,7 +558,7 @@ viz_gni_class <- ggplot(data = merged, aes(x = spi_comp, y = sdg_overall, color 
        x = "Statistical Performance Indicators (SPI)",
        y = "Sustainable Development Goals (SDG)",
        color = "Income Classification") +
-  theme_bw()
+  theme_bw() +
 
 ggplotly(viz_gni_class)
 
