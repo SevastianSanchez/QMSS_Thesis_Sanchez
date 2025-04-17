@@ -11,10 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #TEMPORAL ANALYSIS: First Difference, Fixed Effects, Checks...
 
-
-##libraries
+##setup: packages and data
 ```{r}
-setwd()
+setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 
 #load libraries 
 source("packages.R")
@@ -22,31 +21,16 @@ source("packages.R")
 #load data
 source("data/data_sources.R")
 
-#load df_years() function
-fd_fe_data <- df_years(yr1=2015)
+#load df_years() function: 2015-present
+fd_fe_data <- df_years(yr1=2015) %>%
+  dplyr::select(country_code, year, year_fct, sdg_overall, spi_comp, di_score, aut_ep, income_level, income_level_lab, gini, population)
+  
 ```
 
-```{r}
-# x & y variables 
-y_var_sdg <- merged$sdg_overall 
-x_var_spi <- merged$spi_comp
-x_var_sci <- merged$sci_overall
-df_sdg_statcap <- data.frame(y_var_sdg, x_var_spi, x_var_sci)
-
-# how many na's?
-colSums(is.na(df_sdg_statcap))
-#how many observations 
-colSums(!is.na(df_sdg_statcap))
-
-hist(x_var_spi)
-hist(x_var_sci)
-hist(y_var_sdg)
-```
-
-#first difference
+#First difference (regime change = aut_ep?)
 ```{r}
 fd_model <- plm(
-  spi_comp ~ aut_ep + log(gdppc) + population + factor(year),
+  spi_comp ~ aut_ep + log(gdppc) + population + year_fct + gini,
   data = fd_fe_data,
   index = c("country_code", "year"),
   model = "fd"
@@ -59,12 +43,10 @@ lmtest::dwtest(fd_model)
 
 ```
 
-#fixed effects 
+#fixed effects (regime change = aut_ep?)
 ```{r}
-library(plm)
-
 fe_model <- plm(
-  spi_comp ~ aut_ep + log(gdppc) + population + factor(year),
+  spi_comp ~ aut_ep + log(gdppc) + population + year_fct + gini,
   data = fd_fe_data,
   index = c("country_code", "year"),
   model = "within"
@@ -75,19 +57,18 @@ summary(fe_model)
 
 ```
 
-#Model SPI’s effect on SDG outcomes with regime change as mediator
+#Model SPI’s effect on SDG outcomes with regime change as mediator (aut_ep?)
 ```{r}
 library(mediation)
 
 med_model <- mediate(
-  model.m = lm(spi_comp ~ aut_ep + log(gdppc) + population, data = fd_fe_data),
-  model.y = lm(sdg_overall ~ spi_comp + aut_ep + gdppc + population, data = fd_fe_data),
+  model.m = lm(spi_comp ~ aut_ep + log(gdppc) + population + gini, data = fd_fe_data),
+  model.y = lm(sdg_overall ~ spi_comp + aut_ep + log(gdppc) + population + gini, data = fd_fe_data),
   treat = "aut_ep",
   mediator = "spi_comp"
 )
 
 summary(med_model)
-
 ```
 
 
@@ -96,29 +77,25 @@ summary(med_model)
 **PART 1: Create lagged variables and first differences**
 
 ```{r}
-# Create a simplified data frame with essential variables
-fd_data <- fd_fe_data %>%
-  dplyr::select(country_name.x, country_code, year, sdg_overall, spi_comp, lib_dem, income_level)
-
 # PART 1: Create lagged variables and first differences
-fd_data <- fd_data %>%
+fd_fe_data <- fd_fe_data %>%
   arrange(country_code, year) %>% 
   group_by(country_code) %>%
   mutate(
     # Create lagged variables with explicit dplyr reference
     sdg_lag = dplyr::lag(sdg_overall, n = 1),
     spi_lag = dplyr::lag(spi_comp, n = 1),
-    libdem_lag = dplyr::lag(lib_dem, n = 1),
+    di_lag = dplyr::lag(di_score, n = 1),
     
     # Calculate first differences
     fd_sdg = sdg_overall - sdg_lag,
     fd_spi = spi_comp - spi_lag,
-    fd_libdem = lib_dem - libdem_lag
+    fd_di = di_score - di_lag
   ) %>%
   ungroup()
 
 # To verify the lag creation works correctly
-head(fd_data %>% dplyr::select(country_code, year, sdg_overall, sdg_lag, fd_sdg, spi_comp, spi_lag, fd_spi) %>% arrange(country_code, year), 10)
+#head(fd_data_testing %>% dplyr::select(country_code, year, sdg_overall, sdg_lag, fd_sdg, spi_comp, spi_lag, fd_spi) %>% arrange(country_code, year), 10)
 ```
 
 **PART 2: Run FD models for each income group**
@@ -126,34 +103,34 @@ head(fd_data %>% dplyr::select(country_code, year, sdg_overall, sdg_lag, fd_sdg,
 ```{r}
 # Overall model
 fd_overall <- lm(fd_sdg ~ fd_spi, 
-                data = fd_data %>% 
+                data = fd_fe_data %>% 
                   filter(!is.na(fd_sdg) & !is.na(fd_spi)))
 summary(fd_overall)
 
 # High income countries
 fd_high <- lm(fd_sdg ~ fd_spi, 
-             data = fd_data %>% 
+             data = fd_fe_data %>% 
                filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
                      income_level == "High Income Countries"))
 summary(fd_high)
 
 # Upper-middle income countries
 fd_upper <- lm(fd_sdg ~ fd_spi, 
-              data = fd_data %>% 
+              data = fd_fe_data %>% 
                 filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
                       income_level == "Upper-Middle Income Countries"))
 summary(fd_upper)
 
 # Lower-middle income countries
 fd_lower <- lm(fd_sdg ~ fd_spi, 
-              data = fd_data %>% 
+              data = fd_fe_data %>% 
                 filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
                       income_level == "Lower-Middle Income Countries"))
 summary(fd_lower)
 
 # Low income countries
 fd_low <- lm(fd_sdg ~ fd_spi, 
-            data = fd_data %>% 
+            data = fd_fe_data %>% 
               filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
                     income_level == "Low Income Countries"))
 summary(fd_low)
@@ -290,7 +267,7 @@ fd_errorbar
 **Scatter plot of FDs**
 
 ```{r}
-fd_scatter <- ggplot(fd_data %>% 
+fd_scatter <- ggplot(fd_fe_data %>% 
          filter(!is.na(fd_sdg) & !is.na(fd_spi)), 
        aes(x = fd_spi, y = fd_sdg, color = income_level)) +
   geom_point(alpha = 0.5) +
@@ -306,3 +283,4 @@ fd_scatter
 #export fd_scatter
 # ggsave("iCloud_Drive/Documents/GitHub/QMSS_Thesis_Sanchez", width = 10, height = 6)
 ```
+

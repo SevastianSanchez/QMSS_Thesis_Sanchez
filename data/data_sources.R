@@ -37,5 +37,8 @@ gni_class <- read_csv("Output_CSVs /world_bank_income_classifications.csv")
 #EIU Democracy Index 
 di <- read_csv("data/democracy-index-eiu.csv")
 
+#GINI Coefficient - Income 
+gini <- read.csv("https://ourworldindata.org/grapher/economic-inequality-gini-index.csv?v=1&csvType=full&useColumnShortNames=true")
+
 #ODIN
 

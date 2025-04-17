@@ -10,6 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r cars}
+# set working directory 
+setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
+
 #load libraries/packages
 source("packages.R")
 
@@ -56,53 +59,47 @@ for (spi in spi_pillars) {
 # Convert to data frame
 matrix_df <- as.data.frame(partial_corr_matrix)
 
-```
-
-#Visualize Correlation Matrix - option 1
-```{r}
 # Reshape the matrix into long format
 melted_cormat <- melt(partial_corr_matrix)
-
-# Visualize 
-ggplot(data = melted_cormat, aes(x = Var2, y = Var1, fill = value)) +
-  geom_tile(color = "white") +  # Add grid lines
-  scale_fill_gradient2(low = "purple", mid = "white", high = "darkgreen", midpoint = 0,
-                       limits = c(-1, 1), name = "Correlation") +  # Adjust color scale
-  geom_tile(data = subset(melted_cormat, is.na(value)), aes(x = Var2, y = Var1), 
-            fill = "grey", color = "white") +  # Grey tiles for NA values
-  theme_minimal() +
-  labs(title = "Correlation Matrix Heatmap",
-       x = "SDG Goals",
-       y = "SPI Pillars") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
 ```
 
-#Visualize Correlation Matrix - option 2
+#visualizing partial correlation matrix
 ```{r}
 ggplot(data = melted_cormat, aes(x = Var2, y = Var1, fill = value)) +
   geom_tile(color = "white") +
-  scale_fill_gradient2(low = "purple", mid = "white", high = "darkgreen", midpoint = 0,
-                       limits = c(-1, 1), name = "Correlation") +
-  # Add correlation values (2 decimal places)
-  geom_text(aes(label = ifelse(is.na(value), "", round(value, 2))), 
-            color = "black", size = 3) +
-  # Grey tiles for NA values
-  geom_tile(data = subset(melted_cormat, is.na(value)), 
-            aes(x = Var2, y = Var1), fill = "grey90", color = "white") +
+  scale_fill_gradient2(
+    low = "red", mid = "white", high = "darkgreen", midpoint = 0,
+    limits = c(-1, 1), name = "Correlation"
+  ) +
+  # Grey tiles for NA values (plot FIRST to avoid covering text)
+  geom_tile(
+    data = subset(melted_cormat, is.na(value)),
+    aes(x = Var2, y = Var1), fill = "grey90", color = "white"
+  ) +
+  # Text with dynamic color based on |value|
+  geom_text(
+    aes(
+      label = ifelse(is.na(value), "", round(value, 2)),
+      color = abs(value) > 0.5  # White text for |cor| > 0.5
+    ),
+    size = 2.5
+  ) +
+  scale_color_manual(
+    guide = "none",  # Hide the color legend
+    values = c("black", "white")  # FALSE = black, TRUE = white
+  ) +
   theme_minimal() +
-  labs(title = "Partial Correlation Matrix: SPI Pillars vs SDG Goals",
-       x = "SDG Goals", 
-       y = "SPI Pillars") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
-        axis.text.y = element_text(size = 9),
-        legend.position = "right") +
+  labs(
+    title = "Partial Correlation Matrix: SPI Pillars vs SDG Goals",
+    x = "SDG Goals", 
+    y = "SPI Pillars"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
+    axis.text.y = element_text(size = 9),
+    legend.position = "right"
+  ) +
   coord_fixed()  # Maintain square aspect ratio
-
-geom_text(aes(color = abs(value) > 0.5), 
-          label = ifelse(is.na(value), "", round(value, 2)), 
-          size = 3) +
-scale_color_manual(guide = "none", values = c("black", "white"))
 
 ```
 

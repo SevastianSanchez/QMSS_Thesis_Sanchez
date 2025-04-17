@@ -10,7 +10,8 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
                      df6=gdppc_df, gdppc_yr=yr1, #, #gdppc_dta data ONLY
                      df7=info_cap, info_cap_yr=yr1, #info_cap data ONLY
                      df8=gni_class, gni_yr=yr1, #gni_class data ONLY
-                     df9=di, di_yr=yr1 # di data ONLY 
+                     df9=di, di_yr=yr1, 
+                     df10 = gini, gini_yr=yr1 # di data ONLY 
                      #df10=odin, odin_yr=yr1 #odin data ONLY
                      ){ 
   
@@ -121,6 +122,14 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   name9 <- df9 %>% 
     filter(year >= di_yr)
   
+  #GINI Coefficient 
+  name10 <- df10 %>% 
+    dplyr::select(Entity, Code, Year, gini) %>% 
+    rename(country_code = Code, 
+           year = Year,
+           country_name = Entity) %>% 
+    dplyr::filter(year >= gini_yr)
+  
   #MERGING spi, sci, sdg, vdem data 
   namex <- left_join(name3, name2, by = c("year", "country_code")) 
   namex <- left_join(namex, name4, by = c("country_code", "year"))
@@ -130,6 +139,7 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   namex <- left_join(namex, name7, by = c("country_id", "year"))
   namex <- left_join(namex, name8, by = c("country_code", "year"))
   namex <- left_join(namex, name9, by = c("country_code", "year"))
+  namex <- left_join(namex, name10, by = c("country_code", "year"))
   
   #rm duplicate col names 
   colnames(namex) <- make.unique(colnames(namex)) # Make column names unique
@@ -145,4 +155,3 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
   
   return(name)
 }
-

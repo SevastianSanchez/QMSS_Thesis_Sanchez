@@ -71,7 +71,6 @@ dplyr::select(country_name, country_text_id, year, v2x_regime, v2x_regime_amb, v
 
 
 ## SPI wrangling / cleaning (skip if df_years() used)
-
 ```{r eval=FALSE, include=FALSE}
 #selecting and renaming spi vars 
 spi <- spi %>% 
@@ -86,6 +85,7 @@ spi <- spi %>%
   rename(p4_sources = SPI.INDEX.PIL4) %>% #SPI pillar, 4 Data sources 
   rename(p5_infra = SPI.INDEX.PIL5) #SPI pillar 5, Data infrastructure
 ```
+
 
 
 ## SCI wrangling / cleaning (skip if df_years() used)
@@ -165,32 +165,8 @@ merged_cs_2019 <- merged[merged$year==2019,]
 
 
 
-## Countries, years 2000-present - Test Subjects
-```{r eval=FALSE, include=FALSE}
-# subset for Brazil 
-merged_bra_ts <- merged[merged$country_code=="BRA",]
 
-# Subset for Turkey 
-merged_tur_ts <- merged[merged$country_code=="TUR",]
-
-# Subset for Russia 
-merged_rus_ts <- merged[merged$country_code=="RUS",]
-
-# Subset for Hungary
-merged_hun_ts <- merged[merged$country_code=="HUN",]
-
-# Subset for Spain 
-merged_esp_ts <- merged[merged$country_code=="ESP",]
-
-# Subset for USA 
-merged_usa_ts <- merged[merged$country_code=="USA",]
-
-#exporting Spain time series AS: merged_esp_ts; will save to current working directory 
-#write.table(merged_esp_ts, file = "merged_esp_ts.csv", row.names=F, sep = ",")
-```
-
-
-##set up & missing data
+# Set up & missing data
 ```{r}
 # x & y variables 
 y_var_sdg <- merged$sdg_overall 
@@ -206,6 +182,7 @@ colSums(!is.na(df_sdg_statcap))
 hist(x_var_spi)
 hist(x_var_sci)
 hist(y_var_sdg)
+
 ```
 
 Number of observations in SPI: 1300; number of NA's 3068 (not all years captured) Number of observations in SCI: 2055; number of NA's 2313 (not all countries captured)
@@ -260,7 +237,7 @@ The impact of SCI on SDG and SPI on SDG are statistically significant, in all mo
 
 ```{r}
 # 1. OLS for SPI and SDG - Overall 
-ols_spi <- lm(y_var_sdg ~ x_var_spi + log(gdppc) + population, data = merged)
+ols_spi <- lm(y_var_sdg ~ x_var_spi + log(gdppc) + population + gini, data = merged)
 summary(ols_spi)
 
 # 2. OLS for SCI and SDG - Overall 
@@ -365,7 +342,7 @@ ggplotly(Compare_fit)
 
 # INTERACTIONS AND SUBGROUP ANALYSIS
 
-##Potential interactions: 
+##Checking for Interactions: 
 - Is there a need for subgroup analysis, and if so, by what kind of group? 
 - Options: GNI Classification (income_level), regime_type_2, regime_type_4, di_score
 ```{r}
@@ -399,7 +376,7 @@ summary(reg_type_di_interaction)
 
 
 ## WB GNI Classifications: income_level ("H", "UM", "LM", "L")
-**Disaggregated by Development Status:** Test models on low-income vs. middle-income countries to isolate resource-dependent mechanisms. *Make 4 regression models and then put them all together in a table to compare the slopes and R-sq values.*
+**Disaggregated/Grouped by Development Status:** Make 4 regression models and then put them all together in a table to compare the slopes and R-sq values.
 ```{r}
 # 1. Overall model (all countries)
 overall_lm <- lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population,
@@ -431,7 +408,7 @@ low_inc_lm <- lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population,
 summary(low_inc_lm)
 ```
 
-### Extract coefficients and statistics for Subgrouped Regressions to compare 
+### Extract coefficients and statistics of subgroups to comparison table
 ```{r}
 # Creating mod_compare_tab - comparison table
 mod_compare_tab <- data.frame(
@@ -534,20 +511,17 @@ mod_compare_tab <- mod_compare_tab %>%
 print(mod_compare_tab)
 
 # export mod_compare_tab 
-#write.csv(mod_compare_tab, file = "ols_model_comparison.csv", row.names=F) 
+# write.csv(mod_compare_tab, file = "ols_model_comparison.csv", row.names=F) 
 ```
 
-
-
-
-##Visualizing Slopes: plotting
+##Visualizing Slopes: plotting multiple regression - by subgroup
 ```{r}
 viz_gni_class <- ggplot(data = merged, aes(x = spi_comp, y = sdg_overall, color = income_level_lab)) +
   geom_point(alpha = 0.25, size = 0.75) + 
-  # Group-specific regression lines
-  geom_smooth(method = "lm", linewidth = 0.65, se = FALSE) +
   # Overall regression line (black)
   geom_smooth(aes(group = 1), method = "lm", linewidth = 0.75, se = FALSE, color = "black") +
+  # Group-specific regression lines
+  geom_smooth(method = "lm", linewidth = 0.65, se = FALSE) +
   scale_color_manual(
     values = c("High Income Countries" = "#1D6A96", 
                "Upper-Middle Income Countries" = "#4CB5AE",
@@ -558,7 +532,7 @@ viz_gni_class <- ggplot(data = merged, aes(x = spi_comp, y = sdg_overall, color 
        x = "Statistical Performance Indicators (SPI)",
        y = "Sustainable Development Goals (SDG)",
        color = "Income Classification") +
-  theme_bw() +
+  theme_bw() 
 
 ggplotly(viz_gni_class)
 
@@ -566,24 +540,28 @@ ggplotly(viz_gni_class)
 # ggsave("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs/fd_plot.png", p, width = 10, height = 6)
 ```
 
-
 # Mediation analysis 
-To test if SPI mediates the relationship between regime type and SDG outcomes: Democratic backsliding → reduces SPI → slows SDG progress  
+To test if SPI mediates the relationship between regime type and SDG outcomes: 
+Democratic backsliding → reduces SPI → slows SDG progress  
+
+*H0: SPI DOES NOT mediate (indirectly effect) the relationship between regime type and SDG status* 
+*H1: SPI mediates (indirectly effects) the relationship between regime type and SDG status* 
+
 - ACME (Average Causal Mediation Effect): SPI’s indirect effect.
 - ADE (Average Direct Effect): Regime type’s direct effect, excluding SPI
 ```{r}
 library(mediation)
 
 #Total Effect: Check if regime type directly affects SDG scores (without SPI)
-lm_sdg <- lm(sdg_overall ~ di_score + gdppc + population, data = merged)
+lm_sdg <- lm(sdg_overall ~ di_score + log(gdppc) + population, data = merged)
 summary(lm_sdg)
 
 #Mediator model: Check if regime type affects SPI
-lm_spi <- lm(spi_comp ~ di_score + gdppc + population, data = merged)
+lm_spi <- lm(spi_comp ~ di_score + log(gdppc) + population, data = merged)
 summary(lm_spi)
 
 #outcome model: Check if SPI affects SDG scores while controlling for regime type
-lm_sdg_controlled <- lm(sdg_overall ~ spi_comp + di_score + gdppc + population, data = merged)
+lm_sdg_controlled <- lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population, data = merged)
 summary(lm_sdg_controlled)
 
 #Mediation test: Quantify how much of regime type’s effect on SDGs operates through SPI
@@ -591,293 +569,29 @@ med_model <- mediate(lm_spi, lm_sdg_controlled, treat = "di_score", mediator = "
 summary(med_model)
 
 ```
-ACME: SPI’s indirect effect. Because the ACME (indirect effect of SPI on sdg_overall) is significant, SPI mediates the regime-SDG relationship. 
+ACEM: SPI’s indirect effect = 0.917 units
+ADE: Regime type’s direct effect, excluding SPI = 0.326 units
+Total Effect: = 1.243 units
+Proportion Mediated: = 74.1% of total units
 
-ADE: Regime type’s direct effect, excluding SPI. Because the ADE (the direct effect between di_score on sdg_overall) is also significant, this suggests that SPI does not fully explain the connection between regime type and sdg status. 
+Interpretation: A 1-unit DI increase boosts SDG scores by 1.243 total units, with 0.917 units (~74% of units) transmitted through SPI. The remaining 0.326 units reflect direct DI effects (e.g., governance reforms unrelated to statistics).
 
-# First Difference Models - Robustness check
+Because the ACME (indirect effect of SPI on sdg_overall) is highly significant (p < 0.001), SPI mediates the regime-SDG relationship, based on the model. 
 
-**PART 1: Create lagged variables and first differences**
+Because the ADE (the direct effect between di_score on sdg_overall) is also significant (p = 0.002), although much less than the ACME estimate, SPI DOES NOT FULLY explain the connection between regime type and sdg status, based on the model. 
 
+## Linearity vs non-linearity 
 ```{r}
-library(plm)
-#library(dplyr)
+plot(lm_spi, which = 1)  # residuals for SPI model  
+plot(lm_sdg, which = 1)  # residuals for SDG model 
+plot(lm_sdg_controlled, which = 1)  # residuals for SDG model controlled
 
-# Create a simplified data frame with essential variables
-fd_fe_data <- merged %>%
-  dplyr::select(country_code, year, year_fct, sdg_overall, spi_comp, di_score, income_level, income_level_lab)
+library(lmtest)
+resettest(lm_spi, power = 2:3, type = "fitted")
+resettest(lm_sdg, power = 2:3, type = "fitted")
+resettest(lm_sdg_controlled, power = 2:3, type = "fitted")
 
-# Create lagged variables and first differences with explicit dplyr reference
-fd_data <- fd_data %>%
-  arrange(country_code, year) %>% 
-  group_by(country_code) %>%
-  mutate(
-    # Create lagged variables with explicit dplyr reference
-    sdg_lag = dplyr::lag(sdg_overall, n = 1),
-    spi_lag = dplyr::lag(spi_comp, n = 1),
-    
-    # Calculate first differences
-    fd_sdg = sdg_overall - sdg_lag,
-    fd_spi = spi_comp - spi_lag
-  ) %>%
-  ungroup()
-
-# To verify the lag creation works correctly
-# head(fd_data %>% select(country_code, year, sdg_overall, sdg_lag, fd_sdg, spi_comp, spi_lag, fd_spi) %>% arrange(country_code, year), 10)
+#validate with sensitivity test 
+sensmediation::sensmed(model_m, model_y, sims = 500)
 ```
 
-**PART 2: Run FD models for each income group**
-```{r}
-# Overall model
-fd_overall <- lm(fd_sdg ~ fd_spi, 
-                data = fd_data %>% 
-                  filter(!is.na(fd_sdg) & !is.na(fd_spi)))
-summary(fd_overall)
-
-# High income countries
-fd_high <- lm(fd_sdg ~ fd_spi, 
-             data = fd_data %>% 
-               filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
-                     income_level_lab == "High Income Countries"))
-summary(fd_high)
-
-# Upper-middle income countries
-fd_uppermid <- lm(fd_sdg ~ fd_spi, 
-              data = fd_data %>% 
-                filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
-                      income_level_lab == "Upper-Middle Income Countries"))
-summary(fd_uppermid)
-
-# Lower-middle income countries
-fd_lowermid <- lm(fd_sdg ~ fd_spi, 
-              data = fd_data %>% 
-                filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
-                      income_level_lab == "Lower-Middle Income Countries"))
-summary(fd_lowermid)
-
-# Low income countries
-fd_low <- lm(fd_sdg ~ fd_spi, 
-            data = fd_data %>% 
-              filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
-                    income_level_lab == "Low Income Countries"))
-summary(fd_low)
-```
-
-**PART 3: Create a comparison table**
-
-```{r}
-# Extract coefficients and statistics from each model
-fd_comparison <- data.frame(
-  model = c("Overall", "High Income", "Upper-Middle Income", 
-           "Lower-Middle Income", "Low Income"),
-  coefficient = c(
-    coef(fd_overall)["fd_spi"],
-    coef(fd_high)["fd_spi"],
-    coef(fd_upper)["fd_spi"],
-    coef(fd_lower)["fd_spi"],
-    coef(fd_low)["fd_spi"]
-  ),
-  intercept = c(
-    coef(fd_overall)["(Intercept)"],
-    coef(fd_high)["(Intercept)"],
-    coef(fd_upper)["(Intercept)"],
-    coef(fd_lower)["(Intercept)"],
-    coef(fd_low)["(Intercept)"]
-  ),
-  t_value = c(
-    summary(fd_overall)$coefficients["fd_spi", "t value"],
-    summary(fd_high)$coefficients["fd_spi", "t value"],
-    summary(fd_upper)$coefficients["fd_spi", "t value"],
-    summary(fd_lower)$coefficients["fd_spi", "t value"],
-    summary(fd_low)$coefficients["fd_spi", "t value"]
-  ),
-  p_value = c(
-    summary(fd_overall)$coefficients["fd_spi", "Pr(>|t|)"],
-    summary(fd_high)$coefficients["fd_spi", "Pr(>|t|)"],
-    summary(fd_upper)$coefficients["fd_spi", "Pr(>|t|)"],
-    summary(fd_lower)$coefficients["fd_spi", "Pr(>|t|)"],
-    summary(fd_low)$coefficients["fd_spi", "Pr(>|t|)"]
-  ),
-  r_squared = c(
-    summary(fd_overall)$r.squared,
-    summary(fd_high)$r.squared,
-    summary(fd_upper)$r.squared,
-    summary(fd_lower)$r.squared,
-    summary(fd_low)$r.squared
-  ),
-  adj_r_squared = c(
-    summary(fd_overall)$adj.r.squared,
-    summary(fd_high)$adj.r.squared,
-    summary(fd_upper)$adj.r.squared,
-    summary(fd_lower)$adj.r.squared,
-    summary(fd_low)$adj.r.squared
-  ),
-  n_obs = c(
-    nobs(fd_overall),
-    nobs(fd_high),
-    nobs(fd_upper),
-    nobs(fd_lower),
-    nobs(fd_low)
-  )
-)
-
-# Format the numbers for better display
-fd_comparison <- fd_comparison %>%
-  mutate(
-    coefficient = round(coefficient, 3),
-    intercept = round(intercept, 3),
-    t_value = round(t_value, 3),
-    p_value = round(p_value, 4),
-    r_squared = round(r_squared, 3),
-    adj_r_squared = round(adj_r_squared, 3)
-  )
-
-# Print the comparison table
-print(fd_comparison)
-
-#export fd_comparison 
-#write.csv(fd_comparison, file = "fd_comparison.csv", row.names=F) 
-```
-
-**RESULTS:**
-
-The overall model shows a positive and statistically significant relationship (coefficient = 0.015, p = 0.0033) between improvements in statistical capacity and improvements in SDG performance. Although this confirms my hypothesis that better statistical systems contribute to better development outcomes, the intercept indicates that when SPI remains constant, SDG scores progress by 0.286 anyway.
-
-The income group breakdown reveals fascinating variations:
-
-1.  **High Income Countries** show a negative coefficient (-0.012) that is not statistically significant (p = 0.2537). This suggests that for developed economies, improvements in statistical capacity don't necessarily translate to SDG improvements, possibly because they already have well-established statistical systems and other factors drive their SDG performance.
-
-2.  **Upper-Middle Income Countries** show a stronger positive effect (0.021) that is statistically significant (p = 0.0163). This indicates that for these emerging economies, investments in statistical capacity yield meaningful SDG improvements.
-
-3.  **Lower-Middle Income Countries** demonstrate an even stronger relationship (0.025) with high statistical significance (p = 0.0088). This is the most significant relationship among all income groups.
-
-4.  **Low Income Countries** show the strongest coefficient (0.026), suggesting the largest potential impact, though with slightly lower statistical significance (p = 0.0459) than lower-middle income countries.
-
-The R-squared values are relatively low across all models (between 0.004 and 0.023), indicating that changes in statistical capacity explain only a small portion of the variation in SDG changes. This is common in first-difference models and suggests that many other factors also influence SDG progress.
-
-1.  The relationship between statistical capacity and sustainable development follows an inverted U-shaped pattern across the development spectrum - minimal impact for high-income countries, strongest for middle-income countries, and slightly less strong (but still significant) for low-income countries.
-
-2.  Statistical capacity improvements appear most beneficial for developing and emerging economies, suggesting that international efforts to strengthen statistical systems should prioritize these countries.
-
-3.  The consistently positive intercepts (ranging from 0.224 to 0.364) indicate that SDG scores tend to improve over time regardless of changes in statistical capacity, though the rate of improvement varies by income level.
-
-
-# Visual Analysis | FD Models
-
-**Error-bar**
-
-```{r}
-# Create dataframe for plotting 
-plot_data <- fd_comparison %>%
-  select(model, coefficient, p_value) %>%
-  mutate(significant = p_value < 0.05)
-
-# Create Horizontal error-bar graph 
-fd_errorbar <- ggplot(plot_data, aes(x = coefficient, y = model, color = significant)) +
-  geom_point(size = 3) +
-  geom_errorbarh(aes(xmin = 0, xmax = coefficient), height = 0.2) + 
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  scale_color_manual(values = c("gray", "blue")) +
-  labs(title = "Effect of SPI Change on SDG Change by Income Group",
-       x = "Coefficient (Effect Size)",
-       y = "") +
-  theme_bw() +
-  theme(legend.position = "none")
-
-fd_errorbar
-
-#export fd_errorbar
-# ggsave("fd_errorbar.png", width = 10, height = 6)
-```
-
-**Scatter plot of FDs**
-
-```{r}
-fd_scatter <- ggplot(fd_data %>% 
-         filter(!is.na(fd_sdg) & !is.na(fd_spi)), 
-       aes(x = fd_spi, y = fd_sdg, color = income_level)) +
-  geom_point(alpha = 0.5) +
-  geom_smooth(method = "lm", se = FALSE) +
-  facet_wrap(~income_level) +
-  labs(title = "Relationship between Changes in SPI and SDG by Income Group",
-       x = "Change in Statistical Performance (SPI)",
-       y = "Change in Sustainable Development (SDG)") +
-  theme_bw()
-
-fd_scatter
-
-#export fd_scatter
-# ggsave("iCloud_Drive/Documents/GitHub/QMSS_Thesis_Sanchez", width = 10, height = 6)
-```
-
-## Multiple Regression: Xs = p1-5
-
-```{r}
-# y & x vars + controls
-sdg_overall_score <- merged$sdg_overall 
-p_1 <- merged$p1_use #insert x var 2
-p_2 <- merged$p2_services #insert x var 3
-p_3 <- merged$p3_products #insert x var 3
-p_4 <- merged$p4_sources #insert x var 3
-p_5 <- merged$p5_infra #insert x var 3
-gdppc <- merged$gdppc
-
-df_spi_p1to5 <- data.frame(p_1, p_2, p_3, p_4, p_5, gdppc)
-
-#OLS lm & full summary table 
-lm2 <- lm(sdg_overall_score ~ p_1 + p_2 + p_3 + p_4 + p_5 + log(gdppc), data=df_spi_p1to5)
-summary(lm2)
-
-#plotting residuals
-plot(lm2)
-#plotting scatterplot 
-plot(df$y_var, df$x1_var)
-abline(lm2)
-```
-
-##interaction term and control
-```{r}
-#incorperating regime type as control
-ols_testing <- lm(sdg_overall ~ spi_comp + regime_type + log(gdppc) + population,
-                        data = merged_inc)
-summary(ols_testing)
-
-#incorperating regime type as interaction term & control
-ols_testing2 <- lm(sdg_overall ~ spi_comp + regime_type + regime_type*spi_comp + log(gdppc) + population,
-                        data = merged_inc)
-summary(ols_testing2)
-```
-
-## R Stan, GLM, Markove  
-```{r}
-library(rstanarm)
-
-gml_testing <- stan_glm(sdg_overall ~ spi_comp + regime_type + regime_type*spi_comp + log(gdppc) + population, data = merged_inc)
-
-# glm_testing
-print(gml_testing)
-summary(gml_testing)
-```
-
-## Fixed Effects Model
-```{r}
-library(plm)
-fe_model <- plm(sdg_overall ~ spi_comp + regime_type + gdppc + population,
-                data = merged_inc, index = c("country_code", "year"), model = "within")
-
-summary(fe_model)
-```
-
-
-#Correlation matrix (look it up!)
-```{r}
-# 5 spi pillars by 17 and sdgs 
-
-```
-
-
-## Testing Index Reliability (Cronbach's Alpha)
-
-```{r}
-
-```

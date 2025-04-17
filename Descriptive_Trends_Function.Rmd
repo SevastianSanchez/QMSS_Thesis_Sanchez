@@ -19,6 +19,29 @@ source("df_years()_Function.R")
 trends <- df_years(yr1 = 2000) 
 ```
 
+# Countries, years 2000-present - Test Subjects
+```{r eval=FALSE, include=FALSE}
+# subset for Brazil 
+trends_bra_ts <- trends[trends$country_code=="BRA",]
+
+# Subset for Turkey 
+trends_tur_ts <- trends[trends$country_code=="TUR",]
+
+# Subset for Russia 
+trends_rus_ts <- trends[trends$country_code=="RUS",]
+
+# Subset for Hungary
+trends_hun_ts <- trends[trends$country_code=="HUN",]
+
+# Subset for Spain 
+trends_esp_ts <- trends[trends$country_code=="ESP",]
+
+# Subset for USA 
+trends_usa_ts <- trends[trends$country_code=="USA",]
+
+#exporting Spain time series AS: trends_esp_ts; will save to current working directory 
+#write.table(trends_esp_ts, file = "trends_esp_ts.csv", row.names=F, sep = ",")
+```
 
 #z-score standardization trend function 
 ```{r}
@@ -31,7 +54,7 @@ plot_trend_z <- function(data, country_code, start_year = 2010, end_year = 2025)
       year, 
       spi_comp, p1_use, p2_services, p3_products, p4_sources, p5_infra,
       sdg_overall, 
-      lib_dem
+      di_score
     ) %>%
     # Remove columns with ALL NA values (except year)
     dplyr::select(year, where(~ !all(is.na(.x)))) %>%
@@ -69,7 +92,7 @@ plot_trend_z <- function(data, country_code, start_year = 2010, end_year = 2025)
     "p4_sources" = "SPI: Sources",
     "p5_infra" = "SPI: Infrastructure",
     "sdg_overall" = "SDG Overall",
-    "lib_dem" = "Vdem: Liberal Democracy Index"
+    "di_score" = "EUI: Democracy Index Score"
   )
   
   # Dynamic color scheme
@@ -82,7 +105,7 @@ plot_trend_z <- function(data, country_code, start_year = 2010, end_year = 2025)
     "p4_sources" = "#08306b",
     "p5_infra" = "#08519c", 
     "sdg_overall" = "#fc8d59", 
-    "lib_dem" = "#31a354"
+    "di_score" = "#31a354"
   )[existing_metrics]
   
   ggplot(country_long, aes(x = year, y = value, color = metric, group = metric)) +
