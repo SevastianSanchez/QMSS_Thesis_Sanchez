@@ -100,6 +100,7 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
     filter(year >= gdppc_yr)
    
   name6$year <- as.numeric(name6$year) 
+  name6$log_gdppc <- log(name6$gdppc)
   
   #INFO CAPACITY
   name7 <- df7 %>% 

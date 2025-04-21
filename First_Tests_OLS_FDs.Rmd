@@ -1,14 +1,19 @@
 ---
-title: "First Tests OLS, FDs"
+title: "First Tests: OLS, Interactions, Subgroups"
 author: "Sevastian Sanchez"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
 ---
 
 # All Countries, Preliminary Analysis (SPI x SDGs)
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  tidy.opts = list(width.cutoff = 60)
+)
 ```
 
 #FIRST: Libraries, Directory & Data 
@@ -36,6 +41,7 @@ source("df_years()_Function.R")
 #specify start year 
 merged <- df_years(yr1 = 2000) 
 ```
+
 
 ##Vdem wrangling / cleaning (skip if df_years() used)
 ```{r eval=FALSE, include=FALSE}
@@ -182,7 +188,6 @@ colSums(!is.na(df_sdg_statcap))
 hist(x_var_spi)
 hist(x_var_sci)
 hist(y_var_sdg)
-
 ```
 
 Number of observations in SPI: 1300; number of NA's 3068 (not all years captured) Number of observations in SCI: 2055; number of NA's 2313 (not all countries captured)
@@ -237,15 +242,15 @@ The impact of SCI on SDG and SPI on SDG are statistically significant, in all mo
 
 ```{r}
 # 1. OLS for SPI and SDG - Overall 
-ols_spi <- lm(y_var_sdg ~ x_var_spi + log(gdppc) + population + gini, data = merged)
+ols_spi <- lm(y_var_sdg ~ x_var_spi + log_gdppc + population, data = merged)
 summary(ols_spi)
 
 # 2. OLS for SCI and SDG - Overall 
-ols_sci <- lm(y_var_sdg ~ x_var_sci + log(gdppc) + population, data = merged)
+ols_sci <- lm(y_var_sdg ~ x_var_sci + log_gdppc + population, data = merged)
 summary(ols_sci)
 
 # 3. Multiple Regression with both SPI and SCI
-ols_multiple <- lm(y_var_sdg ~ x_var_spi + x_var_sci + log(gdppc) + population, data = merged)
+ols_multiple <- lm(y_var_sdg ~ x_var_spi + x_var_sci + log_gdppc + population, data = merged)
 summary(ols_multiple)
 ```
 
@@ -287,7 +292,7 @@ vif(ols_multiple)
 
 x_var_spi: 3.34 
 x_var_sci: 3.21 
-log(gdppc): 1.27
+log_gdppc: 1.27
 population: 1.02
 
 Unsurprisingly, the variance of the SPI coefficient is inflated by a factor of 3.34 due to correlation with other predictors. Similarly, the SCI coefficient’s variance is inflated by 3.21 times. However, it is acceptable to use in the same model as it will not severely impact estimates given both factors are less than 5.0.
@@ -321,24 +326,35 @@ sci_line <- "darkgoldenrod"
 
 # Creating scatterplot with both SPI and SCI on the same plot
 Compare_fit <- ggplot(merged, aes(x = spi_comp, y = sdg_overall))+
-  geom_smooth(aes(x = spi_comp, y = sdg_overall), color = spi_line, method = "lm", linewidth = 0.75, se = FALSE)+ # Regression line SPI
-  geom_smooth(aes(x = sci_overall, y = sdg_overall), color = sci_line, method = "lm", linewidth = 0.75, se = FALSE)+ # Regression line for SCI
-  geom_point(aes(color = "spi_comp"), alpha=0.50, size = 0.5)+  # Scatter plot for SPI, colored distinctly
-  geom_point(aes(x = sci_overall, y = sdg_overall, color = "sci_overall"), alpha=0.5, size = 0.5)+ # Add SCI points w/different color
-  scale_color_manual(values = c("spi_comp" = "steelblue1", "sci_overall" = "darkgoldenrod1")) +  # Define colors
+  geom_smooth(aes(x = spi_comp, y = sdg_overall), 
+              color = spi_line, 
+              method = "lm", 
+              linewidth = 0.75, 
+              se = FALSE)+ # Regression line SPI
+  geom_smooth(aes(x = sci_overall, y = sdg_overall), 
+              color = sci_line, 
+              method = "lm", 
+              linewidth = 0.75, 
+              se = FALSE)+ # Regression line for SCI
+  geom_point(aes(color = "spi_comp"), alpha=0.50, size = 0.5)+ # Scatter plot for SPI
+  geom_point(aes(x = sci_overall, y = sdg_overall, color = "sci_overall"), 
+             alpha=0.5, size = 0.5)+ # Add SCI points w/different color
+  scale_color_manual(values = c("spi_comp" = "steelblue1", 
+                                "sci_overall" = "darkgoldenrod1")) +
   labs(title = "SDG vs. SPI and SCI",
        x = "SPI / SCI",
        y = "SDG",
        color = "Index") +  # Title for legend
   theme_bw() # Optional: adds a clean, black and white theme
 
+Compare_fit
+
 #make interactive
-ggplotly(Compare_fit)
+#ggplotly(Compare_fit)
 
 # Save to specific folder
 # ggsave("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs/fd_plot.png", p, width = 10, height = 6)
 ```
-
 
 # INTERACTIONS AND SUBGROUP ANALYSIS
 
@@ -347,22 +363,22 @@ ggplotly(Compare_fit)
 - Options: GNI Classification (income_level), regime_type_2, regime_type_4, di_score
 ```{r}
 #interaction: does GNI Classification (income_level) affect the relationship between x (spi) & y (sdg)?
-inc_lev_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*income_level + log(gdppc) + population + gini,
+inc_lev_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*income_level + log_gdppc + population,
                         data = merged)
 summary(inc_lev_interaction)
 
 #interaction: does regime_type_2 affect the relationship between x (spi) & y (sdg)?
-reg_type2_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log(gdppc) + population + + gini,
+reg_type2_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log_gdppc + population,
                         data = merged)
 summary(reg_type2_interaction)
 
 #interaction: does regime_type_4 affect the relationship between x (spi) & y (sdg)?
-reg_type4_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_4 + log(gdppc) + population + gini,
+reg_type4_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_4 + log_gdppc + population,
                         data = merged)
 summary(reg_type4_interaction)
 
 #interaction: does di affect the relationship between x (spi) & y (sdg)?
-reg_type_di_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*di_score + log(gdppc) + population + gini,
+reg_type_di_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*di_score + log_gdppc + population,
                         data = merged)
 summary(reg_type_di_interaction)
 ```
@@ -379,30 +395,30 @@ summary(reg_type_di_interaction)
 **Disaggregated/Grouped by Development Status:** Make 4 regression models and then put them all together in a table to compare the slopes and R-sq values.
 ```{r}
 # 1. Overall model (all countries)
-overall_lm <- lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population + gini,
+overall_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini,
                         data = merged)
 summary(overall_lm)
 
 # 2. High income countries
-high_inc_lm <- lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population + gini,
+high_inc_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini,
                         data = merged %>% 
                           filter(income_level == "H"))
 summary(high_inc_lm)
 
 # 3. Upper-middle income countries
-upper_mid_lm <- lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population + gini,
+upper_mid_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini,
                          data = merged %>% 
                            filter(income_level == "UM"))
 summary(upper_mid_lm)
 
 # 4. Lower-middle income countries
-lower_mid_lm <- lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population + gini,
+lower_mid_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini,
                          data = merged %>% 
                            filter(income_level == "LM"))
 summary(lower_mid_lm)
 
 # 5. Low income countries
-low_inc_lm <- lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population + gini,
+low_inc_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini,
                        data = merged %>% 
                          filter(income_level == "L"))
 summary(low_inc_lm)
@@ -516,12 +532,20 @@ print(mod_compare_tab)
 
 ##Visualizing Slopes: plotting multiple regression - by subgroup
 ```{r}
-viz_gni_class <- ggplot(data = merged, aes(x = spi_comp, y = sdg_overall, color = income_level_lab)) +
+viz_gni_class <- ggplot(data = merged, aes(x = spi_comp, 
+                                           y = sdg_overall, 
+                                           color = income_level_lab)) +
   geom_point(alpha = 0.25, size = 0.75) + 
   # Overall regression line (black)
-  geom_smooth(aes(group = 1), method = "lm", linewidth = 0.75, se = FALSE, color = "black") +
+  geom_smooth(aes(group = 1), 
+              method = "lm", 
+              linewidth = 0.75, 
+              se = FALSE, 
+              color = "black") +
   # Group-specific regression lines
-  geom_smooth(linewidth = 0.65, se = FALSE) +
+  geom_smooth(method = "lm", 
+              linewidth = 0.65, 
+              se = FALSE) +
   scale_color_manual(
     values = c("High Income Countries" = "#1D6A96", 
                "Upper-Middle Income Countries" = "#4CB5AE",
@@ -534,7 +558,8 @@ viz_gni_class <- ggplot(data = merged, aes(x = spi_comp, y = sdg_overall, color 
        color = "Income Classification") +
   theme_bw() 
 
-ggplotly(viz_gni_class)
+viz_gni_class
+#ggplotly(viz_gni_class)
 
 # Save to specific folder
 # ggsave("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs/fd_plot.png", p, width = 10, height = 6)
@@ -553,15 +578,15 @@ Democratic backsliding → reduces SPI → slows SDG progress
 library(mediation)
 
 #Total Effect: Check if regime type directly affects SDG scores (without SPI)
-lm_sdg <- lm(sdg_overall ~ di_score + log(gdppc) + population, data = merged)
+lm_sdg <- lm(sdg_overall ~ di_score + log_gdppc + population, data = merged)
 summary(lm_sdg)
 
 #Mediator model: Check if regime type affects SPI
-lm_spi <- lm(spi_comp ~ di_score + log(gdppc) + population, data = merged)
+lm_spi <- lm(spi_comp ~ di_score + log_gdppc + population, data = merged)
 summary(lm_spi)
 
 #outcome model: Check if SPI affects SDG scores while controlling for regime type
-lm_sdg_controlled <- lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population, data = merged)
+lm_sdg_controlled <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population, data = merged)
 summary(lm_sdg_controlled)
 
 #Mediation test: Quantify how much of regime type’s effect on SDGs operates through SPI
@@ -592,6 +617,11 @@ resettest(lm_sdg, power = 2:3, type = "fitted")
 resettest(lm_sdg_controlled, power = 2:3, type = "fitted")
 
 #validate with sensitivity test 
-sensmediation::sensmed(model_m, model_y, sims = 500)
+#sensmediation::sensmed(model_m, model_y, sims = 500)
 ```
+
+## STILL LEFT TO INCLUDE 
+- Use Robust Standard Errors across all models 
+- Include GNI Coefficient control in all models 
+- Update results based on these changes
 

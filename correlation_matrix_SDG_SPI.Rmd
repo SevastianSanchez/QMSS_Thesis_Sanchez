@@ -9,50 +9,82 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Partial Correlation Matrix: Disaggregated SDG ~ SCI Scores 
+
 ```{r cars}
 # set working directory 
 setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 
 #load libraries/packages
 source("packages.R")
+library(corpcor)
 
 #load function 
 source("df_years()_Function.R")
-merged_matrix <- df_years(yr1 = 2015) 
+matrix_data <- df_years(yr1 = 2015) %>% 
+   dplyr::select(p1_use, p2_services, p3_products, p4_sources, p5_infra, spi_comp,
+                goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8,
+                goal9, goal10, goal11, goal12, goal13, goal14, goal15,
+                goal16, goal17, sdg_overall, gdppc, log_gdppc, population)
+
+#Impute missing data: log_gdppc & population 
+matrix_data <- matrix_data %>%
+  mutate(
+    log_gdppc = ifelse(is.na(log_gdppc), median(log_gdppc, na.rm = TRUE), log_gdppc),
+    population = ifelse(is.na(population), median(population, na.rm = TRUE), population)
+  )
 ```
 
 #Partial correlation & package 
-Partial correlation controls for confounding variables: Ensures correlations between SPI pillars and SDG goals are adjusted for external factors like log(GDP) and population (control1, control2).
+Partial correlation controls for confounding variables: Ensures correlations between SPI pillars and SDG goals are adjusted for external factors like log(GDP) and population.
 
 Focuses on Direct Relationships: Removes indirect effects of controls on both SPI and SDG metrics.
-```{r}
-# Example: Filter relevant columns
-matrix_data <- merged_matrix %>%
-  dplyr::select(p1_use, p2_services, p3_products, p4_sources, p5_infra,
-                goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8,
-                goal9, goal10, goal11, goal12, goal13, goal14, goal15,
-                goal16, goal17, gdppc, population)
-```
 
 # Initialize an empty matrix to store results
 ```{r}
-spi_pillars <- c("p1_use", "p2_services", "p3_products", "p4_sources", "p5_infra")
-sdg_goals <- paste0("goal", 1:17)
-partial_corr_matrix <- matrix(NA, nrow = length(spi_pillars), ncol = length(sdg_goals),
+spi_pillars <- c("spi_comp", "p1_use", "p2_services", "p3_products", "p4_sources", "p5_infra")
+sdg_goals <- c("sdg_overall", paste0("goal", 1:17))
+
+#devise matrix 
+partial_corr_matrix <- matrix(NA, nrow = length(spi_pillars), 
+                              ncol = length(sdg_goals),
                               dimnames = list(spi_pillars, sdg_goals))
 
-# Loop through SPI pillars and SDG goals
 for (spi in spi_pillars) {
   for (sdg in sdg_goals) {
-    # Create temporary dataset with complete cases
-    temp_data <- matrix_data[, c(spi, sdg, "gdppc", "population")] %>%  # Fixed: added quotes
+    # Subset data with controls
+    temp_data <- matrix_data[, c(spi, sdg, "log_gdppc", "population")] %>%
       na.omit()
     
-    # Only calculate if sufficient data remains
-    if (nrow(temp_data) >= 4) {
-      result <- ppcor::pcor(temp_data)  # Explicit package reference
-      partial_corr_matrix[spi, sdg] <- result$estimate[1, 2]
+    # Skip if insufficient data
+    if (nrow(temp_data) < 10) {
+      partial_corr_matrix[spi, sdg] <- NA
+      next
     }
+    
+    # Check for near-constant variables (threshold)
+    var_check <- sapply(temp_data[, c("log_gdppc", "population")], var)
+    if (any(var_check < 0.01)) {  # Increased from 1e-3 to 0.01
+      partial_corr_matrix[spi, sdg] <- NA
+      next
+    }
+    
+    # Attempt 1: Standard partial correlation
+    tryCatch({
+      result <- ppcor::pcor(temp_data)
+      partial_corr_matrix[spi, sdg] <- result$estimate[1, 2]
+    }, error = function(e) {
+      # Attempt 2: Pseudoinverse-based correlation (more robust)
+      tryCatch({
+        cov_mat <- cov(temp_data)
+        pcor_mat <- corpcor::pcor.shrink(temp_data, verbose = FALSE)
+        partial_corr_matrix[spi, sdg] <- pcor_mat[1, 2]
+      }, error = function(e) {
+        # Fallback: Simple correlation without controls
+        cor_value <- cor(temp_data[, spi], temp_data[, sdg])
+        partial_corr_matrix[spi, sdg] <- cor_value
+      })
+    })
   }
 }
 
@@ -65,7 +97,7 @@ melted_cormat <- melt(partial_corr_matrix)
 
 #visualizing partial correlation matrix
 ```{r}
-ggplot(data = melted_cormat, aes(x = Var2, y = Var1, fill = value)) +
+matrix_spi_sdg <- ggplot(data = melted_cormat, aes(x = Var2, y = Var1, fill = value)) +
   geom_tile(color = "white") +
   scale_fill_gradient2(
     low = "red", mid = "white", high = "darkgreen", midpoint = 0,
@@ -101,5 +133,7 @@ ggplot(data = melted_cormat, aes(x = Var2, y = Var1, fill = value)) +
   ) +
   coord_fixed()  # Maintain square aspect ratio
 
+#show
+matrix_spi_sdg
 ```
 

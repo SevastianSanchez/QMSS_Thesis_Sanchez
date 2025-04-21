@@ -23,58 +23,15 @@ source("data/data_sources.R")
 
 #load df_years() function: 2015-present
 fd_fe_data <- df_years(yr1=2015) %>%
-  dplyr::select(country_code, year, year_fct, sdg_overall, spi_comp, di_score, aut_ep, income_level, income_level_lab, gini, population)
+  dplyr::select(country_code, year, year_fct, sdg_overall, spi_comp, di_score, aut_ep, income_level, income_level_lab, gini, gdppc, log_gdppc, population)
   
 ```
 
-#First difference (regime change = aut_ep?)
-```{r}
-fd_model <- plm(
-  spi_comp ~ di_score + log(gdppc) + population + year_fct + gini,
-  data = fd_fe_data,
-  index = c("country_code", "year"),
-  model = "fd"
-)
-
-summary(fd_model)
-
-# Check for serial correlation
-lmtest::dwtest(fd_model)
-
-```
-
-#fixed effects (regime change = aut_ep?)
-```{r}
-fe_model <- plm(
-  spi_comp ~ di_score + log(gdppc) + population + year_fct + gini,
-  data = fd_fe_data,
-  index = c("country_code", "year"),
-  model = "within"
-)
-
-# Check for time effects
-summary(fe_model)
-
-```
-
-#Model SPI’s effect on SDG outcomes with regime change as mediator (aut_ep?)
-```{r}
-library(mediation)
-
-med_model <- mediate(
-  model.m = lm(spi_comp ~ di_score + log(gdppc) + population + gini, data = fd_fe_data),
-  model.y = lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population + gini, data = fd_fe_data),
-  treat = "aut_ep",
-  mediator = "spi_comp"
-)
-
-summary(med_model)
-```
-
-
 # First Difference Models - Robustness check
+FD removes all time-invariant characteristics of each unit (like geography, culture, or baseline wealth). However, variables that do change over time, such as GDP per capita and country population, should be controlled.
 
-**PART 1: Create lagged variables and first differences**
+
+## PART 1: Create lagged variables and first differences
 
 ```{r}
 # PART 1: Create lagged variables and first differences
@@ -98,38 +55,38 @@ fd_fe_data <- fd_fe_data %>%
 #head(fd_data_testing %>% dplyr::select(country_code, year, sdg_overall, sdg_lag, fd_sdg, spi_comp, spi_lag, fd_spi) %>% arrange(country_code, year), 10)
 ```
 
-**PART 2: Run FD models for each income group**
+##PART 2: Run FD models SDG ~ SPI for each income group
 
 ```{r}
 # Overall model
-fd_overall <- lm(fd_sdg ~ fd_spi, 
+fd_overall <- lm(fd_sdg ~ fd_spi + log_gdppc + population, 
                 data = fd_fe_data %>% 
                   filter(!is.na(fd_sdg) & !is.na(fd_spi)))
 summary(fd_overall)
 
 # High income countries
-fd_high <- lm(fd_sdg ~ fd_spi, 
+fd_high <- lm(fd_sdg ~ fd_spi + gdppc + population, 
              data = fd_fe_data %>% 
                filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
                      income_level == "High Income Countries"))
 summary(fd_high)
 
 # Upper-middle income countries
-fd_upper <- lm(fd_sdg ~ fd_spi, 
+fd_upper <- lm(fd_sdg ~ fd_spi + log_gdppc + population, 
               data = fd_fe_data %>% 
                 filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
                       income_level == "Upper-Middle Income Countries"))
 summary(fd_upper)
 
 # Lower-middle income countries
-fd_lower <- lm(fd_sdg ~ fd_spi, 
+fd_lower <- lm(fd_sdg ~ fd_spi + log_gdppc + population, 
               data = fd_fe_data %>% 
                 filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
                       income_level == "Lower-Middle Income Countries"))
 summary(fd_lower)
 
 # Low income countries
-fd_low <- lm(fd_sdg ~ fd_spi, 
+fd_low <- lm(fd_sdg ~ fd_spi + log_gdppc + population, 
             data = fd_fe_data %>% 
               filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
                     income_level == "Low Income Countries"))
@@ -137,7 +94,7 @@ summary(fd_low)
 ```
 - No need for time variable
 
-**PART 3: Create a comparison table**
+## PART 3: Create a comparison table of FD: SDG ~ SPI
 
 ```{r}
 # Extract coefficients and statistics from each model
@@ -282,5 +239,51 @@ fd_scatter
 
 #export fd_scatter
 # ggsave("iCloud_Drive/Documents/GitHub/QMSS_Thesis_Sanchez", width = 10, height = 6)
+```
+
+
+
+#First difference (regime change = aut_ep?)
+```{r}
+fd_model <- plm(
+  spi_comp ~ di_score + log_gdppc + population + year_fct + gini,
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "fd"
+)
+
+summary(fd_model)
+
+# Check for serial correlation
+lmtest::dwtest(fd_model)
+
+```
+
+#fixed effects (regime change = aut_ep?)
+```{r}
+fe_model <- plm(
+  spi_comp ~ di_score + log(gdppc) + population + year_fct + gini,
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "within"
+)
+
+# Check for time effects
+summary(fe_model)
+
+```
+
+# Model SPI’s effect on SDG outcomes with regime change as mediator
+```{r}
+library(mediation)
+
+med_model <- mediate(
+  model.m = lm(spi_comp ~ di_score + log(gdppc) + population + gini, data = fd_fe_data),
+  model.y = lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population + gini, data = fd_fe_data),
+  treat = "aut_ep",
+  mediator = "spi_comp"
+)
+
+summary(med_model)
 ```
 

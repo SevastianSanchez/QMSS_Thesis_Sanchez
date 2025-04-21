@@ -12,6 +12,7 @@ library(stargazer)
 library(scales)
 library(mice)
 library(ppcor)  # For partial correlation calculations
+library(corpcor)  # For pseudoinverse-based partial correlation
 library(plm) # for panel data 
 library(dplyr)
 library(patchwork) 
