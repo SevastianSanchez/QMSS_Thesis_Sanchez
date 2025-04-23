@@ -94,6 +94,7 @@ spi <- spi %>%
 
 
 
+
 ## SCI wrangling / cleaning (skip if df_years() used)
 
 ```{r eval=FALSE, include=FALSE}
@@ -112,6 +113,7 @@ sci <- sci_df %>%
 sci_scores <- sci %>% 
   select(country_name, country_code, year, sci_overall, sci_method, sci_periodicity, sci_source)
 ```
+
 
 
 
@@ -233,7 +235,7 @@ ols_spi_naive: 0.47806 (p-value < 0.001)
 ols_sci_naive: 0.39209 (p-value < 0.001)  
 ols_multiple_naive: spi: 0.28779 (p-value < 0.001); sci: 0.15311 (p-value < 0.001)
 
-The impact of SCI on SDG and SPI on SDG are statistically significant, in all models. SPI appears to have a greater impact on SDGs compared to that of SCI, regardless of the model. All of this is wothout controls. 
+The impact of SCI on SDG and SPI on SDG are statistically significant, in all models. SPI appears to have a greater impact on SDGs compared to that of SCI, regardless of the model. All of this is without controls. 
 
 ## Comparing SPI & SCI to identify best model, WITH controls 
 
@@ -242,15 +244,15 @@ The impact of SCI on SDG and SPI on SDG are statistically significant, in all mo
 
 ```{r}
 # 1. OLS for SPI and SDG - Overall 
-ols_spi <- lm(y_var_sdg ~ x_var_spi + log_gdppc + population, data = merged)
+ols_spi <- lm(y_var_sdg ~ x_var_spi + log_gdppc + population + di_score + gini, data = merged)
 summary(ols_spi)
 
 # 2. OLS for SCI and SDG - Overall 
-ols_sci <- lm(y_var_sdg ~ x_var_sci + log_gdppc + population, data = merged)
+ols_sci <- lm(y_var_sdg ~ x_var_sci + log_gdppc + population + di_score + gini, data = merged)
 summary(ols_sci)
 
 # 3. Multiple Regression with both SPI and SCI
-ols_multiple <- lm(y_var_sdg ~ x_var_spi + x_var_sci + log_gdppc + population, data = merged)
+ols_multiple <- lm(y_var_sdg ~ x_var_spi + x_var_sci + log_gdppc + population + di_score + gini, data = merged)
 summary(ols_multiple)
 ```
 
