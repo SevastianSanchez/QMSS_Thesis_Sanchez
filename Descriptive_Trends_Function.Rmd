@@ -83,7 +83,7 @@ plot_trend_z <- function(data, country_code, start_year = 2010, end_year = 2025)
       values_drop_na = TRUE  # Remove NA values before plotting
     )
   
-  # 6. Ensure metric labels match pivoted names
+  # Ensure metric labels match pivoted names
   metric_labels <- c(
     "spi_comp" = "SPI: Composite Score",
     "p1_use" = "SPI: Data Use",
@@ -114,7 +114,7 @@ plot_trend_z <- function(data, country_code, start_year = 2010, end_year = 2025)
     geom_vline(xintercept = 2020, linetype = "dashed", color = "red") +
     scale_color_manual(values = custom_colors, 
                        labels = metric_labels[existing_metrics]) +
-    labs(title = paste0(country_code, ": SPI Pillars, SDG, and Democracy Trends (Z-Scores)"),
+    labs(title = paste0(country_name, ": SPI Pillars, SDG, and Democracy Trends (Z-Scores)"),
       x = "Year",
       y = "Z-Score (Mean = 0, SD = 1)",
       color = "Metric",
@@ -122,12 +122,15 @@ plot_trend_z <- function(data, country_code, start_year = 2010, end_year = 2025)
     theme_minimal()
 }
 
+
 ```
 
 #select countries
 ```{r}
 brazil_plot <- plot_trend_z(trends, "BRA")
 brazil_plot
+
+ggplotly(brazil_plot)
 
 turkey_plot <- plot_trend_z(trends, "TUR")
 turkey_plot

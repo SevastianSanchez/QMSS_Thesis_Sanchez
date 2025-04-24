@@ -244,27 +244,60 @@ The impact of SCI on SDG and SPI on SDG are statistically significant, in all mo
 
 ```{r}
 # 1. OLS for SPI and SDG - Overall 
-ols_spi <- lm(y_var_sdg ~ x_var_spi + log_gdppc + population + di_score + gini, data = merged)
+ols_spi <- lm(y_var_sdg ~ x_var_spi + log_gdppc + population + di_score + gini + year_fct, data = merged)
 summary(ols_spi)
 
 # 2. OLS for SCI and SDG - Overall 
-ols_sci <- lm(y_var_sdg ~ x_var_sci + log_gdppc + population + di_score + gini, data = merged)
+ols_sci <- lm(y_var_sdg ~ x_var_sci + log_gdppc + population + di_score + gini + year_fct, data = merged)
 summary(ols_sci)
 
 # 3. Multiple Regression with both SPI and SCI
-ols_multiple <- lm(y_var_sdg ~ x_var_spi + x_var_sci + log_gdppc + population + di_score + gini, data = merged)
+ols_multiple <- lm(y_var_sdg ~ x_var_spi + x_var_sci + log_gdppc + population + di_score + gini + year_fct, data = merged)
 summary(ols_multiple)
 ```
 
-We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. Holding all else constant (log gdp per capita and population), there is a positive moderate relationship between Statistical Performance (SPI) and SDG status.
+We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. Additionally, we reject the null hypothesis that there is no relationship between SCI and SDG composite scores. Holding all else constant (log GDP per capita, democracy score, population and GINI coefficient), SPI and SCI exhibit positive moderate and statistically significant relationships with SDG status.
 
-ols_spi: 0.280 (p-value < 0.001)  
-ols_sci: 0.268 (p-value < 0.001)  
-ols_multiple: spi: 0.1216 (p-value < 0.001); sci: 0.1288 (p-value < 0.001)
+ols_spi: 0.2474 (p-value < 0.001)  
+ols_sci: 0.1883 (p-value < 0.001)  
+ols_multiple: spi: 0.1371 (p-value < 0.001); sci: 0.1202 (p-value < 0.001)
 
-Comparing coefficients, SPI has a greater impact on SDG status (0.280) than SCI (0.268). However, in a multiple regression model containing both SPI and SCI, SCI has more of an impact on SDG status (0.1288) (net of SPI) than SPI (0.1216) (net of SCI). Here the coefficients represent the unique impact of each x variable on SDG status, net of all other variables.
+When compared in separate models, SPI has a greater impact on SDG status (0.2474) than SCI (0.1883). This suggests that a one-unit increase in SPI is associated with a larger improvement in SDG outcomes compared to a one-unit increase in SCI, holding all controls constant. 
 
-Model 1 (ols_spi) does not control for SCI and model 2 (ols_sci) does not control for spi -- this is okay. SPI is the predecessor of the SCI, sharing/data overlap, and so it is expected to have significant statistical correlation (multicollinearity). This is likely what explains the significant reduction of coefficients (from 0.280 to 0.1216 for SPI, and from 0.268 to 0.1288 for SCI) indicating that they're both capturing much of the same underlying relationship with SDG status.
+This similarly holds true in a multiple regression model containing both SPI and SCI. SPI's impact on SDG status (0.1371) (net of SPI) is greater than that of SCI's (0.1202) (net of SCI), holding all controls constant. When together, the coefficients represent the unique impact of each predictor variable (measures of statistical capacity) on SDG status, net of all other variables.
+
+Model 1 (ols_spi) does not control for SCI and model 2 (ols_sci) does not control for spi -- this is okay. SPI is the predecessor of the SCI, sharing/data overlap, and so it is expected to have significant statistical correlation (multicollinearity). This is likely what explains the significant reduction of both coefficients as seen in model 3: 0.2474 to 0.1371 for SPI (44% decrease); and from 0.1883 to 0.1202 for SCI (36% decrease). Such indicates that they're both capturing much of the same underlying relationship with SDG status.
+
+However, the fact that both SPI and SCI remain significant when included together (model 3) with the highest adjusted R-sq (0.8443) suggests that they capture different dimensions of statistical capacity that independently contribute to SDG status.
+
+### Multicolinearity & VIF: SPI & SCI 
+
+```{r}
+# Check correlation between SPI and SCI
+cor(x_var_spi, x_var_sci, use = "complete.obs")
+
+# Check VIF (Variance Inflation Factor) in Model 3
+vif(ols_multiple)
+```
+
+**colinearity:** The correlation between SCI and SPI is about 0.8277. When placed within the same model, SCI inflated the standard error of SPI from 0.02010 to 0.02783. SCI had a similar reaction from the SPI with its standard error increasing from 0.01677 to 0.02822.
+
+**VIF:** Such multicolinearity is reflected by the VIF test which accounts for all x variables in the model instead of just the two measures of statistical capacity (SCI & SPI).
+
+x_var_spi: 2.367593 
+x_var_sci: 2.365641 
+log_gdppc: 1.474165
+population: 1.041698
+di_score: 1.430554
+gini: 1.307220
+
+Unsurprisingly, the variance of the SPI coefficient is slightly inflated by a factor of 2.368 due to correlation with other predictors. Similarly, the SCI coefficient’s variance is inflated by 2.366 times. However, it is acceptable to use in the same model as it will not severely impact estimates given both factors are less than 5.0.
+
+### Missing Data Structure & Interpretations 
+**Systematic, non-random missing data pattern:** SPI has near complete country data coverage, but with a stubborn temporal limitation (2016-2023). On the other hand, SCI has longer temporal coverage (2004-2020), but lacks reporting on high-income countries focusing primarily on the developing world. 
+
+In model 1 (SDG ~ SPI), democracy score (di_score) is non-significant (0.0673, p=0.6415). However, in model 2 (SDG ~ SCI) democracy score is highly significant (0.5835***, p < 0.001). In model 3, with both SCI and SPI, democracy score is marginally significant (0.2755, p=0.073922). This suggests that SCI's relationship with SDG outcomes may be closely linked to regime/democratic governance. Considering the non-random missing data structured previously mentioned, the difference in significance between the models for democracy score signals an even greater need to perform subgroup analysis of countries at different stages/levels of development. 
+
 
 ### AIC/BIC Checking Fit [FIX TEST- #N DIFFERS BTW MODELS]
 
@@ -276,28 +309,9 @@ Model 1 (ols_spi) does not control for SCI and model 2 (ols_sci) does not contro
 #BIC(ols_spi, ols_sci, ols_multiple)
 ```
 
-**Best fit:** ols_spi (Adj Rsq: 0.7696) (AIC/BIC: ___)
+**Best fit:** ols_spi (Adj Rsq: 0.7898) (AIC/BIC: ___)
 
-### SPI & SCI colinearity VIF
-
-```{r}
-# Check correlation between SPI and SCI
-cor(x_var_spi, x_var_sci, use = "complete.obs")
-
-# Check VIF (Variance Inflation Factor)
-vif(ols_multiple)
-```
-
-**colinearity:** there is significant co-linearity between SCI and SPI, with a correlation of 0.8277. Upon integrating within the same model, SCI inflated the standard error of SPI from 0.0115 to 0.0231. SCI had a similar reaction fro the SPI with its standard error increasing from 0.00796 to 0.0215.
-
-**VIF:** Such multicolinearity is reflected by the VIF test which accounts for all x variables in the model instead of just the two measures of statistical capacity (SCI & SPI).
-
-x_var_spi: 3.34 
-x_var_sci: 3.21 
-log_gdppc: 1.27
-population: 1.02
-
-Unsurprisingly, the variance of the SPI coefficient is inflated by a factor of 3.34 due to correlation with other predictors. Similarly, the SCI coefficient’s variance is inflated by 3.21 times. However, it is acceptable to use in the same model as it will not severely impact estimates given both factors are less than 5.0.
+**Selecting model:** This analysis is specifically focused on overall statistical capacity rather than comparisons of measures. The SPI model reveals a better fit than the SCI model (Adj Rsq: 0.7898 > 0.7843). Although model 3 containing both SPI and SCI sustains a better fit compared to model 1 with just SPI (Adj Rsq: 0.7898 < 0.84), model 1 has significantly more country-year data points (463) for regression analysis compared to model 3 (214). 
 
 ###Combine to single index: principle component analysis (FOR FUTURE)
 
@@ -314,7 +328,7 @@ Unsurprisingly, the variance of the SPI coefficient is inflated by a factor of 3
 #stat_capacity_pc1 <- pca_result$x[,1]  # First principal component
 ```
 
-**Selecting model:** My research question is about overall statistical capacity rather than comparing different measures. The SPI model reveals a better fit than the SCI model (Adj Rsq: 0.7696 > 0.7235). It is also a slightly better fit compared to the multiple OLS model containing both SPI and SCI (Adj Rsq: 0.7696 > 0.7624).
+
 
 ### Visual Analysis: SCI & SPI x SDG
 ```{r}
@@ -365,22 +379,22 @@ Compare_fit
 - Options: GNI Classification (income_level), regime_type_2, regime_type_4, di_score
 ```{r}
 #interaction: does GNI Classification (income_level) affect the relationship between x (spi) & y (sdg)?
-inc_lev_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*income_level + log_gdppc + population,
+inc_lev_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*income_level + log_gdppc + population + gini + year_fct,
                         data = merged)
 summary(inc_lev_interaction)
 
 #interaction: does regime_type_2 affect the relationship between x (spi) & y (sdg)?
-reg_type2_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log_gdppc + population,
+reg_type2_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log_gdppc + population + gini + year_fct,
                         data = merged)
 summary(reg_type2_interaction)
 
 #interaction: does regime_type_4 affect the relationship between x (spi) & y (sdg)?
-reg_type4_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_4 + log_gdppc + population,
+reg_type4_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_4 + log_gdppc + population + gini + year_fct,
                         data = merged)
 summary(reg_type4_interaction)
 
 #interaction: does di affect the relationship between x (spi) & y (sdg)?
-reg_type_di_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*di_score + log_gdppc + population,
+reg_type_di_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*di_score + log_gdppc + population + gini + year_fct,
                         data = merged)
 summary(reg_type_di_interaction)
 ```
@@ -392,35 +406,34 @@ summary(reg_type_di_interaction)
 
 *Continuous di_score [0-1] Regime type: No* there is no statistically significant interactions found from regime type (infinate between 0-1) that affects the relationship between spi and sdgs. 
 
-
 ## WB GNI Classifications: income_level ("H", "UM", "LM", "L")
 **Disaggregated/Grouped by Development Status:** Make 4 regression models and then put them all together in a table to compare the slopes and R-sq values.
 ```{r}
 # 1. Overall model (all countries)
-overall_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini,
+overall_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini + year_fct,
                         data = merged)
 summary(overall_lm)
 
 # 2. High income countries
-high_inc_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini,
+high_inc_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini + year_fct,
                         data = merged %>% 
                           filter(income_level == "H"))
 summary(high_inc_lm)
 
 # 3. Upper-middle income countries
-upper_mid_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini,
+upper_mid_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini + year_fct,
                          data = merged %>% 
                            filter(income_level == "UM"))
 summary(upper_mid_lm)
 
 # 4. Lower-middle income countries
-lower_mid_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini,
+lower_mid_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini + year_fct,
                          data = merged %>% 
                            filter(income_level == "LM"))
 summary(lower_mid_lm)
 
 # 5. Low income countries
-low_inc_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini,
+low_inc_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini + year_fct,
                        data = merged %>% 
                          filter(income_level == "L"))
 summary(low_inc_lm)
@@ -532,6 +545,7 @@ print(mod_compare_tab)
 # write.csv(mod_compare_tab, file = "ols_model_comparison.csv", row.names=F) 
 ```
 
+
 ##Visualizing Slopes: plotting multiple regression - by subgroup
 ```{r}
 viz_gni_class <- ggplot(data = merged, aes(x = spi_comp, 
@@ -561,7 +575,7 @@ viz_gni_class <- ggplot(data = merged, aes(x = spi_comp,
   theme_bw() 
 
 viz_gni_class
-#ggplotly(viz_gni_class)
+ggplotly(viz_gni_class)
 
 # Save to specific folder
 # ggsave("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs/fd_plot.png", p, width = 10, height = 6)

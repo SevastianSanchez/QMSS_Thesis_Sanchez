@@ -23,15 +23,60 @@ source("data/data_sources.R")
 
 #load df_years() function: 2015-present
 fd_fe_data <- df_years(yr1=2015) %>%
-  dplyr::select(country_code, year, year_fct, sdg_overall, spi_comp, di_score, aut_ep, income_level, income_level_lab, gini, gdppc, log_gdppc, population)
+  dplyr::select(country_code, year, year_fct, sdg_overall, spi_comp, di_score, aut_ep, dem_ep, income_level, income_level_lab, gini, gdppc, log_gdppc, population)
   
 ```
 
-# First Difference Models - Robustness check
+#Temporal Lags 
+In my study, I speculate that changes in SPI (comes first) produces subsequent changes in SDG progress (comes second). Based on current studies, it can take some time for implementation of statistical capacity stuctures to produce results.
+
+Furthermore, regime transition may have a delayed effect on statistical capacity, although I suspect it varies in time (do we notice a drop in SPI as a precondition or a symptom of autocratization)
+
+## ACF to Assess Autocorrelation 
+```{r}
+#
+
+#for FD models
+lmtest::dwtest()
+```
+
+## Creating Lags 
+
+
+
+# FD & FE: SDG ~ SPI +
+```{r}
+
+```
+
+# FD & FE: SPI ~ DI
+```{r}
+# FD
+
+
+# FE 
+fe_model <- plm(
+  spi_comp ~ di_score + log(gdppc) + population + year_fct + gini,
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "within"
+)
+
+# Check for time effects
+summary(fe_model)
+
+```
+
+# FD & FE: SDG ~ DI
+```{r}
+
+```
+
+
+# First Difference Models
 FD removes all time-invariant characteristics of each unit (like geography, culture, or baseline wealth). However, variables that do change over time, such as GDP per capita and country population, should be controlled.
 
-
-## PART 1: Create lagged variables and first differences
+## Create lagged variables and first differences
 
 ```{r}
 # PART 1: Create lagged variables and first differences
@@ -40,14 +85,20 @@ fd_fe_data <- fd_fe_data %>%
   group_by(country_code) %>%
   mutate(
     # Create lagged variables with explicit dplyr reference
-    sdg_lag = dplyr::lag(sdg_overall, n = 1),
-    spi_lag = dplyr::lag(spi_comp, n = 1),
-    di_lag = dplyr::lag(di_score, n = 1),
+    sdg_lag_1 = dplyr::lag(sdg_overall, n = 1),
+    spi_lag_1 = dplyr::lag(spi_comp, n = 1),
+    di_lag_1 = dplyr::lag(di_score, n = 1),
+    sdg_lag_2 = dplyr::lag(sdg_overall, n = 2),
+    spi_lag_2 = dplyr::lag(spi_comp, n = 2),
+    di_lag_2 = dplyr::lag(di_score, n = 2),
     
     # Calculate first differences
-    fd_sdg = sdg_overall - sdg_lag,
-    fd_spi = spi_comp - spi_lag,
-    fd_di = di_score - di_lag
+    fd_sdg_1 = sdg_overall - sdg_lag_1,
+    fd_spi_1 = spi_comp - spi_lag_1,
+    fd_di_1 = di_score - di_lag_1,
+    fd_sdg_2 = sdg_overall - sdg_lag_2,
+    fd_spi_2 = spi_comp - spi_lag_2,
+    fd_di_2 = di_score - di_lag_2
   ) %>%
   ungroup()
 
@@ -55,8 +106,10 @@ fd_fe_data <- fd_fe_data %>%
 #head(fd_data_testing %>% dplyr::select(country_code, year, sdg_overall, sdg_lag, fd_sdg, spi_comp, spi_lag, fd_spi) %>% arrange(country_code, year), 10)
 ```
 
-##PART 2: Run FD models SDG ~ SPI for each income group
+# FD Analysis: SDG ~ SPI + subgroup(income group)
 
+## Models - subgroups by income class 
+- No need for time dummy in FD models
 ```{r}
 # Overall model
 fd_overall <- lm(fd_sdg ~ fd_spi + log_gdppc + population, 
@@ -92,9 +145,9 @@ fd_low <- lm(fd_sdg ~ fd_spi + log_gdppc + population,
                     income_level == "Low Income Countries"))
 summary(fd_low)
 ```
-- No need for time variable
 
-## PART 3: Create a comparison table of FD: SDG ~ SPI
+
+## FD Comparison Table: SDG ~ SPI
 
 ```{r}
 # Extract coefficients and statistics from each model
@@ -192,8 +245,10 @@ The R-squared values are relatively low across all models (between 0.004 and 0.0
 
 3.  The consistently positive intercepts (ranging from 0.224 to 0.364) indicate that SDG scores tend to improve over time regardless of changes in statistical capacity, though the rate of improvement varies by income level.
 
+ 
 
-# Visual Analysis | FD Models
+
+## FD Visual Analysis: SDG ~ SPI + Income Groups 
 
 **Error-bar**
 
@@ -243,10 +298,11 @@ fd_scatter
 
 
 
-#First difference (regime change = aut_ep?)
+# FD Analysis: SPI ~ DI 
+- no need to group by regime type bc not significant interaction 
 ```{r}
 fd_model <- plm(
-  spi_comp ~ di_score + log_gdppc + population + year_fct + gini,
+  spi_comp ~ di_score + log_gdppc + population + gini,
   data = fd_fe_data,
   index = c("country_code", "year"),
   model = "fd"
@@ -257,33 +313,5 @@ summary(fd_model)
 # Check for serial correlation
 lmtest::dwtest(fd_model)
 
-```
-
-#fixed effects (regime change = aut_ep?)
-```{r}
-fe_model <- plm(
-  spi_comp ~ di_score + log(gdppc) + population + year_fct + gini,
-  data = fd_fe_data,
-  index = c("country_code", "year"),
-  model = "within"
-)
-
-# Check for time effects
-summary(fe_model)
-
-```
-
-# Model SPI’s effect on SDG outcomes with regime change as mediator
-```{r}
-library(mediation)
-
-med_model <- mediate(
-  model.m = lm(spi_comp ~ di_score + log(gdppc) + population + gini, data = fd_fe_data),
-  model.y = lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population + gini, data = fd_fe_data),
-  treat = "aut_ep",
-  mediator = "spi_comp"
-)
-
-summary(med_model)
 ```
 

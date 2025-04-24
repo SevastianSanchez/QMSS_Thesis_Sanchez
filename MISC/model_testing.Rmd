@@ -80,7 +80,7 @@ plot(df$y_var, df$x1_var)
 abline(lm2)
 ```
 
-# OLS: spi ~ democracy index [DR. DI GENNERO's MODEL]
+# OLS: SPI ~ DI [DR. DI GENNERO's MODEL]
 ```{r}
 ols_spi_di <- lm(spi_comp ~ di_score + log(gdppc) + population + year_fct + gini, data = merged_testing)
 summary(ols_spi_di)
@@ -98,6 +98,16 @@ spi_di_cor_2 <- cor(merged_testing$spi_comp, merged_testing$di_score, use = "com
 spi_di_cor_2
 ```
 
+## R Stan, GLM, Markove  
+```{r}
+library(rstanarm)
+
+gml_testing <- stan_glm(sdg_overall ~ spi_comp + regime_type + regime_type*spi_comp + log(gdppc) + population, data = merged_testing)
+
+# glm_testing
+print(gml_testing)
+summary(gml_testing)
+```
 
 #First difference
 ```{r}
@@ -115,84 +125,6 @@ lmtest::dwtest(fd_model)
 
 ```
 
-**PART 1: Create lagged variables and first differences**
-
-```{r}
-# Create a simplified data frame with essential variables
-fd_data_testing <- merged_testing %>%
-  dplyr::select(country_name.x, country_code, year, sdg_overall, spi_comp, di_score, income_level, gini)
-
-# PART 1: Create lagged variables and first differences
-fd_data_testing <- fd_data_testing %>%
-  arrange(country_code, year) %>% 
-  group_by(country_code) %>%
-  mutate(
-    # Create lagged variables with explicit dplyr reference
-    sdg_lag = dplyr::lag(sdg_overall, n = 1),
-    spi_lag = dplyr::lag(spi_comp, n = 1),
-    di_lag = dplyr::lag(di_score, n = 1),
-    
-    # Calculate first differences
-    fd_sdg = sdg_overall - sdg_lag,
-    fd_spi = spi_comp - spi_lag,
-    fd_di = di_score - di_lag
-  ) %>%
-  ungroup()
-
-# To verify the lag creation works correctly
-#head(fd_data_testing %>% dplyr::select(country_code, year, sdg_overall, sdg_lag, fd_sdg, spi_comp, spi_lag, fd_spi) %>% arrange(country_code, year), 10)
-```
-
-**PART 2: Run FD models for each income group**
-
-```{r}
-# Overall model
-fd_overall <- lm(fd_sdg ~ fd_spi, 
-                data = fd_data_testing %>% 
-                  filter(!is.na(fd_sdg) & !is.na(fd_spi)))
-summary(fd_overall)
-
-# High income countries
-fd_high <- lm(fd_sdg ~ fd_spi, 
-             data = fd_data_testing %>% 
-               filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
-                     income_level == "High Income Countries"))
-summary(fd_high)
-
-# Upper-middle income countries
-fd_upper <- lm(fd_sdg ~ fd_spi, 
-              data = fd_data_testing %>% 
-                filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
-                      income_level == "Upper-Middle Income Countries"))
-summary(fd_upper)
-
-# Lower-middle income countries
-fd_lower <- lm(fd_sdg ~ fd_spi, 
-              data = fd_data_testing %>% 
-                filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
-                      income_level == "Lower-Middle Income Countries"))
-summary(fd_lower)
-
-# Low income countries
-fd_low <- lm(fd_sdg ~ fd_spi, 
-            data = fd_data_testing %>% 
-              filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
-                    income_level == "Low Income Countries"))
-summary(fd_low)
-```
-- No need for time variable
-
-
-## R Stan, GLM, Markove  
-```{r}
-library(rstanarm)
-
-gml_testing <- stan_glm(sdg_overall ~ spi_comp + regime_type + regime_type*spi_comp + log(gdppc) + population, data = merged_testing)
-
-# glm_testing
-print(gml_testing)
-summary(gml_testing)
-```
 
 ## Fixed Effects Model
 ```{r}
@@ -206,9 +138,79 @@ summary(fe_model)
 ```
 
 
-## Testing Index Reliability (Cronbach's Alpha)
-
+# Mediation Model: SDG ~ SPI(DI)
 ```{r}
+# Model SPI’s effect on SDG outcomes with regime change as mediator
 
+library(mediation)
+
+med_model <- mediate(
+  model.m = lm(spi_comp ~ di_score + log(gdppc) + population + gini, data = fd_fe_data),
+  model.y = lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population + gini, data = fd_fe_data),
+  treat = "aut_ep",
+  mediator = "spi_comp"
+)
+
+summary(med_model)
+```
+
+
+# Significance of factor(year) Dummy Variable 
+
+## factor(year) for OLS: SDG ~ SPI
+```{r}
+#excludes year dummy 
+ols_spi <- lm(y_var_sdg ~ x_var_spi + log_gdppc + population + di_score + gini, data = merged)
+summary(ols_spi)
+
+#includes year dummy 
+ols_spi_fyr <- lm(y_var_sdg ~ x_var_spi + log_gdppc + population + di_score + gini + factor(year), data = merged)
+summary(ols_spi_fyr)
+
+# Joint significance
+anova(ols_spi, ols_spi_fyr)
+```
+
+## factor(year) for OLS: SDG ~ SCI
+```{r}
+#excludes year dummy 
+ols_sci <- lm(y_var_sdg ~ x_var_sci + log_gdppc + population + di_score + gini, data = merged)
+summary(ols_sci)
+
+#includes year dummy 
+ols_sci_fyr <- lm(y_var_sdg ~ x_var_sci + log_gdppc + population + di_score + gini + factor(year), data = merged)
+summary(ols_sci_fyr)
+
+# Joint significance
+anova(ols_sci, ols_sci_fyr)
+```
+
+## factor(year) for OLS: SDG ~ SPI + SCI 
+```{r}
+#excludes year dummy 
+ols_multiple <- lm(y_var_sdg ~ x_var_spi + x_var_sci + log_gdppc + population + di_score + gini, data = merged)
+summary(ols_multiple)
+
+#includes year dummy 
+ols_multiple_fyr <- lm(y_var_sdg ~ x_var_spi + x_var_sci + log_gdppc + population + di_score + gini + factor(year), data = merged)
+summary(ols_multiple_fyr)
+
+# Joint significance
+anova(ols_multiple, ols_multiple_fyr)
+```
+
+
+## VIF: Check for multicollinearity for models 
+```{r}
+# mainly concerned abt log_gdppc & factor(time)
+
+#SPI VIF 
+car::vif(ols_spi_fyr)  
+
+#SCI VIF
+car::vif(ols_sci_fyr) 
+
+#SPI + SCI VIF
+car::vif(ols_multiple_fyr) 
 ```
 
