@@ -32,31 +32,51 @@ FD removes all time-invariant characteristics of each unit (like geography, cult
 
 ## FD: SDG ~ SPI 
 ```{r}
+fd_sdg_spi <- plm(
+  sdg_overall ~ spi_comp + log_gdppc + population + gini,
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "fd"
+)
 
+summary(fd_sdg_spi)
+
+# Check for serial correlation
+lmtest::dwtest(fd_sdg_spi)
 ```
 
 ## FD: SPI ~ DI 
 - no need to group by regime type bc not significant interaction
 ```{r}
 
-fd_model <- plm(
+fd_spi_di <- plm(
   spi_comp ~ di_score + log_gdppc + population + gini,
   data = fd_fe_data,
   index = c("country_code", "year"),
   model = "fd"
 )
 
-summary(fd_model)
+summary(fd_sdg_di)
 
 # Check for serial correlation
-lmtest::dwtest(fd_model)
+lmtest::dwtest(fd_sdg_di)
 
 ```
 
 
 ## FD: SDG ~ DI 
 ```{r}
+fd_sdg_di <- plm(
+  sdg_overall ~ di_score + log_gdppc + population + gini,
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "fd"
+)
 
+summary(fd_sdg_di)
+
+# Check for serial correlation
+lmtest::dwtest(fd_sdg_di)
 ```
 
 
@@ -86,6 +106,7 @@ In my study, I speculate that changes in SPI (comes first) produces subsequent c
 Furthermore, regime transition may have a delayed effect on statistical capacity, although I suspect it varies in time (do we notice a drop in SPI as a precondition or a symptom of autocratization)
 
 ## ACF to Assess Autocorrelation 
+- ACF checks for independence of errors in regression analysis. This assesses whether x variables are correlated across time (autocorrelation); 
 ```{r}
 # determines correlation at different lags 
 
