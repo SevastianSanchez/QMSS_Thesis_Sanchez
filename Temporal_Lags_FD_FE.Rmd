@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-#TEMPORAL ANALYSIS: First Difference, Fixed Effects, Checks...
+#TEMPORAL ANALYSIS: First Difference, Fixed Effects, Checks
 
 ##setup: packages and data
 ```{r}
@@ -27,59 +27,76 @@ fd_fe_data <- df_years(yr1=2015) %>%
   
 ```
 
+# First Difference
+FD removes all time-invariant characteristics of each unit (like geography, culture, or baseline wealth). However, variables that do change over time, such as GDP per capita and country population, should be controlled.
+
+## FD: SDG ~ SPI 
+```{r}
+
+```
+
+## FD: SPI ~ DI 
+- no need to group by regime type bc not significant interaction
+```{r}
+
+fd_model <- plm(
+  spi_comp ~ di_score + log_gdppc + population + gini,
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "fd"
+)
+
+summary(fd_model)
+
+# Check for serial correlation
+lmtest::dwtest(fd_model)
+
+```
+
+
+## FD: SDG ~ DI 
+```{r}
+
+```
+
+
+# Fixed Effects 
+
+## FE: SDG ~ SPI 
+```{r}
+
+```
+
+
+## FE: SPI ~ DI 
+```{r}
+
+```
+
+
+## FE: SDG ~ DI 
+```{r}
+
+```
+
+
 #Temporal Lags 
-In my study, I speculate that changes in SPI (comes first) produces subsequent changes in SDG progress (comes second). Based on current studies, it can take some time for implementation of statistical capacity stuctures to produce results.
+In my study, I speculate that changes in SPI (comes first) produces subsequent changes in SDG progress (comes second). Based on current studies, it can take some time for implementation of statistical capacity structures to produce results.
 
 Furthermore, regime transition may have a delayed effect on statistical capacity, although I suspect it varies in time (do we notice a drop in SPI as a precondition or a symptom of autocratization)
 
 ## ACF to Assess Autocorrelation 
 ```{r}
-#
+# determines correlation at different lags 
 
 #for FD models
 lmtest::dwtest()
 ```
 
-## Creating Lags 
-
-
-
-# FD & FE: SDG ~ SPI +
-```{r}
-
-```
-
-# FD & FE: SPI ~ DI
-```{r}
-# FD
-
-
-# FE 
-fe_model <- plm(
-  spi_comp ~ di_score + log(gdppc) + population + year_fct + gini,
-  data = fd_fe_data,
-  index = c("country_code", "year"),
-  model = "within"
-)
-
-# Check for time effects
-summary(fe_model)
-
-```
-
-# FD & FE: SDG ~ DI
-```{r}
-
-```
-
-
-# First Difference Models
-FD removes all time-invariant characteristics of each unit (like geography, culture, or baseline wealth). However, variables that do change over time, such as GDP per capita and country population, should be controlled.
-
 ## Create lagged variables and first differences
 
 ```{r}
-# PART 1: Create lagged variables and first differences
+# Create lagged variables and first differences
 fd_fe_data <- fd_fe_data %>%
   arrange(country_code, year) %>% 
   group_by(country_code) %>%
@@ -106,7 +123,61 @@ fd_fe_data <- fd_fe_data %>%
 #head(fd_data_testing %>% dplyr::select(country_code, year, sdg_overall, sdg_lag, fd_sdg, spi_comp, spi_lag, fd_spi) %>% arrange(country_code, year), 10)
 ```
 
-# FD Analysis: SDG ~ SPI + subgroup(income group)
+
+## Lagged FD & FE: SDG ~ SPI 
+
+```{r}
+# FD w/ lags
+
+
+# FE w/ lags 
+fe_sdg_spi_lag <- plm(
+  spi_comp ~ di_score + log_gdppc + population + gini + year_fct,
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "within"
+)
+
+# Check for time effects
+summary(fe_sdg_spi_lag)
+```
+
+
+## Lagged FD & FE: SPI ~ DI
+```{r}
+# FD w/ lags
+
+
+# FE w/ lags 
+fe_spi_di_lag <- plm(
+  spi_comp ~ di_score + log_gdppc + population + gini + year_fct,
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "within"
+)
+
+# Check for time effects
+summary(fe_spi_di_lag)
+```
+
+# Lagged FD & FE: SDG ~ DI
+```{r}
+# FD w/ lags
+
+
+# FE w/ lags 
+fe_sdg_di_lag <- plm(
+  sdg_overall ~ di_score + log_gdppc + population + gini + year_fct,
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "within"
+)
+
+# Check for time effects
+summary(fe_sdg_di_lag)
+```
+
+# FD Subgroup Analysis: SDG ~ SPI + subgroup(income group)
 
 ## Models - subgroups by income class 
 - No need for time dummy in FD models
@@ -296,22 +367,4 @@ fd_scatter
 # ggsave("iCloud_Drive/Documents/GitHub/QMSS_Thesis_Sanchez", width = 10, height = 6)
 ```
 
-
-
-# FD Analysis: SPI ~ DI 
-- no need to group by regime type bc not significant interaction 
-```{r}
-fd_model <- plm(
-  spi_comp ~ di_score + log_gdppc + population + gini,
-  data = fd_fe_data,
-  index = c("country_code", "year"),
-  model = "fd"
-)
-
-summary(fd_model)
-
-# Check for serial correlation
-lmtest::dwtest(fd_model)
-
-```
 
