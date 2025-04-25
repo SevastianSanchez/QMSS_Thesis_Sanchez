@@ -36,4 +36,4 @@ income_data_long <- income_data_clean %>%
 head(income_data_long)
 
 # Save to CSV if needed
-write.csv(income_data_long, "world_bank_income_classifications.csv", row.names = FALSE)
+#write.csv(income_data_long, "world_bank_income_classifications.csv", row.names = FALSE)

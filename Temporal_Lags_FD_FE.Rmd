@@ -18,103 +18,150 @@ setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 #load libraries 
 source("packages.R")
 
-#load data
+#load data & function 
 source("data/data_sources.R")
+source("df_years()_Function.R")
 
 #load df_years() function: 2015-present
 fd_fe_data <- df_years(yr1=2015) %>%
-  dplyr::select(country_code, year, year_fct, sdg_overall, spi_comp, di_score, aut_ep, dem_ep, income_level, income_level_lab, gini, gdppc, log_gdppc, population)
+  dplyr::select(country_code, year, year_fct, sdg_overall, spi_comp, di_score, aut_ep, dem_ep, income_level, income_level_lab, gini, gdppc, log_gdppc, population) %>% 
+  arrange(country_code, year)  # Critical for correct lagging
   
 ```
 
-# First Difference
-FD removes all time-invariant characteristics of each unit (like geography, culture, or baseline wealth). However, variables that do change over time, such as GDP per capita and country population, should be controlled.
-
-## FD: SDG ~ SPI 
+# OLS: SPI ~ DI [DR. DI GENNERO's MODEL]
 ```{r}
-fd_sdg_spi <- plm(
-  sdg_overall ~ spi_comp + log_gdppc + population + gini,
+# Full OLS model: SPI ~ DI
+ols_spi_di <- lm(spi_comp ~ di_score + log_gdppc + population + gini + year_fct, data = fd_fe_data)
+summary(ols_spi_di)
+
+# plotting
+ggplot(fd_fe_data, aes(di_score, spi_comp))+
+  geom_point()+
+  geom_smooth(method=lm) #makes the line into a linear model
+
+#correlation - variance 
+spi_di_cor <- cor(fd_fe_data$spi_comp, fd_fe_data$di_score, use = "complete.obs")
+spi_di_cor
+
+#r-squared
+spi_di_cor_2 <- cor(fd_fe_data$spi_comp, fd_fe_data$di_score, use = "complete.obs")^2
+spi_di_cor_2
+```
+
+# Panel Data Analysis 
+
+**First Difference (FD)** removes all time-invariant characteristics of each unit (like geography, culture, or baseline wealth). However, variables that do change over time, such as GDP per capita and country population, should be controlled.
+
+**Fixed Effects (FE)** [description...]
+
+## FD & FE: Regime -> SPI 
+```{r}
+#First Difference 
+fd_spi_di <- plm(
+  spi_comp ~ di_score + log_gdppc + population + year_fct,
+  data = fd_fe_data,
+  index = c("country_code", "year_fct"),
+  model = "fd" #FD
+)
+
+summary(fd_spi_di)
+coeftest(fd_spi_di, vcov = vcovCL(fd_spi_di, cluster = ~country_code)) #Robust SEs 
+
+# Fixed Effects 
+fe_spi_di <- plm(
+  spi_comp ~ di_score + log_gdppc + population + year_fct,
   data = fd_fe_data,
   index = c("country_code", "year"),
-  model = "fd"
+  model = "within" #FE
+)
+
+summary(fe_spi_di)
+coeftest(fe_spi_di, vcov = vcovCL(fe_spi_di, cluster = ~country_code)) # Robust SEs
+```
+- Cannot run FD model due to zero-variance or data precision issues. Perhaps the model has too few years to 
+
+
+## FD & FE: SPI -> SDG 
+```{r}
+# First Difference 
+fd_sdg_spi <- plm(
+  sdg_overall ~ spi_comp + di_score + log_gdppc + population + year_fct,
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "fd" #FD
 )
 
 summary(fd_sdg_spi)
-
-# Check for serial correlation
-lmtest::dwtest(fd_sdg_spi)
-```
-
-## FD: SPI ~ DI 
-- no need to group by regime type bc not significant interaction
-```{r}
-
-fd_spi_di <- plm(
-  spi_comp ~ di_score + log_gdppc + population + gini,
-  data = fd_fe_data,
-  index = c("country_code", "year"),
-  model = "fd"
-)
-
-summary(fd_sdg_di)
-
-# Check for serial correlation
-lmtest::dwtest(fd_sdg_di)
-
-```
-
-
-## FD: SDG ~ DI 
-```{r}
-fd_sdg_di <- plm(
-  sdg_overall ~ di_score + log_gdppc + population + gini,
-  data = fd_fe_data,
-  index = c("country_code", "year"),
-  model = "fd"
-)
-
-summary(fd_sdg_di)
-
-# Check for serial correlation
-lmtest::dwtest(fd_sdg_di)
-```
-
+coeftest(fd_sdg_spi, vcov = vcovCL(fd_sdg_spi, cluster = ~country_code)) # Robust SEs
 
 # Fixed Effects 
+fe_sdg_spi <- plm(
+  sdg_overall ~ spi_comp + di_score + log_gdppc + population + year_fct,
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "within" #FE
+)
 
-## FE: SDG ~ SPI 
+summary(fe_sdg_spi)
+coeftest(fe_sdg_spi, vcov = vcovCL(fe_sdg_spi, cluster = ~country_code)) # Robust SEs
+```
+
+## Mediation Effect: connecting DI -> SDGs
+Mediation analysis to formally test and quantify SPI's role in transmitting regime change effects to SDGs. This is how to quantify the connection between the Regime Change and the SDGs 
 ```{r}
+# Mediation analysis - FD models 
+med_fd_results <- mediate(
+  fd_spi_di, # mediator model
+  fd_sdg_spi, # outcome model 
+  treat = "di_score",   # Treatment variable (regime change)
+  mediator = "spi_comp", # SPI mediator
+  sims = 1000,        # Number of bootstrap simulations
+  robustSE = TRUE     # Cluster SEs by country
+)
+
+summary(med_fd_results)
+
+# Sensitivity Analysis: after running mediation
+sens_med_fd <- medsens(med_fd_results, rho.by = 0.1)
+plot(sens_med_fd)
+
+# Mediation analysis - FE models 
+med_fe_results <- mediate(
+  fe_spi_di, # mediator model
+  fe_sdg_spi, # outcome model 
+  treat = "di_score",   # Treatment variable (regime change)
+  mediator = "spi_comp", # SPI mediator
+  sims = 1000,        # Number of bootstrap simulations
+  robustSE = TRUE     # Cluster SEs by country
+)
+
+summary(med_fe_results)
+
+# Sensitivity Analysis: after running mediation
+sens_med_fe <- medsens(med_fe_results, rho.by = 0.1)
+plot(sens_med_fe)
 
 ```
 
-
-## FE: SPI ~ DI 
-```{r}
-
-```
-
-
-## FE: SDG ~ DI 
-```{r}
-
-```
-
-
-#Temporal Lags 
+# Temporal Dependent Lags
 In my study, I speculate that changes in SPI (comes first) produces subsequent changes in SDG progress (comes second). Based on current studies, it can take some time for implementation of statistical capacity structures to produce results.
 
 Furthermore, regime transition may have a delayed effect on statistical capacity, although I suspect it varies in time (do we notice a drop in SPI as a precondition or a symptom of autocratization)
 
 ## ACF to Assess Autocorrelation 
-- ACF checks for independence of errors in regression analysis. This assesses whether x variables are correlated across time (autocorrelation); 
+ACF checks for independence of errors in regression analysis. This assesses whether x variables are correlated across time to determine correlation at different lags (autocorrelation).
 ```{r}
-# determines correlation at different lags 
+# First Difference tests 
+lmtest::dwtest(fd_sdg_di)
+lmtest::dwtest(fd_sdg_spi)
 
-#for FD models
-lmtest::dwtest()
+# Fixed Effects tests 
+lmtest::dwtest(fe_sdg_di)
+lmtest::dwtest(fe_sdg_spi)
 ```
 
-## Create lagged variables and first differences
+## Significant Autocorrelation: create lagged variables and first differences
 
 ```{r}
 # Create lagged variables and first differences
@@ -122,10 +169,11 @@ fd_fe_data <- fd_fe_data %>%
   arrange(country_code, year) %>% 
   group_by(country_code) %>%
   mutate(
-    # Create lagged variables with explicit dplyr reference
+    # 1 year lags
     sdg_lag_1 = dplyr::lag(sdg_overall, n = 1),
     spi_lag_1 = dplyr::lag(spi_comp, n = 1),
     di_lag_1 = dplyr::lag(di_score, n = 1),
+    # 2-year lags 
     sdg_lag_2 = dplyr::lag(sdg_overall, n = 2),
     spi_lag_2 = dplyr::lag(spi_comp, n = 2),
     di_lag_2 = dplyr::lag(di_score, n = 2),
@@ -144,59 +192,99 @@ fd_fe_data <- fd_fe_data %>%
 #head(fd_data_testing %>% dplyr::select(country_code, year, sdg_overall, sdg_lag, fd_sdg, spi_comp, spi_lag, fd_spi) %>% arrange(country_code, year), 10)
 ```
 
-
-## Lagged FD & FE: SDG ~ SPI 
-
+## FD & FE + LAGS: SPI ~ DI 
 ```{r}
-# FD w/ lags
-
-
-# FE w/ lags 
-fe_sdg_spi_lag <- plm(
-  spi_comp ~ di_score + log_gdppc + population + gini + year_fct,
+#First Difference 
+fd_spi_di_lag <- plm(
+  spi_comp ~ plm::lag(di_score) + log_gdppc + population + gini + year_fct,
   data = fd_fe_data,
   index = c("country_code", "year"),
-  model = "within"
+  model = "fd" #FD
 )
 
-# Check for time effects
-summary(fe_sdg_spi_lag)
-```
+summary(fd_spi_di_lag)
+coeftest(fd_spi_di_lag, vcov = vcovCL(fd_spi_di_lag, cluster = ~country_code)) # Robust SEs
 
-
-## Lagged FD & FE: SPI ~ DI
-```{r}
-# FD w/ lags
-
-
-# FE w/ lags 
+# Fixed Effects 
 fe_spi_di_lag <- plm(
-  spi_comp ~ di_score + log_gdppc + population + gini + year_fct,
+  spi_comp ~ plm::lag(di_score) + log_gdppc + population + gini + year_fct,
   data = fd_fe_data,
   index = c("country_code", "year"),
-  model = "within"
+  model = "within" #FE
 )
 
-# Check for time effects
 summary(fe_spi_di_lag)
+coeftest(fe_spi_di_lag, vcov = vcovCL(fe_spi_di_lag, cluster = ~country_code)) # Robust SEs
 ```
 
-# Lagged FD & FE: SDG ~ DI
+
+## FD & FE + LAGS: SDG ~ SPI
 ```{r}
-# FD w/ lags
-
-
-# FE w/ lags 
-fe_sdg_di_lag <- plm(
-  sdg_overall ~ di_score + log_gdppc + population + gini + year_fct,
+# First Difference 
+fd_sdg_spi_lag <- plm(
+  sdg_overall ~ plm::lag(spi_comp) + di_score + log_gdppc + population + gini + year_fct,
   data = fd_fe_data,
   index = c("country_code", "year"),
-  model = "within"
+  model = "fd" #FD
 )
 
-# Check for time effects
-summary(fe_sdg_di_lag)
+summary(fd_sdg_spi_lag)
+coeftest(fd_sdg_spi_lag, vcov = vcovCL(fd_sdg_spi_lag, cluster = ~country_code)) # Robust SEs
+
+# Fixed Effects 
+fe_sdg_spi_lag <- plm(
+  sdg_overall ~ plm::lag(spi_comp) + di_score + log_gdppc + population + gini + year_fct,
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "within" #FE
+)
+
+summary(fe_sdg_spi_lag)
+coeftest(fe_sdg_spi_lag, vcov = vcovCL(fe_sdg_spi_lag, cluster = ~country_code)) # Robust SEs
 ```
+
+
+## Mediation Effect + Lags: connecting DI -> SDGs
+```{r}
+## CONFIRM THE MED MODELS BELOW ARE OKAY W PERPLEXITY 
+
+# Mediation analysis - FD models 
+med_fd_lag_results <- mediate(
+  fd_spi_di_lag, # mediator model
+  fd_sdg_spi_lag, # outcome model 
+  treat = "di_score",   # Treatment variable (regime change)
+  mediator = "spi_comp", # SPI mediator
+  sims = 1000,        # Number of bootstrap simulations
+  robustSE = TRUE     # Cluster SEs by country
+)
+
+summary(med_fd_lag_results)
+
+# After running mediation
+sens_med <- medsens(med_fd_lag_results, rho.by = 0.1)
+plot(sens_med)
+
+# Mediation analysis - FE models 
+med_fe_lag_results <- mediate(
+  fe_spi_di_lag, # mediator model
+  fe_sdg_spi_lag, # outcome model 
+  treat = "di_score",   # Treatment variable (regime change)
+  mediator = "spi_comp", # SPI mediator
+  sims = 1000,        # Number of bootstrap simulations
+  robustSE = TRUE     # Cluster SEs by country
+)
+
+summary(med_fe_lag_results)
+
+# After running mediation
+sens_med <- medsens(med_fe_lag_results, rho.by = 0.1)
+plot(sens_med)
+```
+
+
+# Subgroup Analysis 
+
+
 
 # FD Subgroup Analysis: SDG ~ SPI + subgroup(income group)
 
