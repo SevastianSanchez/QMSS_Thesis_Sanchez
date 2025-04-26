@@ -22,3 +22,6 @@ library(jsonlite) #loadining gini
 library(lmtest)
 library(sandwich)
 library(DT)
+library(countrycode)
+library(purrr) 
+library(countrycode)

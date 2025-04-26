@@ -154,5 +154,7 @@ df_years <- function(df1=vdem, yr1=2000, #vdem data ONLY
       across(c(sci_overall, sci_method, sci_periodicity, sci_source), as.numeric)) %>% 
     dplyr::select(country_name.x, country_code, country_id, year, year_fct, income_level, sdg_overall, spi_comp, di_score, everything())
   
+  
   return(name)
 }
+#test_current_function <- df_years(yr1=2015)
