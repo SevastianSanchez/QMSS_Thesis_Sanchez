@@ -15,7 +15,6 @@ setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 vdem <- vdemdata::vdem %>% 
   filter(year >= 2000)
 #write.csv(vdem, "data/misc/perp_vdem.csv")
-#vdem$iso3c <- countrycode(vdem$COWcode, "cown", "iso3c") #standardized to iso3c
 
 #ERT package
 ert <- read.csv("data/ert.csv") %>% 

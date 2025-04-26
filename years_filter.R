@@ -4,7 +4,7 @@ library(tidyverse)
 source("data/data_sources.R")
 
 #function to extract data from specified years 
-df_years2.0 <- function(start_yr = 2005, end_yr = 2023, 
+years_filter <- function(start_yr = 2005, end_yr = 2023, 
                           df1=vdem, #vdem data ONLY
                           df2=spi, #spi data ONLY
                           df3=sdg, #sdg data ONLY
@@ -138,3 +138,4 @@ df_years2.0 <- function(start_yr = 2005, end_yr = 2023,
               gini = name10))
   
 } 
+# test_years_fil <- years_filter()

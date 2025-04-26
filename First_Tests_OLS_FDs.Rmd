@@ -36,11 +36,11 @@ source("packages.R")
 #df_years: used for extracting data from specified year to now 
 
 #load function
-source("df_years()_Function.R")
+source("df_years2.0_Function.R")
 
 #specify start year 
-merged <- df_years(yr1 = 2004) %>% 
-  select(country_name.x, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, income_level, income_level_lab, gini, log_gdppc, population)
+merged <- df_years2.0(2004, 2024) %>% 
+  select(country_name, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, income_level, income_level_lab, gini, log_gdppc, population)
 ```
 
 
@@ -180,12 +180,18 @@ merged_cs_2019 <- merged[merged$year==2019,]
 y_var_sdg <- merged$sdg_overall 
 x_var_spi <- merged$spi_comp
 x_var_sci <- merged$sci_overall
-df_sdg_statcap <- data.frame(y_var_sdg, x_var_spi, x_var_sci)
+x_var_di <- merged$di_score
+df_sdg_statcap <- data.frame(y_var_sdg, x_var_spi, x_var_sci, x_var_di)
 
 # how many na's?
 colSums(is.na(df_sdg_statcap))
-#how many observations 
+#how many observations: country-years
 colSums(!is.na(df_sdg_statcap))
+
+# how many countries per variable? 
+sapply(c("sdg_overall", "di_score", "spi_comp", "sci_overall"), function(var) {
+  length(unique(merged$country_code[!is.na(merged[[var]])]))
+})
 
 # Descriptive stats 
 hist(x_var_spi) 
@@ -196,6 +202,8 @@ hist(y_var_sdg) # maybe another stacked bar/histogram this time showing Regime T
 **Years 2004-2023:**
 Number of observations in SPI: 1300; number of NA's 2340 (not all years captured)   
 Number of observations in SCI: 2055; number of NA's 1585 (not all countries captured)
+
+*SDG VARIABLE NOTE: While all member states have a country profile, only those with less than 20% missing data are ranked in the SDG Index, resulting in 167 countries being ranked in the 2024 report. *
 
 # COMPONENT 1: COMPARING SPI & SCI X VARIABLES
 
