@@ -21,7 +21,7 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
   #VDEM DATASET
   
   name1 <- df1 %>%
-    filter(year >= start_yr, year <= end_yr) %>% 
+    dplyr::filter(year >= start_yr, year <= end_yr) %>% 
     dplyr::select(country_name, country_text_id, year, v2x_regime, v2x_regime_amb, v2x_polyarchy, 
                   v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2xel_frefair, v2x_accountability, 
                   v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, v2x_freexp_altinf, 
@@ -49,43 +49,41 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
     dplyr::select(country, iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, SPI.INDEX.PIL2, SPI.INDEX.PIL3, 
                   SPI.INDEX.PIL4, SPI.INDEX.PIL5, income, region, weights) %>% 
     #rename(country_code = iso3c) %>% 
-    rename(year = date) %>% 
-    rename(spi_comp = SPI.INDEX) %>% #SPI composite score, average of p1-5
-    rename(p1_use = SPI.INDEX.PIL1) %>% #SPI pillar 1, Data use 
-    rename(p2_services = SPI.INDEX.PIL2) %>% #SPI pillar, 2 Data services 
-    rename(p3_products = SPI.INDEX.PIL3) %>% #SPI pillar, 3 Data products  
-    rename(p4_sources = SPI.INDEX.PIL4) %>% #SPI pillar, 4 Data sources 
-    rename(p5_infra = SPI.INDEX.PIL5) %>% #SPI pillar 5, Data infrastructure
-    rename(income_spi = income) %>%
-    rename(region_spi = region) %>%
-    rename(weights_spi = weights) %>%
-    filter(year >= start_yr, year <= end_yr)
+    rename(year = date,
+           spi_comp = SPI.INDEX,
+           p1_use = SPI.INDEX.PIL1, 
+           p2_services = SPI.INDEX.PIL2,
+           p3_products = SPI.INDEX.PIL3,
+           p4_sources = SPI.INDEX.PIL4,
+           p5_infra = SPI.INDEX.PIL5,
+           income_spi = income,
+           region_spi = region,
+           weights_spi = weights) %>% 
+    dplyr::filter(year >= start_yr, year <= end_yr)
   
   #SDG DATASET
   name3 <- df3 %>% 
     dplyr::select(country_name, country_code, year, sdg_overall, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17) %>% 
-    filter(year >= start_yr, year <= end_yr)
+    dplyr::filter(year >= start_yr, year <= end_yr)
   
   #SCI DATASET
   name4 <- df4 %>% 
     dplyr::select(country_name, country_code, Year, IQ.SCI.OVRL, IQ.SCI.MTHD, IQ.SCI.PRDC, IQ.SCI.SRCE) %>% 
-    filter(Year >= start_yr, Year <= end_yr) %>% 
-    rename(year = Year,
-           sci_overall = IQ.SCI.OVRL, 
-           sci_method = IQ.SCI.MTHD, 
-           sci_periodicity = IQ.SCI.PRDC,
-           sci_source = IQ.SCI.SRCE)
-  
-  name4$year <- as.numeric(name4$year)
+    mutate(year = as.numeric(Year),
+           sci_overall = as.numeric(IQ.SCI.OVRL), 
+           sci_method = as.numeric(IQ.SCI.MTHD), 
+           sci_periodicity = as.numeric(IQ.SCI.PRDC),
+           sci_source = as.numeric(IQ.SCI.SRCE)) %>% 
+    dplyr::select(-Year) %>%
+    dplyr::filter(year >= start_yr, year <= end_yr)
   
   #ERT DATASET 
   name5 <- df5 %>%
-    dplyr::select(country_name, country_id, country_text_id, year, reg_type, v2x_polyarchy, 
+    dplyr::select(country_name, country_text_id, country_id, year, reg_type, v2x_polyarchy, 
                   row_regch_event, reg_trans, dem_ep, dem_pre_ep_year, dem_ep_start_year, 
                   dem_ep_end_year, aut_ep, aut_pre_ep_year, aut_ep_start_year, aut_ep_end_year) %>%
-    filter(year >= start_yr, year <= end_yr) %>% 
-    rename(#country_code = country_text_id, 
-           regime_type_2 = reg_type,
+    dplyr::filter(year >= start_yr, year <= end_yr) %>% 
+    rename(regime_type_2 = reg_type,
            elect_dem_ert = v2x_polyarchy,
            regch_event = row_regch_event,
            regch_genuine = reg_trans,
@@ -99,12 +97,9 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
   #GDP Per Capita
   name6 <- df6 %>% 
     dplyr::select(country_name, country_code, year, gdp_pc) %>% 
-    rename(gdppc = gdp_pc) %>% 
-    filter(year >= start_yr, year <= end_yr)
+    dplyr::mutate(log_gdppc = log(gdp_pc)) %>% 
+    dplyr::filter(year >= start_yr, year <= end_yr)
    
-  name6$year <- as.numeric(name6$year) 
-  name6$log_gdppc <- log(name6$gdppc)
-  
   #INFO CAPACITY
   #name7 <- df7 %>% dplyr::select(country_id, year, infcap_irt, infcap_pca, everything()) %>% filter(year >= start_yr, year <= end_yr)
   
@@ -127,9 +122,8 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
   #GINI Coefficient 
   name10 <- df10 %>% 
     dplyr::select(Entity, Code, Year, gini) %>% 
-    rename(#country_code = Code, 
-           year = Year,
-           country_name = Entity) %>% 
+    dplyr::mutate(year = as.numeric(Year)) %>% 
+    dplyr::select(-Year) %>%
     dplyr::filter(year >= start_yr, year <= end_yr)
   
   return(list(vdem = name1, spi = name2, sdg = name3, 
@@ -138,4 +132,6 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
               gini = name10))
   
 } 
-# test_years_fil <- years_filter()
+test_years_fil <- years_filter()
+
+str(test_years_fil$sci_df)

@@ -14,7 +14,7 @@
 
 country_colnames <- c(
   "country", "country_code", "ccodecow", "COWcode", "cowcode", "iso3", "iso3c", 
-  "country_name", "country_id", "countryname", "entity", "code", "country_text_id", "countrytextid", "countryid"
+  "country_name", "country_id", "countryname", "Entity", "Code", "country_text_id", "countryid"
 )
 
 standardize_country_codes <- function(df) {
