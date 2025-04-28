@@ -40,12 +40,12 @@ source("df_years2.0_Function.R")
 
 #specify start year 
 merged <- df_years2.0(2004, 2024) %>% 
-  select(country_name, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, income_level, income_level_lab, gini, log_gdppc, population)
+  select(country_name, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, income_level, income_level_lab, gini, log_gdppc, population)
 
 #old function 
 source("df_years()_Function.R")
-merged <- df_years(yr1=2004) %>% 
-  select(country_name.x, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, income_level, income_level_lab, gini, log_gdppc, population)
+merged2 <- df_years(yr1=2004) %>% 
+  select(country_name.x, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, income_level, income_level_lab, gini, log_gdppc, population)
 ```
 
 
@@ -175,11 +175,7 @@ merged_cs_2019 <- merged[merged$year==2019,]
 #write.table(merged_cs_2019, file = "merged_cs2019.csv", row.names=F, sep = ",")
 ```
 
-
-
-
-
-# Descriptive stats & Missing Data 
+# Descriptive stats & Missing Data: Full Dataset 
 ```{r}
 # x & y variables 
 y_var_sdg <- merged$sdg_overall 
@@ -203,15 +199,24 @@ sapply(c("sdg_overall", "di_score", "spi_comp", "sci_overall"), function(var) {
   length(unique(merged$year[!is.na(merged[[var]])]))
 })
 
-# Descriptive stats 
-hist(x_var_spi) 
-hist(x_var_sci)
-hist(y_var_sdg) # maybe stacked bar/histogram showing frequency AND Income level
-hist(y_var_sdg) # maybe another stacked bar/histogram this time showing Regime Type!
+# side-by-side layout
+par(mfrow = c(1, 2))
 
-library(mice)
+# SPI histogram
+hist(x_var_spi, main = "Statistical Performance Index (2016-2023)", 
+     xlab = "Composite Score (0-100)", 
+     ylab = "Frequency (country-years)")
 
-md.pattern(df_sdg_statcap)
+# SCI histogram
+hist(x_var_sci, main = "Statistical Capacity Index (2004-2020)", 
+     xlab = "Composite Score (0-100)", 
+     ylab = "Frequency (country-years)")
+
+par(mfrow = c(1, 1)) #side by side 
+
+# SDG histogram 
+hist(y_var_sdg, main = "Sustainable Development Goals (2004-2023)", xlab = "Composite Score (0-100)", 
+     ylab = "Frequency (country-years)")
 
 ```
 **Years 2004-2023:**
@@ -222,6 +227,68 @@ Number of observations in SCI: 2410; number of NA's 2209 (not all countries capt
 Number of observations in DI: 2856; number of NA's 1763 
 
 *SDG VARIABLE NOTE: While all member states have a country profile, only those with less than 20% missing data are ranked in the SDG Index, resulting in 167 countries being ranked in the 2024 report. *
+
+# Descriptive stats & Missing Data: Transitioning Countries Dataset 
+```{r}
+# data for transitioning / transition event countries 
+n_change <- merged %>%
+  group_by(country_code) %>%
+  filter(any(aut_ep == 1 | dem_ep ==1)) %>% #selects all that have either kind of event 
+  mutate(dem_ep_country = any(dem_ep == 1)) %>% #column labels countries that experienced democratization event
+  mutate(aut_ep_country = any(aut_ep == 1)) %>% #column labels countries that experienced autocratization event 
+  ungroup()
+
+# how many countries experienced either kind of event 
+length(n_change$aut_ep_country)
+
+#variables 
+n_change_vars <- data.frame(n_change$sdg_overall, n_change$spi_comp, n_change$sci_overall, n_change$di_score)
+
+#how many observations: country-years
+colSums(!is.na(n_change_vars))
+# how many na's?
+colSums(is.na(n_change_vars))
+
+# side-by-side layout
+par(mfrow = c(1, 2))
+
+# SPI Distribution by regime type 
+boxplot(spi_comp ~ regime_type_2, data = merged,
+        main = "SPI Distribution by Regime Type",
+        xlab = "Regime Type",
+        ylab = "Composite Score (1-100)",
+        col = c("salmon", "skyblue"))
+
+legend("bottomright",                      # Position of the legend
+       legend = c("Democracy", "Autocracy"),  # Group names
+       fill = c("skyblue", "salmon"),        # Colors matching the boxplot
+       border = "black",                     # Box border color (optional)
+       bty = "n")   
+
+# SCI Distribution by regime type (only considers lower income / developing countries)
+boxplot(sci_overall ~ regime_type_2, data = merged,
+        main = "SCI Distribution by Regime Type",
+        xlab = "Regime Type",
+        ylab = "Composite Score (1-100)",
+        col = c("salmon", "skyblue"))
+
+legend("bottomright",                      # Position of the legend
+       legend = c("Democracy", "Autocracy"),  # Group names
+       fill = c("skyblue", "salmon"),        # Colors matching the boxplot
+       border = "black",                     # Box border color (optional)
+       bty = "n")   
+
+par(mfrow = c(1, 1)) #side by side 
+
+# SDG Box plot 
+boxplot(sdg_overall ~ regime_type_2, data = merged,
+        main = "SDG Distribution by Regime Type",
+        xlab = "Regime Type",
+        ylab = "Composite Score (1-100)",
+        col = c("salmon", "skyblue"))
+```
+
+
 
 # COMPONENT 1: COMPARING SPI & SCI X VARIABLES
 

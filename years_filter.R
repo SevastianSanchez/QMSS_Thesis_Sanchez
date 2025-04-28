@@ -132,6 +132,4 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
               gini = name10))
   
 } 
-test_years_fil <- years_filter()
 
-str(test_years_fil$sci_df)
