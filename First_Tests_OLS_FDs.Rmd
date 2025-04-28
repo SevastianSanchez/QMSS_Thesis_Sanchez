@@ -43,128 +43,10 @@ merged <- df_years2.0(2004, 2024) %>%
   select(country_name, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, income_level, income_level_lab, gini, log_gdppc, population)
 
 #old function 
-source("df_years()_Function.R")
-merged2 <- df_years(yr1=2004) %>% 
-  select(country_name.x, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, income_level, income_level_lab, gini, log_gdppc, population)
+#source("df_years()_Function.R")
+#merged2 <- df_years(yr1=2004) %>% 
+#  select(country_name.x, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, #regime_type_4, regch_event, income_level, income_level_lab, gini, log_gdppc, population)
 ```
-
-
-##Vdem wrangling / cleaning (skip if df_years() used)
-```{r eval=FALSE, include=FALSE}
-#selecting democracy indices and controls 
-vdem <- vdem %>% 
-dplyr::select(country_name, country_text_id, year, v2x_regime, v2x_regime_amb, v2x_polyarchy, v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2xel_frefair, v2x_accountability, v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, v2x_freexp_altinf, e_gdp, e_gdppc, e_wb_pop, v3ststybcov, v3ststybpub, v3stcensus, v3ststatag) %>%
-  filter(year > 1999) %>% #Only 1999 and up 
-  rename(country_code = country_text_id, #renaming country code (new_name = old_name)
-         regime_type = v2x_regime, 
-         regime_type_amb = v2x_regime_amb,
-         elect_dem = v2x_polyarchy,
-         lib_dem = v2x_libdem,
-         part_dem = v2x_partipdem,
-         delib_dem = v2x_delibdem,
-         egal_dem = v2x_egaldem,
-         freefair = v2xel_frefair,
-         #freefair_ord = e_v2xel_frefair,
-         accountability = v2x_accountability,
-         vt_account = v2x_veracc,
-         hz_account = v2x_horacc,
-         diag_account = v2x_diagacc,
-         academ_free = v2xca_academ,
-         freexp_altinfo = v2x_freexp_altinf,
-         population = e_wb_pop,
-         stat_agency = v3ststatag,
-         stat_yb_cov = v3ststybcov,
-         stat_yb_pub = v3ststybpub,
-         census = v3stcensus,
-         )
-  
-# To be added: e_v2xel_frefair
-```
-
-
-## SPI wrangling / cleaning (skip if df_years() used)
-```{r eval=FALSE, include=FALSE}
-#selecting and renaming spi vars 
-spi <- spi %>% 
-  select(country, iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, SPI.INDEX.PIL2, SPI.INDEX.PIL3, SPI.INDEX.PIL4, SPI.INDEX.PIL5) %>% 
-  rename(country_name = country) %>% 
-  rename(country_code = iso3c) %>% 
-  rename(year = date) %>% 
-  rename(spi_comp = SPI.INDEX) %>% #SPI composite score, average of p1-5
-  rename(p1_use = SPI.INDEX.PIL1) %>% #SPI pillar 1, Data use 
-  rename(p2_services = SPI.INDEX.PIL2) %>% #SPI pillar, 2 Data services 
-  rename(p3_products = SPI.INDEX.PIL3) %>% #SPI pillar, 3 Data products  
-  rename(p4_sources = SPI.INDEX.PIL4) %>% #SPI pillar, 4 Data sources 
-  rename(p5_infra = SPI.INDEX.PIL5) #SPI pillar 5, Data infrastructure
-```
-
-
-
-
-## SCI wrangling / cleaning (skip if df_years() used)
-
-```{r eval=FALSE, include=FALSE}
-#full dataset 
-sci <- sci_df %>% 
-  dplyr::select(country_name, country_code, Year, IQ.SCI.OVRL, IQ.SCI.MTHD, IQ.SCI.PRDC, IQ.SCI.SRCE, everything()) %>% 
-  rename(year = Year,
-         sci_overall = IQ.SCI.OVRL, 
-         sci_method = IQ.SCI.MTHD, 
-         sci_periodicity = IQ.SCI.PRDC,
-         sci_source = IQ.SCI.SRCE)
-
-#sci$year <- as.numeric(sci$year)
-
-#for merging (only sci score variables selected)
-sci_scores <- sci %>% 
-  select(country_name, country_code, year, sci_overall, sci_method, sci_periodicity, sci_source)
-```
-
-
-
-
-##SDG wrangling / cleaning (skip if df_years() used)
-
-```{r eval=FALSE, include=FALSE}
-#select sdg goals & composite 
-sdg <- sdg %>% 
-  dplyr::select("country_name", "country_code", "year", "sdg_overall", "goal1", "goal2", "goal3", "goal4", "goal5", "goal6", "goal7", "goal8", "goal9", "goal10", "goal11", "goal12", "goal3", "goal14", "goal15", "goal16", "goal17")
-
-```
-
-
-##GDP_PC wrangling / cleaning (skip if df_years() used)
-```{r eval=FALSE, include=FALSE}
-gdppc_df <- gdppc_df %>%  #pivot back to long format
-  pivot_longer(3:66, #use any way to select all columns (he used range)
-               names_to = "year", # new var using cols 2:13 as values
-               values_to = "gdp_pc") #new var containing all values within cols 2:13 as values 
-View(gdppc_df)
-```
-
-
-
-
-## Merging & subsetting (skip if df_years() used)
-
-```{r eval=FALSE, include=FALSE}
-#merge spi, sci, sdg and vdem data 
-merged <- left_join(sdg, spi, by = c("year", "country_code")) 
-merged <- left_join(merged, sci_scores, by = c("country_code", "year"))
-merged <- left_join(merged, vdem, by = c("country_code", "year"))
-
-#rm duplicate col names 
-colnames(merged) <- make.unique(colnames(merged)) # Make column names unique
-
-#data type changes 
-merged$year <- as.integer(merged$year)
-merged <- merged %>% 
-  mutate_at(c("spi_comp", "p1_use", "p2_services", "p3_products", "p4_sources", "p5_infra", "sci_overall", "sci_method", "sci_periodicity", "sci_source"), as.numeric)
-
-#exporting time series data AS: merged_ts.csv ; will save to current working directory 
-#write.table(merged, file = "merged_ts.csv", row.names=F, sep = ",") 
-```
-
 
 ## All countries 2019 data only
 ```{r eval=FALSE, include=FALSE}
@@ -228,30 +110,8 @@ Number of observations in DI: 2856; number of NA's 1763
 
 *SDG VARIABLE NOTE: While all member states have a country profile, only those with less than 20% missing data are ranked in the SDG Index, resulting in 167 countries being ranked in the 2024 report. *
 
-# Descriptive stats & Missing Data: Transitioning Countries Dataset 
+## Histograms 
 ```{r}
-# data for transitioning / transition event countries 
-n_change <- merged %>%
-  group_by(country_code) %>%
-  filter(any(aut_ep == 1 | dem_ep ==1)) %>% #selects all that have either kind of event 
-  mutate(dem_ep_country = any(dem_ep == 1)) %>% #column labels countries that experienced democratization event
-  mutate(aut_ep_country = any(aut_ep == 1)) %>% #column labels countries that experienced autocratization event 
-  ungroup()
-
-# how many countries experienced either kind of event 
-length(n_change$aut_ep_country)
-
-#variables 
-n_change_vars <- data.frame(n_change$sdg_overall, n_change$spi_comp, n_change$sci_overall, n_change$di_score)
-
-#how many observations: country-years
-colSums(!is.na(n_change_vars))
-# how many na's?
-colSums(is.na(n_change_vars))
-
-# side-by-side layout
-par(mfrow = c(1, 2))
-
 # SPI Distribution by regime type 
 boxplot(spi_comp ~ regime_type_2, data = merged,
         main = "SPI Distribution by Regime Type",
@@ -286,9 +146,96 @@ boxplot(sdg_overall ~ regime_type_2, data = merged,
         xlab = "Regime Type",
         ylab = "Composite Score (1-100)",
         col = c("salmon", "skyblue"))
+
+legend("bottomright",                      # Position of the legend
+       legend = c("Democracy", "Autocracy"),  # Group names
+       fill = c("skyblue", "salmon"),        # Colors matching the boxplot
+       border = "black",                     # Box border color (optional)
+       bty = "n")   
+
+```
+
+#Quantile breaks
+```{r}
+#New Vars - Quantile breaks 
+quant_breaks_sdg <- quantile(merged$sdg_overall, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+quant_breaks_spi <- quantile(merged$spi_comp, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+quant_breaks_sci <- quantile(merged$sci_overall, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+
+# Inputting SDG quartiles in main DF 
+merged$sdg_quant_bins <- cut(merged$sdg_overall, 
+                      breaks = quant_breaks, 
+                      include.lowest = TRUE, 
+                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
+
+#SDG Summary Table 
+sdg_summary <- merged %>%
+  group_by(regime_type_2, sdg_quant_bins) %>%
+  summarise(count = n(), .groups = "drop")
+# Pivot to wide format
+sdg_wide_table <- sdg_summary %>%
+  pivot_wider(names_from = sdg_quant_bins, values_from = count, values_fill = 0)
+
+# Inputting SPI quartiles in main DF 
+merged$spi_quant_bins <- cut(merged$spi_comp, 
+                      breaks = quant_breaks, 
+                      include.lowest = TRUE, 
+                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
+
+#SPI Summary Table 
+spi_summary <- merged %>%
+  group_by(regime_type_2, spi_quant_bins) %>%
+  summarise(count = n(), .groups = "drop")
+# Pivot to wide format
+spi_wide_table <- spi_summary %>%
+  pivot_wider(names_from = spi_quant_bins, values_from = count, values_fill = 0)
+
+# Inputting SCI quartiles in main DF 
+merged$sci_quant_bins <- cut(merged$sci_overall, 
+                      breaks = quant_breaks, 
+                      include.lowest = TRUE, 
+                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
+
+# SCI Summary Table 
+sci_summary <- merged %>%
+  group_by(regime_type_2, sci_quant_bins) %>%
+  summarise(count = n(), .groups = "drop")
+# Pivot to wide format
+sci_wide_table <- sci_summary %>%
+  pivot_wider(names_from = sci_quant_bins, values_from = count, values_fill = 0)
+
+#write tables as CSV to directory 
+
+
+# STACKED BAR PLOTS LATER 
+
 ```
 
 
+# Descriptive stats & Missing Data: Transitioning Countries Dataset 
+```{r}
+# data for transitioning / transition event countries 
+n_change <- merged %>%
+  group_by(country_code) %>%
+  filter(any(aut_ep == 1 | dem_ep ==1)) %>% #selects all that have either kind of event 
+  mutate(dem_ep_country = any(dem_ep == 1)) %>% #column labels countries that experienced democratization event
+  mutate(aut_ep_country = any(aut_ep == 1)) %>% #column labels countries that experienced autocratization event 
+  ungroup()
+
+# how many countries experienced either kind of event 
+length(n_change$aut_ep_country)
+
+#variables 
+n_change_vars <- data.frame(n_change$sdg_overall, n_change$spi_comp, n_change$sci_overall, n_change$di_score)
+
+#how many observations: country-years
+colSums(!is.na(n_change_vars))
+# how many na's?
+colSums(is.na(n_change_vars))
+
+# side-by-side layout
+par(mfrow = c(1, 2))
+```
 
 # COMPONENT 1: COMPARING SPI & SCI X VARIABLES
 
@@ -488,7 +435,7 @@ Compare_fit <- ggplot(merged, aes(x = spi_comp, y = sdg_overall))+
 Compare_fit
 
 #make interactive
-#ggplotly(Compare_fit)
+ggplotly(Compare_fit)
 
 # Save to specific folder
 # ggsave("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs/fd_plot.png", p, width = 10, height = 6)
