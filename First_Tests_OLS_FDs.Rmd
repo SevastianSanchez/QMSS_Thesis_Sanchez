@@ -40,7 +40,7 @@ source("df_years2.0_Function.R")
 
 #specify start year 
 merged <- df_years2.0(2004, 2024) %>% 
-  select(country_name, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, income_level, income_level_lab, gini, log_gdppc, population)
+  select(country_name, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, income_level, income_level_lab, gini, log_gdppc, population)
 
 #old function 
 #source("df_years()_Function.R")
@@ -81,6 +81,10 @@ sapply(c("sdg_overall", "di_score", "spi_comp", "sci_overall"), function(var) {
   length(unique(merged$year[!is.na(merged[[var]])]))
 })
 
+```
+
+# Histograms 
+```{r}
 # side-by-side layout
 par(mfrow = c(1, 2))
 
@@ -110,7 +114,7 @@ Number of observations in DI: 2856; number of NA's 1763
 
 *SDG VARIABLE NOTE: While all member states have a country profile, only those with less than 20% missing data are ranked in the SDG Index, resulting in 167 countries being ranked in the 2024 report. *
 
-## Histograms 
+## Box plots
 ```{r}
 # SPI Distribution by regime type 
 boxplot(spi_comp ~ regime_type_2, data = merged,
@@ -124,6 +128,7 @@ legend("bottomright",                      # Position of the legend
        fill = c("skyblue", "salmon"),        # Colors matching the boxplot
        border = "black",                     # Box border color (optional)
        bty = "n")   
+
 
 # SCI Distribution by regime type (only considers lower income / developing countries)
 boxplot(sci_overall ~ regime_type_2, data = merged,
@@ -140,6 +145,7 @@ legend("bottomright",                      # Position of the legend
 
 par(mfrow = c(1, 1)) #side by side 
 
+
 # SDG Box plot 
 boxplot(sdg_overall ~ regime_type_2, data = merged,
         main = "SDG Distribution by Regime Type",
@@ -155,7 +161,7 @@ legend("bottomright",                      # Position of the legend
 
 ```
 
-#Quantile breaks
+##Summary Statistics and Quantile Frequency Tables 
 ```{r}
 #New Vars - Quantile breaks 
 quant_breaks_sdg <- quantile(merged$sdg_overall, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
@@ -168,7 +174,7 @@ merged$sdg_quant_bins <- cut(merged$sdg_overall,
                       include.lowest = TRUE, 
                       labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
 
-#SDG Summary Table 
+#SDG IQR Summary Table 
 sdg_summary <- merged %>%
   group_by(regime_type_2, sdg_quant_bins) %>%
   summarise(count = n(), .groups = "drop")
@@ -182,7 +188,7 @@ merged$spi_quant_bins <- cut(merged$spi_comp,
                       include.lowest = TRUE, 
                       labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
 
-#SPI Summary Table 
+#SPI IQR Summary Table 
 spi_summary <- merged %>%
   group_by(regime_type_2, spi_quant_bins) %>%
   summarise(count = n(), .groups = "drop")
@@ -196,13 +202,19 @@ merged$sci_quant_bins <- cut(merged$sci_overall,
                       include.lowest = TRUE, 
                       labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
 
-# SCI Summary Table 
+# SCI IQR Summary Table 
 sci_summary <- merged %>%
   group_by(regime_type_2, sci_quant_bins) %>%
   summarise(count = n(), .groups = "drop")
 # Pivot to wide format
 sci_wide_table <- sci_summary %>%
   pivot_wider(names_from = sci_quant_bins, values_from = count, values_fill = 0)
+
+#Summary tables by score: Min, 1st Qu. Median, Mean, 3rd Qu., Max, NA's 
+summary(merged$sdg_overall)
+summary(merged$spi_comp)
+summary(merged$sci_overall)
+summary(merged$di_score)
 
 #write tables as CSV to directory 
 
@@ -214,27 +226,51 @@ sci_wide_table <- sci_summary %>%
 
 # Descriptive stats & Missing Data: Transitioning Countries Dataset 
 ```{r}
-# data for transitioning / transition event countries 
-n_change <- merged %>%
+# new variable: experienced either kind of regime change event 
+merged <- merged %>%
   group_by(country_code) %>%
-  filter(any(aut_ep == 1 | dem_ep ==1)) %>% #selects all that have either kind of event 
-  mutate(dem_ep_country = any(dem_ep == 1)) %>% #column labels countries that experienced democratization event
-  mutate(aut_ep_country = any(aut_ep == 1)) %>% #column labels countries that experienced autocratization event 
+  mutate(either_event = as.integer(any(dem_ep == 1 | aut_ep == 1))) %>%
   ungroup()
 
-# how many countries experienced either kind of event 
-length(n_change$aut_ep_country)
+# subset of countries that experienced atleast 1 backsliding event  
+regressed <- merged %>%
+  group_by(country_code) %>%
+  filter(aut_ep == 1) %>%
+  ungroup()
 
-#variables 
-n_change_vars <- data.frame(n_change$sdg_overall, n_change$spi_comp, n_change$sci_overall, n_change$di_score)
+# subset of countries that experienced atleast 1 democratization event 
+democratized <- merged %>% 
+  group_by(country_code) %>%
+  filter(dem_ep == 1) %>%
+  ungroup()
 
-#how many observations: country-years
-colSums(!is.na(n_change_vars))
-# how many na's?
-colSums(is.na(n_change_vars))
 
-# side-by-side layout
-par(mfrow = c(1, 2))
+# number of countries that experienced a regime change event (autocratization or democratization)
+n_countries_events <- length(unique(merged$country_code[merged$either_event == 1]))
+n_countries_events
+
+# number of countries that experienced autocratization
+n_countries_aut <- length(unique(merged$country_code[merged$aut_ep == 1]))
+n_countries_aut
+
+# number of countries that experienced democratization
+n_countries_dem <- length(unique(merged$country_code[merged$dem_ep == 1]))
+n_countries_dem
+
+
+#Frequency of countries that experienced democratization 2004-2024
+hist(merged$year[merged$regch_event==1], breaks = 20)
+
+#Frequency of countries that experienced autocratization 2004-2024
+hist(merged$year[merged$regch_event==-1], breaks = 20)
+
+#Frequency of countries that experienced no change 2004-2024
+hist(merged$year[merged$regch_event==0], breaks = 20)
+
+#frequency/proportion table: instances of backsliding, stability, democratization from 2004-2024
+table(merged$regch_event) # frequency
+prop.table(table(merged$regch_event)) # proportions 
+
 ```
 
 # COMPONENT 1: COMPARING SPI & SCI X VARIABLES
@@ -262,6 +298,7 @@ paste(string_corcoef, correlation_sdg_spi, "(SPI)", correlation_sdg_sci, "(SCI)"
 
 Correlation coefficient/R-sq (SPI): 0.616037202309322  
 Correlation coefficient/R-sq (SCI): 0.417965563339242
+Correlation coefficient/R-sq (DI): 0.452968121616442
 
 ## Comparing SPI & SCI w/o controls 
 Finding estimated impact of variables on SDG status prior to adding controls or robust SEs
@@ -723,7 +760,6 @@ resettest(lm_sdg_controlled, power = 2:3, type = "fitted")
 ```
 
 ## STILL LEFT TO INCLUDE 
-- Use Robust Standard Errors across all models 
 - Include GNI Coefficient control in all models 
 - Update results based on these changes
 
