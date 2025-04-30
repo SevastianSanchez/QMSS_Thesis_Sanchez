@@ -17,15 +17,45 @@ country_colnames <- c(
   "country_name", "country_id", "countryname", "Entity", "Code", "country_text_id", "countryid"
 )
 
+# Define forward mapping (country names/aliases to ISO3 codes)
+custom_match_forward <- c(
+  "Kosovo" = "XKX",
+  "Somaliland" = "SOL",
+  "Zanzibar" = "ZNZ",
+  "Channel Islands" = "CHI",
+  "Saint Martin (French part)" = "MAF",
+  "Curaçao" = "CUW",
+  "West Bank and Gaza" = "PSE",
+  "Congo (Kinshasa)" = "COD",
+  "Myanmar (Burma)" = "MMR",
+  "Iran, Islamic Rep." = "IRN",
+  "Kyrgyz Republic" = "KGZ"
+)
+
+# Define reverse mapping (ISO3 codes to country names)
+custom_match_reverse <- c(
+  "XKX" = "Kosovo",
+  "SOL" = "Somaliland",
+  "ZNZ" = "Zanzibar",
+  "CHI" = "Channel Islands",
+  "MAF" = "Saint Martin (French part)",
+  "CUW" = "Curaçao",
+  "PSE" = "West Bank and Gaza",
+  "COD" = "Congo (Kinshasa)",
+  "MMR" = "Myanmar (Burma)",
+  "IRN" = "Iran, Islamic Rep.",
+  "KGZ" = "Kyrgyz Republic"
+)
+
 standardize_country_codes <- function(df) {
-  # [Existing code] Identify country columns
+  # Identify country columns
   country_cols <- names(df)[tolower(names(df)) %in% 
                               tolower(country_colnames)]
   
   if(length(country_cols) > 0) {
     for(col in country_cols) {
       try({
-        # Modified code with custom matching
+        # custom matching
         df$iso3_standardized <- countrycode(
           df[[col]],
           origin = case_when(
@@ -36,19 +66,7 @@ standardize_country_codes <- function(df) {
           ),
           destination = "iso3c",
           # Add custom matches here
-          custom_match = c(
-            "Timor-Leste" = "TLS",
-            "Congo (Kinshasa)" = "COD",
-            "Myanmar (Burma)" = "MMR",
-            "Iran, Islamic Rep." = "IRN",  # Based on your GDP data
-            "Kyrgyz Republic" = "KGZ",      # From your GDP data
-            "St. Martin French part" = "MAF",
-            "Kosovo" = "XKX",
-            "Somaliland" = "SOL",  # Not ISO-standard but needed for your data
-            "Zanzibar" = "ZNZ",    # Not ISO-standard but needed
-            "Channel Islands" = "CHI",
-            "West Bank and Gaza" = "PSE",
-            "Curaçao" = "CUW"
+          custom_match = c(custom_match_forward
           )
         )
         break
@@ -56,6 +74,16 @@ standardize_country_codes <- function(df) {
     }
   }
   
+  if ("iso3_standardized" %in% names(df)) {
+    # Use countrycode's built-in mappings for standard ISO3 codes
+    df$country_name <- countrycode::countrycode(
+      sourcevar = df$iso3_standardized,
+      origin = "iso3c",
+      destination = "country.name",
+      # Only override for non-standard codes (e.g., Kosovo)
+      custom_match = custom_match_reverse
+    )
+  }
   if(!"iso3_standardized" %in% names(df)) {
     warning("No suitable country code column found in dataset")
   }
@@ -162,4 +190,4 @@ df_years2.0 <- function(x, y) {
   return(data)
 }
 
-#testing2.0 <- df_years2.0(2015, 2023)
+testing2.0 <- df_years2.0(2015, 2023)

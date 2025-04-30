@@ -39,22 +39,39 @@ source("packages.R")
 source("df_years2.0_Function.R")
 
 #specify start & end year
-merged <- df_years2.0(2004, 2024) %>% 
-  select(country_name, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, income_level, income_level_lab, gini, log_gdppc, population, p1_use, p2_services, p3_products, p4_sources, p5_infra, spi_comp, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17)
+merged <- df_years2.0(2004, 2023) %>% 
+  select(country_name, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, income_level, income_level_lab, gini, log_gdppc, population, p1_use, p2_services, p3_products, p4_sources, p5_infra, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17)
 
 # FILTERING FOR ALL COUNTRIES WITH ATLEAST 1 SDG VALUE 
 sdg_cols <- paste0("goal", 1:17)
 
-# Identify countries where all SDG columns are NA across all years
+# Identify & remove countries where all SDG columns are NA across all years
 countries_all_sdg_missing <- merged %>%
   group_by(country_code) %>%
   summarise(all_missing = all(if_all(all_of(sdg_cols), is.na))) %>%
   filter(all_missing) %>%
   pull(country_code)
-
-# Remove all rows for those countries
-merged <- merged %>%
+merged <- merged %>% # Removing all rows for those countries
   filter(!country_code %in% countries_all_sdg_missing)
+
+# NEW DF: counting the number of NAs (across all years) per country, by variables: SPI, SCI, SDG
+# List of columns to count NAs in
+target_cols <- c("spi_comp", "sdg_overall", "sci_overall", "p1_use", "p2_services", "p3_products", "p4_sources", "p5_infra",
+                 paste0("goal", 1:17))
+
+# Create new dataframe with NA counts per country
+merged_na_counts <- merged %>%
+  group_by(country_code) %>%
+  summarise(across(
+    .cols = all_of(target_cols),
+    .fns = ~ sum(is.na(.x)),
+    .names = "{.col}_na_count"
+  )) %>%
+  ungroup()
+
+#saving CSV output 
+#write.table(merged, file = 'merged_final_df.csv', row.names=F, sep = ",")
+#write.table(merged_na_counts, file = 'merged_na_counts.csv', row.names=F, sep = ",")
 
 #old function 
 #source("df_years()_Function.R")
@@ -80,17 +97,17 @@ x_var_sci <- merged$sci_overall
 x_var_di <- merged$di_score
 df_sdg_statcap <- data.frame(y_var_sdg, x_var_spi, x_var_sci, x_var_di)
 
-#how many observations: country-years
+#N total observations: country-years
 colSums(!is.na(df_sdg_statcap))
-# how many na's?
+# N total NAs
 colSums(is.na(df_sdg_statcap))
 
-# how many countries per variable? 
+# N countries per variable? 
 sapply(c("sdg_overall", "di_score", "spi_comp", "sci_overall"), function(var) {
   length(unique(merged$country_code[!is.na(merged[[var]])]))
 })
 
-# how many years per variable? 
+# N years per variable? 
 sapply(c("sdg_overall", "di_score", "spi_comp", "sci_overall"), function(var) {
   length(unique(merged$year[!is.na(merged[[var]])]))
 })
@@ -121,10 +138,13 @@ hist(y_var_sdg, main = "Sustainable Development Goals (2004-2023)", xlab = "Comp
 ```
 **Years 2004-2023:**
 
-Number of observations in SDG: 3360; number of NA's 1259 
-Number of observations in SPI: 1425; number of NA's 3194 (not all years captured)   
-Number of observations in SCI: 2410; number of NA's 2209 (not all countries captured)
-Number of observations in DI: 2856; number of NA's 1763 
+Number of observations by variable:
+y_var_sdg x_var_spi x_var_sci  x_var_di 
+     3360      1300      2072      2560
+
+Number of NAs by variable:
+y_var_sdg x_var_spi x_var_sci  x_var_di 
+        0      2060      1288       800 
 
 *SDG VARIABLE NOTE: While all member states have a country profile, only those with less than 20% missing data are ranked in the SDG Index, resulting in 167 countries being ranked in the 2024 report. *
 
@@ -309,7 +329,7 @@ paste(string_corcoef, correlation_sdg_spi, "(SPI)", correlation_sdg_sci, "(SCI)"
 ```
 
 Correlation coefficient/R-sq (SPI): 0.616037202309322  
-Correlation coefficient/R-sq (SCI): 0.417965563339242
+Correlation coefficient/R-sq (SCI): 0.410940651230861
 Correlation coefficient/R-sq (DI): 0.452968121616442
 
 ## Comparing SPI & SCI w/o controls 

@@ -1,0 +1,22 @@
+---
+title: "SPI~DI_Validation"
+output: html_document
+---
+# OLS: SPI ~ DI [DR. DI GENNERO's MODEL]
+```{r}
+ols_spi_di <- lm(spi_comp ~ di_score + log(gdppc) + population + year_fct + gini, data = merged_testing)
+summary(ols_spi_di)
+
+ggplot(merged_testing, aes(di_score, spi_comp))+
+  geom_point()+
+  geom_smooth(method=lm) #makes the line into a linear model
+
+#correlation - variance 
+spi_di_cor <- cor(merged_testing$spi_comp, merged_testing$di_score, use = "complete.obs")
+spi_di_cor
+
+#r-squared
+spi_di_cor_2 <- cor(merged_testing$spi_comp, merged_testing$di_score, use = "complete.obs")^2
+spi_di_cor_2
+```
+
