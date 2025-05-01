@@ -146,7 +146,7 @@ Number of NAs by variable:
 y_var_sdg x_var_spi x_var_sci  x_var_di 
         0      2060      1288       800 
 
-*SDG VARIABLE NOTE: While all member states have a country profile, only those with less than 20% missing data are ranked in the SDG Index, resulting in 167 countries being ranked in the 2024 report. *
+*SDG VARIABLE NOTE: While all member states have a country profile, only those with less than 20% missing data are ranked in the SDG Index, resulting in 167 countries being ranked in the 2024 report.*
 
 ## Box plots
 ```{r}
@@ -204,7 +204,7 @@ quant_breaks_sci <- quantile(merged$sci_overall, probs = c(0, 0.25, 0.5, 0.75, 1
 
 # Inputting SDG quartiles in main DF 
 merged$sdg_quant_bins <- cut(merged$sdg_overall, 
-                      breaks = quant_breaks, 
+                      breaks = quant_breaks_sdg, 
                       include.lowest = TRUE, 
                       labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
 
@@ -218,7 +218,7 @@ sdg_wide_table <- sdg_summary %>%
 
 # Inputting SPI quartiles in main DF 
 merged$spi_quant_bins <- cut(merged$spi_comp, 
-                      breaks = quant_breaks, 
+                      breaks = quant_breaks_spi, 
                       include.lowest = TRUE, 
                       labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
 
@@ -232,7 +232,7 @@ spi_wide_table <- spi_summary %>%
 
 # Inputting SCI quartiles in main DF 
 merged$sci_quant_bins <- cut(merged$sci_overall, 
-                      breaks = quant_breaks, 
+                      breaks = quant_breaks_sci, 
                       include.lowest = TRUE, 
                       labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
 
@@ -352,7 +352,7 @@ ols_multiple_naive: spi: 0.28779 (p-value < 0.001); sci: 0.15311 (p-value < 0.00
 
 The impact of SCI on SDG and SPI on SDG are statistically significant, in all models. SPI appears to have a greater impact on SDGs compared to that of SCI, regardless of the model. All of this is without controls. 
 
-## Comparing SPI & SCI WITH controls AND Robust Standard Errors  
+## TEST 1: Comparing SPI & SCI WITH controls AND Robust Standard Errors  
 Applying controls and robust (Huber-White) standard errors  
 
 *H0: Null, SCI model > SPI model*   
@@ -451,7 +451,7 @@ Both: 0.8455
 [STILL TO DECIDE]
 
 
-###Combine to single index: principle component analysis (FOR FUTURE)
+### Combine to single index: principle component analysis (FOR FUTURE)
 
 ```{r}
 # Standardize both measures
@@ -510,9 +510,11 @@ ggplotly(Compare_fit)
 # ggsave("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs/fd_plot.png", p, width = 10, height = 6)
 ```
 
+
+
 # INTERACTIONS AND SUBGROUP ANALYSIS
 
-##Checking for Interactions [REDO RESULTS FOR ROBUST SEs]: 
+## TEST 2: Checking for Interactions [REDO RESULTS FOR ROBUST SEs]: 
 - Is there a need for subgroup analysis, and if so, by what kind of group? 
 - Options: GNI Classification (income_level), regime_type_2, regime_type_4, di_score
 ```{r}
@@ -548,7 +550,7 @@ coeftest(reg_type_di_interaction, vcov = vcovHC(reg_type_di_interaction, type = 
 
 *Continuous di_score [0-1] Regime type: No* there is no statistically significant interactions found from regime type (infinate between 0-1) that affects the relationship between spi and sdgs. 
 
-## WB GNI Classifications: income_level ("H", "UM", "LM", "L") [REDO RESULTS FOR ROBUST SEs]
+## TEST 3: WB GNI Classifications: income_level ("H", "UM", "LM", "L") [REDO RESULTS FOR ROBUST SEs]
 **Disaggregated/Grouped by Development Status:** Make 4 regression models and then put them all together in a table to compare the slopes and R-sq values.
 ```{r}
 # 1. Overall model (all countries)
@@ -728,53 +730,7 @@ ggplotly(viz_gni_class)
 # ggsave("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs/fd_plot.png", p, width = 10, height = 6)
 ```
 
-# Mediation analysis [REDO RESULTS FOR ROBUST SEs]
-To test if SPI mediates the relationship between regime type and SDG outcomes: 
-Democratic backsliding → reduces SPI → slows SDG progress  
 
-*H0: SPI DOES NOT mediate (indirectly effect) the relationship between regime type and SDG status* 
-*H1: SPI mediates (indirectly effects) the relationship between regime type and SDG status* 
-
-- ACME (Average Causal Mediation Effect): SPI’s indirect effect.
-- ADE (Average Direct Effect): Regime type’s direct effect, excluding SPI
-```{r}
-library(mediation)
-
-#Total Effect: Check if regime type directly affects SDG scores (without SPI)
-total_sdg_di_ols <- lm(sdg_overall ~ di_score + log_gdppc + population + gini + year_fct, data = merged)
-summary(total_sdg_di_ols)
-
-#Mediator model: Check if regime type affects SPI
-med_spi_ols <- lm(spi_comp ~ di_score + log_gdppc + population + gini + year_fct, data = merged)
-summary(med_spi_ols)
-
-#outcome model: Check if SPI affects SDG scores while controlling for regime type
-output_sdg_ols <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + gini + year_fct, data = merged)
-summary(output_sdg_ols)
-
-#Mediation test: Quantify how much of regime type’s effect on SDGs operates through SPI
-med_model <- mediate(med_spi_ols, output_sdg_ols, 
-                     treat = "di_score", 
-                     mediator = "spi_comp", 
-                     sims = 1000, 
-                     robustSE = TRUE)
-summary(med_model)
-
-#Sensitivity Analysis: Tests how robust mediation findings are to potential unmeasured confounding variables
-sens_med <- medsens(med_model, rho.by = 0.1)
-summary(sens_med)
-plot(sens_med)
-```
-ACEM: SPI’s indirect effect = 0.917 units
-ADE: Regime type’s direct effect, excluding SPI = 0.326 units
-Total Effect: = 1.243 units
-Proportion Mediated: = 74.1% of total units
-
-Interpretation: A 1-unit DI increase boosts SDG scores by 1.243 total units, with 0.917 units (~74% of units) transmitted through SPI. The remaining 0.326 units reflect direct DI effects (e.g., governance reforms unrelated to statistics).
-
-Because the ACME (indirect effect of SPI on sdg_overall) is highly significant (p < 0.001), SPI mediates the regime-SDG relationship, based on the model. 
-
-Because the ADE (the direct effect between di_score on sdg_overall) is also significant (p = 0.002), although much less than the ACME estimate, SPI DOES NOT FULLY explain the connection between regime type and sdg status, based on the model. 
 
 ## HETERSCKEDISTACITY: Linearity vs non-linearity 
 ```{r}
