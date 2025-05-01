@@ -19,8 +19,8 @@ setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 source("packages.R")
 
 #load data & function 
-source("data/data_sources.R")
-source("df_years2.0_Function.R")
+#source("data/data_sources.R")
+#source("df_years2.0_Function.R")
 
 #load df_years() function: 2015-present
 fd_fe_data <- df_years2.0(2004, 2023) %>%
@@ -60,20 +60,20 @@ med_model <- mediate(med_spi_ols, output_sdg_ols,
 summary(med_model)
 
 #Sensitivity Analysis: Tests how robust mediation findings are to potential unmeasured confounding variables
-sens_med <- medsens(med_model, rho.by = 0.1)
-summary(sens_med)
-plot(sens_med)
+#sens_med <- medsens(med_model, rho.by = 0.1)
+#summary(sens_med)
+#plot(sens_med)
 ```
-ACEM: SPI’s indirect effect = 0.917 units
-ADE: Regime type’s direct effect, excluding SPI = 0.326 units
-Total Effect: = 1.243 units
-Proportion Mediated: = 74.1% of total units
+ACEM: SPI’s indirect effect = 0.62183 units
+ADE: Regime type’s direct effect, excluding SPI = -0.00535??? units
+Total Effect: = 0.61648 units
+Proportion Mediated: = 100.890%?? of total units
 
-Interpretation: A 1-unit DI increase boosts SDG scores by 1.243 total units, with 0.917 units (~74% of units) transmitted through SPI. The remaining 0.326 units reflect direct DI effects (e.g., governance reforms unrelated to statistics).
+Interpretation: A 1-unit DI increase boosts SDG scores by 0.61648 total units, with 0.62183 units (~100.89% of units) transmitted through SPI. The remaining -0.00535 units reflect direct DI effects (e.g., governance reforms unrelated to statistics).
 
 Because the ACME (indirect effect of SPI on sdg_overall) is highly significant (p < 0.001), SPI mediates the regime-SDG relationship, based on the model. 
 
-Because the ADE (the direct effect between di_score on sdg_overall) is also significant (p = 0.002), although much less than the ACME estimate, SPI DOES NOT FULLY explain the connection between regime type and sdg status, based on the model. 
+Because the ADE (the direct effect between di_score on sdg_overall) is not significant, SPI DOES ENTIRELY explain the connection between regime type and sdg status, based on the model. *[DEFINATELY NEEDS CONFIRMATION]*
 
 # OLS: SPI ~ DI [DR. DI GENNERO's MODEL]
 ```{r}
@@ -94,6 +94,8 @@ spi_di_cor
 spi_di_cor_2 <- cor(fd_fe_data$spi_comp, fd_fe_data$di_score, use = "complete.obs")^2
 spi_di_cor_2
 ```
+Correlation: 0.676354
+R-sq: 0.4574547
 
 # Panel Data Analysis 
 
@@ -112,7 +114,7 @@ fd_spi_di <- plm(
 )
 
 summary(fd_spi_di)
-coeftest(fd_spi_di, vcov = vcovCL(fd_spi_di, cluster = ~country_code)) #Robust SEs 
+coeftest(fd_spi_di, vcov = vcovHC(fd_spi_di, cluster = "group")) #Robust SEs 
 
 # Fixed Effects 
 fe_spi_di <- plm(
@@ -123,7 +125,7 @@ fe_spi_di <- plm(
 )
 
 summary(fe_spi_di)
-coeftest(fe_spi_di, vcov = vcovCL(fe_spi_di, cluster = ~country_code)) # Robust SEs
+coeftest(fe_spi_di, vcov = vcovHC(fe_spi_di, cluster = "group")) # Robust SEs
 ```
 - Cannot run FD model due to zero-variance or data precision issues. Perhaps the model has too few years to 
 
@@ -139,7 +141,7 @@ fd_sdg_spi <- plm(
 )
 
 summary(fd_sdg_spi)
-coeftest(fd_sdg_spi, vcov = vcovCL(fd_sdg_spi, cluster = ~country_code)) # Robust SEs
+coeftest(fd_sdg_spi, vcov = vcovHC(fd_sdg_spi, cluster = "group")) # Robust SEs
 
 # Fixed Effects 
 fe_sdg_spi <- plm(
@@ -150,7 +152,7 @@ fe_sdg_spi <- plm(
 )
 
 summary(fe_sdg_spi)
-coeftest(fe_sdg_spi, vcov = vcovCL(fe_sdg_spi, cluster = ~country_code)) # Robust SEs
+coeftest(fe_sdg_spi, vcov = vcovHC(fe_sdg_spi, cluster = "group")) # Robust SEs
 ```
 
 ## Mediation Effect: connecting DI -> SDGs
@@ -185,8 +187,8 @@ med_fe_results <- mediate(
 summary(med_fe_results)
 
 # Sensitivity Analysis: after running mediation
-sens_med_fe <- medsens(med_fe_results, rho.by = 0.1)
-plot(sens_med_fe)
+#sens_med_fe <- medsens(med_fe_results, rho.by = 0.1)
+#plot(sens_med_fe)
 
 ```
 
@@ -249,7 +251,7 @@ fd_spi_di_lag <- plm(
 )
 
 summary(fd_spi_di_lag)
-coeftest(fd_spi_di_lag, vcov = vcovCL(fd_spi_di_lag, cluster = ~country_code)) # Robust SEs
+coeftest(fd_spi_di_lag, vcov = vcovHC(fd_spi_di_lag, cluster = "group")) # Robust SEs
 
 # Fixed Effects 
 fe_spi_di_lag <- plm(
@@ -260,7 +262,7 @@ fe_spi_di_lag <- plm(
 )
 
 summary(fe_spi_di_lag)
-coeftest(fe_spi_di_lag, vcov = vcovCL(fe_spi_di_lag, cluster = ~country_code)) # Robust SEs
+coeftest(fe_spi_di_lag, vcov = vcovHC(fe_spi_di_lag, cluster = "group")) # Robust SEs
 ```
 
 
@@ -275,7 +277,7 @@ fd_sdg_spi_lag <- plm(
 )
 
 summary(fd_sdg_spi_lag)
-coeftest(fd_sdg_spi_lag, vcov = vcovCL(fd_sdg_spi_lag, cluster = ~country_code)) # Robust SEs
+coeftest(fd_sdg_spi_lag, vcov = vcovHC(fd_sdg_spi_lag, cluster = "group")) # Robust SEs
 
 # Fixed Effects 
 fe_sdg_spi_lag <- plm(
@@ -286,7 +288,7 @@ fe_sdg_spi_lag <- plm(
 )
 
 summary(fe_sdg_spi_lag)
-coeftest(fe_sdg_spi_lag, vcov = vcovCL(fe_sdg_spi_lag, cluster = ~country_code)) # Robust SEs
+coeftest(fe_sdg_spi_lag, vcov = vcovHC(fe_sdg_spi_lag, cluster = "group")) # Robust SEs
 ```
 
 

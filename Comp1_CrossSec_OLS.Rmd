@@ -257,7 +257,6 @@ summary(merged$di_score)
 
 ```
 
-
 # Descriptive stats & Missing Data: Transitioning Countries Dataset 
 ```{r}
 # new variable: experienced either kind of regime change event 
@@ -385,17 +384,17 @@ datatable(broom::tidy(ols_multiple)) # SDG ~ SPI & SCI
 
 We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. Additionally, we reject the null hypothesis that there is no relationship between SCI and SDG composite scores. Holding all else constant (log GDP per capita, democracy score, population and GINI coefficient), SPI and SCI exhibit positive moderate and statistically significant relationships with SDG status.
 
-ols_spi: 0.2723 (p-value < 0.001)  
-ols_sci: 0.1932 (p-value < 0.001)  
-ols_multiple: spi: 0.1192 (p-value < 0.001); sci: 0.1273 (p-value < 0.001)
+ols_spi: 0.2686 (p-value < 0.001)  
+ols_sci: 0.1929 (p-value < 0.001)  
+ols_multiple: spi: 0.1183 (p-value < 0.001); sci: 0.1275 (p-value < 0.001)
 
-When compared in separate models, SPI has a greater impact on SDG status (0.2723) than SCI (0.1932). This suggests that a one-unit increase in SPI is associated with a larger improvement in SDG outcomes compared to a one-unit increase in SCI, holding all controls constant. 
+When compared in separate models, SPI has a greater impact on SDG status (0.2686) than SCI (0.1929). This suggests that a one-unit increase in SPI is associated with a larger improvement in SDG outcomes compared to a one-unit increase in SCI, holding all controls constant. 
 
-Interestingly, the opposite holds true in a multiple regression model containing both SPI and SCI. SPI's impact on SDG status (0.1192) (net of SPI) is less than that of SCI's (0.1273) (net of SCI), holding all controls constant. When together, the coefficients represent the unique impact of each predictor variable (measures of statistical capacity) on SDG status, net of all other variables.
+Interestingly, the opposite holds true in a multiple regression model containing both SPI and SCI. SPI's impact on SDG status (0.1183) (net of SPI) is less than that of SCI's (0.1275) (net of SCI), holding all controls constant. When together, the coefficients represent the unique impact of each predictor variable (measures of statistical capacity) on SDG status, net of all other variables.
 
-Model 1 (ols_spi) does not control for SCI and model 2 (ols_sci) does not control for spi -- this is okay. SPI is the predecessor of the SCI, sharing/data overlap, and so it is expected to have significant statistical correlation (multicollinearity). This is likely what explains the significant reduction of both coefficients as seen in model 3: 0.2723 to 0.1192 for SPI (56.3% decrease); and from 0.1932 to 0.1273 for SCI (34.1%% decrease). Such indicates that they're both capturing much of the same underlying relationship with SDG status.
+Model 1 (ols_spi) does not control for SCI and model 2 (ols_sci) does not control for spi -- this is okay. SPI is the predecessor of the SCI, sharing/data overlap, and so it is expected to have significant statistical correlation (multicollinearity). This is likely what explains the significant reduction of both coefficients as seen in model 3: 0.2686 to 0.1183 for SPI (__% decrease); and from 0.1932 to 0.1275 for SCI (___% decrease). Such indicates that they're both capturing much of the same underlying relationship with SDG status.
 
-However, the fact that both SPI and SCI remain significant when included together (model 3) with the highest adjusted R-sq (0.8443) suggests that they capture different dimensions of statistical capacity that independently contribute to SDG status.
+However, the fact that both SPI and SCI remain significant when included together (model 3) with the highest adjusted R-sq (0.8465) suggests that they capture different dimensions of statistical capacity that independently contribute to SDG status.
 
 ### Multicolinearity & VIF: SPI & SCI 
 
@@ -519,15 +518,13 @@ ggplotly(Compare_fit)
 - Options: GNI Classification (income_level), regime_type_2, regime_type_4, di_score
 ```{r}
 #interaction 1: does GNI Classification (income_level) affect the relationship between x (spi) & y (sdg)?
-inc_lev_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*income_level + log_gdppc + population + gini + year_fct,
-                        data = merged)
-summary(inc_lev_interaction)
+inc_lev_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*income_level + log_gdppc + population + gini + year_fct,data = merged)
+#summary(inc_lev_interaction)
 coeftest(inc_lev_interaction, vcov = vcovHC(inc_lev_interaction, type = "HC1")) #Robust SE
 
 #interaction 2: does regime_type_2 affect the relationship between x (spi) & y (sdg)?
-reg_type2_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log_gdppc + population + gini + year_fct,
-                        data = merged)
-summary(reg_type2_interaction)
+reg_type2_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log_gdppc + population + gini + year_fct,data = merged)
+#summary(reg_type2_interaction)
 coeftest(reg_type2_interaction, vcov = vcovHC(reg_type2_interaction, type = "HC1")) #Robust SE
 
 #interaction 3: does regime_type_4 affect the relationship between x (spi) & y (sdg)?
@@ -695,6 +692,7 @@ print(mod_compare_tab)
 ```
 
 
+
 ##Visualizing Slopes: plotting multiple regression - by subgroup
 ```{r}
 viz_gni_class <- ggplot(data = merged, aes(x = spi_comp, 
@@ -729,8 +727,6 @@ ggplotly(viz_gni_class)
 # Save to specific folder
 # ggsave("~/Documents/GitHub/QMSS_Thesis_Sanchez/Output_CSVs/fd_plot.png", p, width = 10, height = 6)
 ```
-
-
 
 ## HETERSCKEDISTACITY: Linearity vs non-linearity 
 ```{r}
