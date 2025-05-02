@@ -23,7 +23,13 @@ source("packages.R")
 #source("df_years2.0_Function.R")
 
 #load df_years() function: 2015-present
-fd_fe_data <- df_years2.0(2004, 2023) %>%
+#fd_fe_data <- df_years2.0(2004, 2023)
+
+#read merged_df csv
+fd_fe_data <- read_csv("merged_full_final_df.csv")
+
+#selecting 
+fd_fe_data <- fd_fe_data %>% 
   dplyr::select(country_code, year, year_fct, sdg_overall, spi_comp, di_score, aut_ep, dem_ep, income_level, income_level_lab, gini, log_gdppc, population) %>% 
   arrange(country_code, year)  # Critical for correct lagging
   
