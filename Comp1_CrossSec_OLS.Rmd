@@ -80,10 +80,10 @@ merged_final <- read_csv("data/Main CSV Outputs/merged_cleaned.csv") %>%
 #write.table(merged_final, file = 'merged_final_df.csv', row.names=F, sep = ",")
 ```
 
-# LOAD FINAL MERGED CSV 
+# FINALLY: LOAD FINAL MERGED CSV 
 ```{r}
 #load final merged df 
-merged <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
+merged <- read_csv("data/Main CSV Outputs/merged_final_df.csv)
 ```
 
 # NEW DF: counting the number of NAs (across all years) per country, by variables: SPI, SCI, SDG
