@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-#TEMPORAL ANALYSIS: First Difference, Fixed Effects, Checks
+#TEMPORAL MEDIATION ANALYSIS: First Difference, Fixed Effects, Lags, Checks
 
 ##setup: packages and data
 ```{r}
@@ -35,8 +35,24 @@ fd_fe_data <- fd_fe_data %>%
   
 ```
 
+# TEST X: The effect of democracy score on SDG 
+```{r}
+#Total Effect: Check if regime type directly affects SDG scores (without SPI) + Controls & RobustSEs
+total_sdg_di_ols <- lm(sdg_overall ~ di_score + log_gdppc + population + gini + year_fct, data = fd_fe_data)
+summary(total_sdg_di_ols)
+coeftest(total_sdg_di_ols, vcov = vcovHC(total_sdg_di_ols, type = "HC1"))  
+
+plot(fd_fe_data$di_score, fd_fe_data$sdg_overall,
+     main = "Effect of Democracy Score on SDG Status",
+     xlab = "Democracy Score",
+     ylab = "SDG Progress",
+     pch = 1, col = "blue")
+abline(total_sdg_di_ols, col="red", lwd = 2)
+```
+
+
 # TEST 1: Mediation analysis [REDO RESULTS FOR ROBUST SEs]
-To test if SPI mediates the relationship between regime type and SDG outcomes: 
+To test if SPI mediates the relationship between regime type and SDG outcomes:  
 Democratic backsliding → reduces SPI → slows SDG progress  
 
 *H0: SPI DOES NOT mediate (indirectly effect) the relationship between regime type and SDG status* 
@@ -45,9 +61,8 @@ Democratic backsliding → reduces SPI → slows SDG progress
 - ACME (Average Causal Mediation Effect): SPI’s indirect effect.
 - ADE (Average Direct Effect): Regime type’s direct effect, excluding SPI
 ```{r}
-#Total Effect: Check if regime type directly affects SDG scores (without SPI)
-total_sdg_di_ols <- lm(sdg_overall ~ di_score + log_gdppc + population + gini + year_fct, data = fd_fe_data)
-summary(total_sdg_di_ols)
+#seed to reproduce estimates 
+set.seed(125)
 
 #Mediator model: Check if regime type affects SPI
 med_spi_ols <- lm(spi_comp ~ di_score + log_gdppc + population + gini + year_fct, data = fd_fe_data)
@@ -70,14 +85,16 @@ summary(med_model)
 #summary(sens_med)
 #plot(sens_med)
 ```
-ACEM: SPI’s indirect effect = 0.62183 units
-ADE: Regime type’s direct effect, excluding SPI = -0.00535??? units
-Total Effect: = 0.61648 units
-Proportion Mediated: = 100.890%?? of total units
+ACEM: SPI’s indirect effect = 0.62884 units (p < 0.001)
+ADE: Regime type’s direct effect, excluding SPI = 0.00565 (p = 0.008) ??? units
+Total Effect: = 0.63449 units (p = 0.008)
+Proportion Mediated: = 0.98081 or 98.08% ?? of total units
 
-Interpretation: A 1-unit DI increase boosts SDG scores by 0.61648 total units, with 0.62183 units (~100.89% of units) transmitted through SPI. The remaining -0.00535 units reflect direct DI effects (e.g., governance reforms unrelated to statistics).
+`Proportion Mediated` = the percent difference between the total effect (SDG ~ DI) and indirect ACEM effect (+ SPI)
 
-Because the ACME (indirect effect of SPI on sdg_overall) is highly significant (p < 0.001), SPI mediates the regime-SDG relationship, based on the model. 
+Interpretation: A 1-unit DI increase boosts SDG scores by 0.63449 total units, with 0.62884 units (98.08% of units) transmitted through SPI. The remaining 0.00565 units represents democracy score's effect (e.g., governance reforms unrelated to statistics) on SDG progress. 
+
+Because the indirect effect of SPI on sdg_overall (ACME) is highly significant (p < 0.001), there is evidence to suggest that SPI mediates the regime-SDG relationship, based on the model. 
 
 Because the ADE (the direct effect between di_score on sdg_overall) is not significant, SPI DOES ENTIRELY explain the connection between regime type and sdg status, based on the model. *[DEFINATELY NEEDS CONFIRMATION]*
 
