@@ -80,23 +80,21 @@ plot(df$y_var, df$x1_var)
 abline(lm2)
 ```
 
-# OLS: SPI ~ DI [DR. DI GENNERO's MODEL]
+## Combine to single index: principle component analysis (FOR FUTURE)
 ```{r}
-ols_spi_di <- lm(spi_comp ~ di_score + log(gdppc) + population + year_fct + gini, data = merged_testing)
-summary(ols_spi_di)
 
-ggplot(merged_testing, aes(di_score, spi_comp))+
-  geom_point()+
-  geom_smooth(method=lm) #makes the line into a linear model
+# Standardize both measures
+#spi_z <- scale(spi_comp)
+#sci_z <- scale(sci_overall)
 
-#correlation - variance 
-spi_di_cor <- cor(merged_testing$spi_comp, merged_testing$di_score, use = "complete.obs")
-spi_di_cor
+# Create composite (simple average)
+#stat_capacity_index <- (spi_z + sci_z)/2
 
-#r-squared
-spi_di_cor_2 <- cor(merged_testing$spi_comp, merged_testing$di_score, use = "complete.obs")^2
-spi_di_cor_2
+#extract common variance 
+#pca_result <- prcomp(cbind(spi_comp, sci_overall), scale = TRUE)
+#stat_capacity_pc1 <- pca_result$x[,1]  # First principal component
 ```
+
 
 ## R Stan, GLM, Markove  
 ```{r}

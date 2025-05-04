@@ -46,7 +46,7 @@ info_cap <- read_csv("data/information_capacity.csv") %>%
 #write.csv(info_cap, "data/misc/perp_info.csv")
 
 #WB GNI Classifications 
-gni_class <- read_csv("Output_CSVs /world_bank_income_classifications.csv") %>% 
+gni_class <- read_csv("Output_CSVs/world_bank_income_classifications.csv") %>% 
   filter(year >= 2000)
 #write.csv(gni_class, "data/misc/perp_gni_cl.csv")
 
@@ -56,7 +56,9 @@ di <- read_csv("data/democracy-index-eiu.csv") %>%
 #write.csv(di, "data/misc/perp_di.csv")
 
 #GINI Coefficient - Income 
-gini <- read.csv("https://ourworldindata.org/grapher/economic-inequality-gini-index.csv?v=1&csvType=full&useColumnShortNames=true") 
-#write.csv(info_cap, "data/misc/perp_gini.csv")
+gini <- WDI(country = "all", indicator = "SI.POV.GINI", start = 2000, end = 2024)
 
+#previously:
+#read.csv("https://ourworldindata.org/grapher/economic-inequality-gini-index.csv?v=1&csvType=full&useColumnShortNames=true") 
+#write.csv(info_cap, "data/misc/perp_gini.csv")
 
