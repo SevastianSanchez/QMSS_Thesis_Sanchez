@@ -42,3 +42,5 @@ sci_data <- WDI(
 
 # View the first few rows
 head(sci_data)
+
+

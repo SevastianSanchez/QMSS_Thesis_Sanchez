@@ -1,0 +1,97 @@
+---
+title: "testing_SEM"
+output: html_document
+---
+
+```{r}
+# Create 1-year lags (adjust for your panel structure)
+library(dplyr)
+sem_data <- fd_fe_data %>%
+  group_by(country_code) %>%
+  mutate(
+    di_score_lag1 = lag(di_score, 1),
+    spi_comp_lag1 = lag(spi_comp, 1)
+  ) %>%
+  ungroup()
+
+```
+
+```{r}
+library(lavaan)
+
+model <- '
+  # Fixed effects (renamed latent variables)
+  country_fe =~ 1*country_code  # Latent country effects
+  year_fe =~ 1*year             # Latent year effects
+
+  # Mediator model: SPI ~ Lagged Regime + Controls
+  spi_comp ~ a*di_score_lag1 + log_gdppc + population + country_fe + year_fe
+
+  # Outcome model: SDG ~ SPI + Regime + Controls
+  sdg_overall ~ b*spi_comp_lag1 + c*di_score + log_gdppc + population + country_fe + year_fe
+
+  # Effects
+  direct := c
+  indirect := a*b
+  total := c + (a*b)
+'
+```
+
+```{r}
+# Fit with cluster-robust SEs (country-level)
+fit <- sem(
+  model, 
+  data = sem_data,
+  cluster = "country_code",  # Clustered SEs
+  estimator = "MLR",         # Robust estimation
+  missing = "fiml"           # Handle missing data
+)
+
+```
+
+```{r}
+summary(fit, standardized = TRUE, fit.measures = TRUE)
+
+```
+
+
+```{r}
+library(robmed)
+
+# Define FE mediation model with lags
+model_formula <- sdg_overall ~ 
+  m(spi_comp) +                  # Mediator (SPI)
+  lag(di_score, 1) +             # Lagged treatment (regime change)
+  log_gdppc + population +       # Controls
+  factor(country_code) +         # Country FE
+  factor(year)                   # Year FE
+
+# Fit robust mediation model
+robust_model <- fit_mediation(
+  formula = model_formula,
+  data = fd_fe_data,
+  robust = TRUE,  # Use MM-estimation
+  method = "regression"
+)
+
+```
+
+```{r}
+set.seed(123)  # Reproducibility
+robust_results <- test_mediation(
+  robust_model,
+  cluster = "country_code",  # Cluster by country
+  R = 1000                   # Bootstrap iterations
+)
+
+# Summarize results
+summary(robust_results)
+
+```
+
+```{r}
+ci_plot(robust_results)       # Plot bootstrap CIs
+weight_plot(robust_results)   # Check outlier influence
+
+```
+

@@ -1,0 +1,283 @@
+---
+title: "Descriptive Stats: Variables and Datasets"
+output: html_document
+---
+
+## ADJUST/WRANGLE DATA FIRST IN 'Comp1_CrossSec_OLS.Rmd' AS NEEDED
+
+# Load Data/packages: merged_final_df.csv
+```{r}
+source("packages.R")
+
+#load final merged df 
+merged <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
+```
+
+# NEW DF: counting the number of NAs (across all years) per country, by variables: SPI, SCI, SDG
+```{r eval=FALSE, include=FALSE}
+# List of columns to count NAs in
+target_cols <- c("spi_comp", "sdg_overall", "sci_overall", "p1_use", "p2_services", 
+                 "p3_products", "p4_sources", "p5_infra", paste0("goal", 1:17))
+
+# Create new dataframe with NA counts per country
+merged_na_counts <- merged %>%
+  group_by(country_code) %>%
+  summarise(across(
+    .cols = all_of(target_cols),
+    .fns = ~ sum(is.na(.x)),
+    .names = "{.col}_na_count"
+  )) %>%
+  ungroup()
+
+#saving merged_na_counts as CSV output 
+#write.table(merged_na_counts, file = 'merged_na_counts.csv', row.names=F, sep = ",")
+
+#load CSV 
+merged_na_counts <- read_csv("data/Main CSV Outputs/merged_na_counts.csv")
+```
+
+# Descriptive stats & Missing Data: Full Dataset 
+```{r}
+# x & y variables 
+df_sdg_statcap <- data.frame(merged$sdg_overall, merged$spi_comp, merged$sci_overall, merged$di_score, merged$log_gdppc, merged$population, merged$gini)
+
+#N total observations: country-years
+colSums(!is.na(df_sdg_statcap))
+# N total NAs
+colSums(is.na(df_sdg_statcap))
+
+# N countries per variable? 
+sapply(c("sdg_overall", "di_score", "spi_comp", "sci_overall", "log_gdppc", "population", "gini"), function(var) {
+  length(unique(merged$country_code[!is.na(merged[[var]])]))
+})
+
+# N years per variable? 
+sapply(c("sdg_overall", "di_score", "spi_comp", "sci_overall", "log_gdppc", "population", "gini"), function(var) {
+  length(unique(merged$year[!is.na(merged[[var]])]))
+})
+```
+**Years 2004-2023:**
+
+Number of observations per variable:
+sdg_overall  spi_comp sci_overall  di_score  log_gdppc  population  gini
+   3360        1300      2072       2560       3333        3106     1404
+
+Number of NAs per variable:
+sdg_overall spi_comp  sci_overall  di_score  log_gdppc  population  gini
+     0         2060      1288        800        27         254      1956
+        
+Number of countries per variable:
+sdg_overall  spi_comp  sci_overall di_score log_gdppc   population  gini 
+    168        165         123        160      168        164       151 
+
+Number of years per variable:
+sdg_overall  spi_comp  sci_overall di_score log_gdppc  population   gini 
+     20         8          17        16        20          19        20 
+# Histograms 
+```{r}
+# SPI & SCI HISTOGRAMS: side-by-side layout
+png("figures/spi_sci_hist.png", width = 9, height = 5, unit = "in", res = 300) #SPI & SCI Side By Side 
+par(mfrow = c(1, 2))
+
+# SPI histogram
+hist(merged$spi_comp, main = "Statistical Performance Index (2016-2023)", 
+     xlab = "Composite Score (0-100)", 
+     ylab = "Frequency (country-years)")
+
+# SCI histogram
+hist(merged$sci_overall, main = "Statistical Capacity Index (2004-2020)", 
+     xlab = "Composite Score (0-100)", 
+     ylab = "Frequency (country-years)")
+
+par(mfrow = c(1, 1)) #side by side 
+dev.off()
+
+# SDG histogram 
+png("figures/sdg_hist.png", width = 5, height = 4, unit = "in", res = 300) #Saving to figures folder 
+sdg_hist <- hist(merged$sdg_overall, main = "Sustainable Development Goals (2004-2023)", 
+                 xlab = "Composite Score (0-100)", 
+                 ylab = "Frequency (country-years)")
+dev.off()
+```
+
+*SDG VARIABLE NOTE: While all member states have a country profile, only those with less than 20% missing data are ranked in the SDG Index, resulting in 167 countries being ranked in the 2024 report.*
+
+**Reason to remove GINI from study:**
+while it is an important consideration, my study uses country-years as my primary unit of analysis, atleast in the corss-sectional component. Not all data points are available for every country, let alone every year. I suspect that this missingness is non-random, as not every country has the available statistical infrastructure to calculate a reliable estimate. With almost 2000 missing country-year values, including the GINI coefficient as a control would dramatically decrease my sample size and produce unreliable results. It is not good practice to impute list-wise values given the non-random nature of the missing values and especially to this extent.  
+
+## Box plots
+```{r}
+#SPI & SCI BOX PLOTS: SIDE BY SIDE 
+png("figures/spi_sci_boxplots.png", width = 9, height = 5, units = "in", res = 300)
+par(mfrow = c(1, 2))
+
+# SPI Distribution by regime type 
+boxplot(spi_comp ~ regime_type_2, data = merged,
+        main = "SPI Distribution by Regime Type",
+        xlab = "Regime Type",
+        ylab = "Composite Score (1-100)",
+        col = c("salmon", "skyblue"))
+
+legend("bottomright",                      # Position of the legend
+       legend = c("Democracy", "Autocracy"),  # Group names
+       fill = c("skyblue", "salmon"),        # Colors matching the boxplot
+       border = "black",                     # Box border color (optional)
+       bty = "n")   
+
+
+# SCI Distribution by regime type (only considers lower income / developing countries)
+boxplot(sci_overall ~ regime_type_2, data = merged,
+        main = "SCI Distribution by Regime Type",
+        xlab = "Regime Type",
+        ylab = "Composite Score (1-100)",
+        col = c("salmon", "skyblue"))
+
+legend("bottomright",                      # Position of the legend
+       legend = c("Democracy", "Autocracy"),  # Group names
+       fill = c("skyblue", "salmon"),        # Colors matching the boxplot
+       border = "black",                     # Box border color (optional)
+       bty = "n")   
+
+par(mfrow = c(1, 1)) #side by side 
+dev.off()
+
+# SDG Box plot 
+png("figures/sdg_boxplots.png", width = 5, height = 4, units = "in", res = 300)
+boxplot(sdg_overall ~ regime_type_2, data = merged,
+        main = "SDG Distribution by Regime Type",
+        xlab = "Regime Type",
+        ylab = "Composite Score (1-100)",
+        col = c("salmon", "skyblue"))
+
+legend("bottomright",                      # Position of the legend
+       legend = c("Democracy", "Autocracy"),  # Group names
+       fill = c("skyblue", "salmon"),        # Colors matching the boxplot
+       border = "black",                     # Box border color (optional)
+       bty = "n")   
+
+dev.off()
+```
+
+##Summary Statistics and Quantile Frequency Tables 
+```{r}
+#New Vars - Quantile breaks 
+quant_breaks_sdg <- quantile(merged$sdg_overall, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+quant_breaks_spi <- quantile(merged$spi_comp, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+quant_breaks_sci <- quantile(merged$sci_overall, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+
+# Inputting SDG quartiles in main DF 
+merged$sdg_quant_bins <- cut(merged$sdg_overall, 
+                      breaks = quant_breaks_sdg, 
+                      include.lowest = TRUE, 
+                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
+
+#SDG IQR Summary Table 
+sdg_summary <- merged %>%
+  group_by(regime_type_2, sdg_quant_bins) %>%
+  summarise(count = n(), .groups = "drop")
+# Pivot to wide format
+sdg_wide_table <- sdg_summary %>%
+  pivot_wider(names_from = sdg_quant_bins, values_from = count, values_fill = 0)
+
+# Inputting SPI quartiles in main DF 
+merged$spi_quant_bins <- cut(merged$spi_comp, 
+                      breaks = quant_breaks_spi, 
+                      include.lowest = TRUE, 
+                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
+
+#SPI IQR Summary Table 
+spi_summary <- merged %>%
+  group_by(regime_type_2, spi_quant_bins) %>%
+  summarise(count = n(), .groups = "drop")
+# Pivot to wide format
+spi_wide_table <- spi_summary %>%
+  pivot_wider(names_from = spi_quant_bins, values_from = count, values_fill = 0)
+
+# Inputting SCI quartiles in main DF 
+merged$sci_quant_bins <- cut(merged$sci_overall, 
+                      breaks = quant_breaks_sci, 
+                      include.lowest = TRUE, 
+                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
+
+# SCI IQR Summary Table 
+sci_summary <- merged %>%
+  group_by(regime_type_2, sci_quant_bins) %>%
+  summarise(count = n(), .groups = "drop")
+# Pivot to wide format
+sci_wide_table <- sci_summary %>%
+  pivot_wider(names_from = sci_quant_bins, values_from = count, values_fill = 0)
+
+#Summary tables by score: Min, 1st Qu. Median, Mean, 3rd Qu., Max, NA's 
+summary(merged$sdg_overall)
+summary(merged$spi_comp)
+summary(merged$sci_overall)
+summary(merged$di_score)
+
+#write tables as CSV to directory 
+
+
+# STACKED BAR PLOTS LATER 
+
+```
+
+summary(merged$sdg_overall)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  35.65   55.74   65.53   64.43   73.05   86.42 
+
+summary(merged$spi_comp)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+  11.77   54.82   67.09   66.71   81.48   95.26    2060 
+
+summary(merged$sci_overall)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+  16.67   57.78   70.00   67.96   80.00   98.89    1288 
+
+summary(merged$di_score)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+  0.260   3.520   5.780   5.509   7.280   9.930     800 
+
+# Descriptive stats & Missing Data: Transitioning Countries Dataset 
+```{r}
+# new variable: experienced either kind of regime change event 
+merged <- merged %>%
+  group_by(country_code) %>%
+  mutate(either_event = as.integer(any(dem_ep == 1 | aut_ep == 1))) %>%
+  ungroup()
+
+# subset of countries that experienced atleast 1 backsliding event  
+regressed <- merged %>%
+  group_by(country_code) %>%
+  filter(aut_ep == 1) %>%
+  ungroup()
+
+# subset of countries that experienced atleast 1 democratization event 
+democratized <- merged %>% 
+  group_by(country_code) %>%
+  filter(dem_ep == 1) %>%
+  ungroup()
+
+# number of countries that experienced a regime change event (autocratization or democratization)
+n_countries_events <- length(unique(merged$country_code[merged$either_event == 1]))
+n_countries_events
+
+# number of countries that experienced autocratization
+n_countries_aut <- length(unique(merged$country_code[merged$aut_ep == 1]))
+n_countries_aut
+
+# number of countries that experienced democratization
+n_countries_dem <- length(unique(merged$country_code[merged$dem_ep == 1]))
+n_countries_dem
+
+#Frequency of countries that experienced democratization 2004-2024
+hist(merged$year[merged$regch_event==1], breaks = 20)
+
+#Frequency of countries that experienced autocratization 2004-2024
+hist(merged$year[merged$regch_event==-1], breaks = 20)
+
+#Frequency of countries that experienced no change 2004-2024
+hist(merged$year[merged$regch_event==0], breaks = 20)
+
+#frequency/proportion table: instances of backsliding, stability, democratization from 2004-2024
+table(merged$regch_event) # frequency
+prop.table(table(merged$regch_event)) # proportions 
+```

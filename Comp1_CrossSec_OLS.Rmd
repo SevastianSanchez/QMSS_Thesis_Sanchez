@@ -34,9 +34,8 @@ source("packages.R")
 
 #load function: all available data within year range 
 source("df_years2.0_Function.R")
-
 #specify start & end year
-merged_full <- df_years2.0(2004, 2023) 
+#merged_full <- df_years2.0(2004, 2023) 
 
 #saving full version as CSV output 
 #write.table(merged_full, file = 'merged_full_df.csv', row.names=F, sep = ",")
@@ -84,272 +83,6 @@ merged_final <- read_csv("data/Main CSV Outputs/merged_cleaned.csv") %>%
 ```{r}
 #load final merged df 
 merged <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
-```
-
-# NEW DF: counting the number of NAs (across all years) per country, by variables: SPI, SCI, SDG
-```{r eval=FALSE, include=FALSE}
-# List of columns to count NAs in
-target_cols <- c("spi_comp", "sdg_overall", "sci_overall", "p1_use", "p2_services", 
-                 "p3_products", "p4_sources", "p5_infra", paste0("goal", 1:17))
-
-# Create new dataframe with NA counts per country
-merged_na_counts <- merged %>%
-  group_by(country_code) %>%
-  summarise(across(
-    .cols = all_of(target_cols),
-    .fns = ~ sum(is.na(.x)),
-    .names = "{.col}_na_count"
-  )) %>%
-  ungroup()
-
-#saving merged_na_counts as CSV output 
-#write.table(merged_na_counts, file = 'merged_na_counts.csv', row.names=F, sep = ",")
-
-#load CSV 
-merged_na_counts <- read_csv("data/Main CSV Outputs/merged_na_counts.csv")
-```
-
-# Descriptive stats & Missing Data: Full Dataset 
-```{r}
-# x & y variables 
-df_sdg_statcap <- data.frame(merged$sdg_overall, merged$spi_comp, merged$sci_overall, merged$di_score, merged$log_gdppc, merged$population, merged$gini)
-
-#N total observations: country-years
-colSums(!is.na(df_sdg_statcap))
-# N total NAs
-colSums(is.na(df_sdg_statcap))
-
-# N countries per variable? 
-sapply(c("sdg_overall", "di_score", "spi_comp", "sci_overall", "log_gdppc", "population", "gini"), function(var) {
-  length(unique(merged$country_code[!is.na(merged[[var]])]))
-})
-
-# N years per variable? 
-sapply(c("sdg_overall", "di_score", "spi_comp", "sci_overall", "log_gdppc", "population", "gini"), function(var) {
-  length(unique(merged$year[!is.na(merged[[var]])]))
-})
-```
-**Years 2004-2023:**
-
-Number of observations per variable:
-sdg_overall  spi_comp sci_overall  di_score  log_gdppc  population  gini
-   3360        1300      2072       2560       3333        3106     1404
-
-Number of NAs per variable:
-sdg_overall spi_comp  sci_overall  di_score  log_gdppc  population  gini
-     0         2060      1288        800        27         254      1956
-        
-Number of countries per variable:
-sdg_overall  spi_comp  sci_overall di_score log_gdppc   population  gini 
-    168        165         123        160      168        164       151 
-
-Number of years per variable:
-sdg_overall  spi_comp  sci_overall di_score log_gdppc  population   gini 
-     20         8          17        16        20          19        20 
-# Histograms 
-```{r}
-# SPI & SCI HISTOGRAMS: side-by-side layout
-png("figures/spi_sci_hist.png", width = 9, height = 5, unit = "in", res = 300) #SPI & SCI Side By Side 
-par(mfrow = c(1, 2))
-
-# SPI histogram
-hist(merged$spi_comp, main = "Statistical Performance Index (2016-2023)", 
-     xlab = "Composite Score (0-100)", 
-     ylab = "Frequency (country-years)")
-
-# SCI histogram
-hist(merged$sci_overall, main = "Statistical Capacity Index (2004-2020)", 
-     xlab = "Composite Score (0-100)", 
-     ylab = "Frequency (country-years)")
-
-par(mfrow = c(1, 1)) #side by side 
-dev.off()
-
-# SDG histogram 
-png("figures/sdg_hist.png", width = 5, height = 4, unit = "in", res = 300) #Saving to figures folder 
-sdg_hist <- hist(merged$sdg_overall, main = "Sustainable Development Goals (2004-2023)", 
-                 xlab = "Composite Score (0-100)", 
-                 ylab = "Frequency (country-years)")
-dev.off()
-```
-
-*SDG VARIABLE NOTE: While all member states have a country profile, only those with less than 20% missing data are ranked in the SDG Index, resulting in 167 countries being ranked in the 2024 report.*
-
-## Box plots
-```{r}
-#SPI & SCI BOX PLOTS: SIDE BY SIDE 
-png("figures/spi_sci_boxplots.png", width = 9, height = 5, units = "in", res = 300)
-par(mfrow = c(1, 2))
-
-# SPI Distribution by regime type 
-boxplot(spi_comp ~ regime_type_2, data = merged,
-        main = "SPI Distribution by Regime Type",
-        xlab = "Regime Type",
-        ylab = "Composite Score (1-100)",
-        col = c("salmon", "skyblue"))
-
-legend("bottomright",                      # Position of the legend
-       legend = c("Democracy", "Autocracy"),  # Group names
-       fill = c("skyblue", "salmon"),        # Colors matching the boxplot
-       border = "black",                     # Box border color (optional)
-       bty = "n")   
-
-
-# SCI Distribution by regime type (only considers lower income / developing countries)
-boxplot(sci_overall ~ regime_type_2, data = merged,
-        main = "SCI Distribution by Regime Type",
-        xlab = "Regime Type",
-        ylab = "Composite Score (1-100)",
-        col = c("salmon", "skyblue"))
-
-legend("bottomright",                      # Position of the legend
-       legend = c("Democracy", "Autocracy"),  # Group names
-       fill = c("skyblue", "salmon"),        # Colors matching the boxplot
-       border = "black",                     # Box border color (optional)
-       bty = "n")   
-
-par(mfrow = c(1, 1)) #side by side 
-dev.off()
-
-# SDG Box plot 
-png("figures/sdg_boxplots.png", width = 5, height = 4, units = "in", res = 300)
-boxplot(sdg_overall ~ regime_type_2, data = merged,
-        main = "SDG Distribution by Regime Type",
-        xlab = "Regime Type",
-        ylab = "Composite Score (1-100)",
-        col = c("salmon", "skyblue"))
-
-legend("bottomright",                      # Position of the legend
-       legend = c("Democracy", "Autocracy"),  # Group names
-       fill = c("skyblue", "salmon"),        # Colors matching the boxplot
-       border = "black",                     # Box border color (optional)
-       bty = "n")   
-
-dev.off()
-```
-
-##Summary Statistics and Quantile Frequency Tables 
-```{r}
-#New Vars - Quantile breaks 
-quant_breaks_sdg <- quantile(merged$sdg_overall, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
-quant_breaks_spi <- quantile(merged$spi_comp, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
-quant_breaks_sci <- quantile(merged$sci_overall, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
-
-# Inputting SDG quartiles in main DF 
-merged$sdg_quant_bins <- cut(merged$sdg_overall, 
-                      breaks = quant_breaks_sdg, 
-                      include.lowest = TRUE, 
-                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
-
-#SDG IQR Summary Table 
-sdg_summary <- merged %>%
-  group_by(regime_type_2, sdg_quant_bins) %>%
-  summarise(count = n(), .groups = "drop")
-# Pivot to wide format
-sdg_wide_table <- sdg_summary %>%
-  pivot_wider(names_from = sdg_quant_bins, values_from = count, values_fill = 0)
-
-# Inputting SPI quartiles in main DF 
-merged$spi_quant_bins <- cut(merged$spi_comp, 
-                      breaks = quant_breaks_spi, 
-                      include.lowest = TRUE, 
-                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
-
-#SPI IQR Summary Table 
-spi_summary <- merged %>%
-  group_by(regime_type_2, spi_quant_bins) %>%
-  summarise(count = n(), .groups = "drop")
-# Pivot to wide format
-spi_wide_table <- spi_summary %>%
-  pivot_wider(names_from = spi_quant_bins, values_from = count, values_fill = 0)
-
-# Inputting SCI quartiles in main DF 
-merged$sci_quant_bins <- cut(merged$sci_overall, 
-                      breaks = quant_breaks_sci, 
-                      include.lowest = TRUE, 
-                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
-
-# SCI IQR Summary Table 
-sci_summary <- merged %>%
-  group_by(regime_type_2, sci_quant_bins) %>%
-  summarise(count = n(), .groups = "drop")
-# Pivot to wide format
-sci_wide_table <- sci_summary %>%
-  pivot_wider(names_from = sci_quant_bins, values_from = count, values_fill = 0)
-
-#Summary tables by score: Min, 1st Qu. Median, Mean, 3rd Qu., Max, NA's 
-summary(merged$sdg_overall)
-summary(merged$spi_comp)
-summary(merged$sci_overall)
-summary(merged$di_score)
-
-#write tables as CSV to directory 
-
-
-# STACKED BAR PLOTS LATER 
-
-```
-
-summary(merged$sdg_overall)
-   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-  35.65   55.74   65.53   64.43   73.05   86.42 
-
-summary(merged$spi_comp)
-   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-  11.77   54.82   67.09   66.71   81.48   95.26    2060 
-
-summary(merged$sci_overall)
-   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-  16.67   57.78   70.00   67.96   80.00   98.89    1288 
-
-summary(merged$di_score)
-   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-  0.260   3.520   5.780   5.509   7.280   9.930     800 
-
-# Descriptive stats & Missing Data: Transitioning Countries Dataset 
-```{r}
-# new variable: experienced either kind of regime change event 
-merged <- merged %>%
-  group_by(country_code) %>%
-  mutate(either_event = as.integer(any(dem_ep == 1 | aut_ep == 1))) %>%
-  ungroup()
-
-# subset of countries that experienced atleast 1 backsliding event  
-regressed <- merged %>%
-  group_by(country_code) %>%
-  filter(aut_ep == 1) %>%
-  ungroup()
-
-# subset of countries that experienced atleast 1 democratization event 
-democratized <- merged %>% 
-  group_by(country_code) %>%
-  filter(dem_ep == 1) %>%
-  ungroup()
-
-# number of countries that experienced a regime change event (autocratization or democratization)
-n_countries_events <- length(unique(merged$country_code[merged$either_event == 1]))
-n_countries_events
-
-# number of countries that experienced autocratization
-n_countries_aut <- length(unique(merged$country_code[merged$aut_ep == 1]))
-n_countries_aut
-
-# number of countries that experienced democratization
-n_countries_dem <- length(unique(merged$country_code[merged$dem_ep == 1]))
-n_countries_dem
-
-#Frequency of countries that experienced democratization 2004-2024
-hist(merged$year[merged$regch_event==1], breaks = 20)
-
-#Frequency of countries that experienced autocratization 2004-2024
-hist(merged$year[merged$regch_event==-1], breaks = 20)
-
-#Frequency of countries that experienced no change 2004-2024
-hist(merged$year[merged$regch_event==0], breaks = 20)
-
-#frequency/proportion table: instances of backsliding, stability, democratization from 2004-2024
-table(merged$regch_event) # frequency
-prop.table(table(merged$regch_event)) # proportions 
 ```
 
 # COMPONENT 1: COMPARING SPI & SCI X VARIABLES
@@ -407,6 +140,7 @@ plot(ols_spi_naive, which = 1)  # SPI model
 plot(ols_sci_naive, which = 1)  # SDG model 
 plot(ols_multiple_naive, which = 1)  # SDG model controlled
 ```
+U-shaped residuals detected, suggests non-linearity of x-variable terms. Additional tests reconfirm non-linearity (See Breusch-Pagan Test below). 
 
 ## TEST 1: Comparing SPI & SCI WITH controls AND Robust Standard Errors  
 Applying controls and robust (Huber-White) standard errors  
@@ -418,14 +152,29 @@ Applying controls and robust (Huber-White) standard errors
 # 1. OLS for SPI and SDG - Overall 
 ols_spi <- lm(sdg_overall ~ spi_comp + log_gdppc + population +  di_score + year_fct, data = merged)
 summary(ols_spi)
+coeftest(ols_spi, vcov = vcovHC(ols_spi, type = "HC1"))
 
 # 2. OLS for SCI and SDG - Overall 
 ols_sci <- lm(sdg_overall ~ sci_overall + log_gdppc + population + di_score + year_fct, data = merged)
 summary(ols_sci)
+coeftest(ols_sci, vcov = vcovHC(ols_sci, type = "HC1"))
 
 # 3. Multiple Regression with both SPI and SCI
 ols_multiple <- lm(sdg_overall ~ spi_comp + sci_overall + log_gdppc + population + di_score + year_fct, data = merged)
 summary(ols_multiple)
+coeftest(ols_multiple, vcov = vcovHC(ols_multiple, type = "HC1"))
+
+# Table of non-robust models 
+stargazer(
+  ols_spi, ols_sci, ols_multiple,
+  type = "html",  # Use "latex" or "html" for journal submissions or web
+  title = "Regression Results: SDG Overall and Statistical Capacity Measures",
+  column.labels = c("SPI Model", "SCI Model", "Combined Model"),
+  dep.var.labels = "SDG Overall Score",
+  align = TRUE,
+  no.space = TRUE,
+  out = "figures/ols_nonrob_mods.html"
+)
 
 # Applying robust SEs and coefficients (using coeftest)
 ct_spi <- coeftest(ols_spi, vcov = vcovHC(ols_spi, type = "HC1"))
@@ -448,38 +197,38 @@ se_multiple <- ct_multiple[, 2]
 t_multiple <- ct_multiple[, 3]
 p_multiple <- ct_multiple[, 4]
 
-# Generate the stargazer table with ALL robust statistics
-stargazer(ols_spi, ols_sci, ols_multiple,
-  type = "text",
-  title = "Comparing Statistical Capacity Measures' Effect on SDG Estimates (Robust Statistics)",
-  dep.var.labels = c("UN SDG Status - Composite Scores (0-100)"),
-  column.labels = c("Model 1: SPI", "Model 2: SCI", "Model 3: Combined"),
-  se = list(se_spi, se_sci, se_multiple),  # Robust SEs
-  t = list(t_spi, t_sci, t_multiple),      # Robust t-values
-  p = list(p_spi, p_sci, p_multiple),      # Robust p-values
-  omit.stat = "f",                         # Omit default F-statistic
-  note = "Used heteroskedasticity-consistent standard errors (HC1) to address heteroskedasticity detected through Breusch-Pagan tests")                        
-  # out = "figures/ols_spi_nonRobust.png"  # Uncomment to save to file
+# Table with ALL robust statistics
+ols_robust_mods <- stargazer(ols_spi, ols_sci, ols_multiple,
+      type = "html",
+      title = "Comparing Statistical Capacity Measures' Effect on SDG Estimates (Robust Statistics)",
+      dep.var.labels = c("UN SDG Status - Composite Scores (0-100)"),
+      column.labels = c("Model 1: SPI", "Model 2: SCI", "Model 3: Combined"),
+      se = list(se_spi, se_sci, se_multiple),  # Robust SEs
+      t = list(t_spi, t_sci, t_multiple),      # Robust t-values
+      p = list(p_spi, p_sci, p_multiple),      # Robust p-values
+      omit.stat = "f",                         # Omit default F-statistic
+      note = "Applied robust standard errors (HC1) to address heteroskedasticity detected by Breusch-Pagan tests",
+      out = "figures/ols_robust_mods.html")  
 
 #for right side pane & interactivity 
-datatable(broom::tidy(ols_spi)) # SDG ~ SPI
-datatable(broom::tidy(ols_sci)) # SDG ~ SCI
-datatable(broom::tidy(ols_multiple)) # SDG ~ SPI & SCI 
+#datatable(broom::tidy(ols_spi)) # SDG ~ SPI
+#datatable(broom::tidy(ols_sci)) # SDG ~ SCI
+#datatable(broom::tidy(ols_multiple)) # SDG ~ SPI & SCI 
 ```
 
 We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. Additionally, we reject the null hypothesis that there is no relationship between SCI and SDG composite scores. Holding all else constant (log GDP per capita, democracy score and population), SPI and SCI exhibit positive moderate and statistically significant relationships with SDG status.
 
-ols_spi: 0.26573 (p-value < 0.001)  
-ols_sci: 0.19833 (p-value < 0.001)  
-ols_multiple: spi: 0.11928 (p-value < 0.001); sci: 0.13485 (p-value < 0.001)
+ols_spi: 0.28641 (p-value < 0.001)  
+ols_sci: 0.23976 (p-value < 0.001)  
+ols_multiple: spi: 0.11945 (p-value < 0.001); sci: 0.14876 (p-value < 0.001)
 
-When compared in separate models, SPI has a greater impact on SDG status (0.26573) than SCI (0.19833). This suggests that a one-unit increase in SPI is associated with a larger improvement in SDG outcomes compared to a one-unit increase in SCI, holding all controls constant. 
+When compared in separate models, SPI has a greater impact on SDG status (0.28641) than SCI (0.23976). This suggests that a one-unit increase in SPI is associated with a larger improvement in SDG outcomes compared to a one-unit increase in SCI, holding all controls constant. 
 
-Interestingly, the opposite holds true in a multiple regression model containing both SPI and SCI. SPI's impact on SDG status (0.11928) (net of SPI) is less than that of SCI's (0.13485) (net of SCI), holding all controls constant. When together, the coefficients represent the unique impact of each predictor variable (measures of statistical capacity) on SDG status, net of all other variables.
+Interestingly, the opposite holds true in a multiple regression model containing both SPI and SCI. SPI's impact on SDG status (0.11945) (net of SPI) is less than that of SCI's (0.14876) (net of SCI), holding all controls constant. When together, the coefficients represent the unique impact of each predictor variable (measures of statistical capacity) on SDG status, net of all other variables.
 
-Model 1 (ols_spi) does not control for SCI and model 2 (ols_sci) does not control for spi -- this is okay. SPI is the predecessor of the SCI, sharing/data overlap, and so it is expected to have significant statistical correlation (multicollinearity). This is likely what explains the significant reduction of both coefficients as seen in model 3: 0.26573 to 0.11928 for SPI (55.13%% decrease); and from 0.19833 to 0.13485 for SCI (32.01%% decrease). Such indicates that they're both capturing much of the same underlying relationship with SDG status.
+Model 1 (ols_spi) does not control for SCI and model 2 (ols_sci) does not control for spi -- this is okay. SPI is the predecessor of the SCI, sharing/data overlap, and so it is expected to have significant statistical correlation (multicollinearity). This is likely what explains the significant reduction of both coefficients as seen in model 3: 0.28641 to 0.11945 for SPI (58.29% decrease); and from 0.23976 to 0.14876 for SCI (37.95% decrease). Such indicates that they're both capturing much of the same underlying relationship with SDG status.
 
-However, the fact that both SPI and SCI remain significant when included together (model 3) with the highest adjusted R-sq (0.8414) suggests that they capture different dimensions of statistical capacity that independently contribute to SDG status.
+However, the fact that both SPI and SCI remain significant when included together (model 3) with a high adjusted R-sq (0.7614) suggests that they capture different dimensions of statistical capacity that independently contribute to SDG status.
 
 ### Checking for Multicolinearity: VIF of SPI & SCI 
 
@@ -496,7 +245,7 @@ tidy_vif <- enframe(vif_vals, name = "term", value = "vif")
 print(tidy_vif)
 ```
 
-**colinearity:** The correlation between SCI and SPI is about 0.8277. When placed within the same model, SCI inflated the standard error of SPI from 0.0216 to 0.03062. SCI had a similar reaction from the SPI with its standard error increasing from 0.01677 to 0.03017.
+**colinearity:** The correlation between SCI and SPI is about 0.8277. When placed within the same model, SCI inflated the standard error of SPI from 0.01396 to 0.02671. SCI had a similar reaction from the SPI with its standard error increasing from 0.00969 to 0.02398.
 
 **VIF:** Such multicollinearity is reflected by the VIF test which accounts for all x variables in the model instead of just the two measures of statistical capacity (SCI & SPI).
 
@@ -507,9 +256,9 @@ _VIF Results:_
 3 log_gdppc    1.49
 4 population   1.05
 5 di_score     1.46
-7 year_fct     1.30 (categorical)
+6 year_fct     1.30 (categorical)
 
-Overall there reveals no severe multicollinearity (all GVIF < 5). There is mild correlation between your statistical capacity measures (spi_comp and sci_overall) with SPI slightly inflated by a factor of 2.996983 and SCI inflated by a factor of  2.802763. All other variables show minimal multicollinearity concerns, so it is acceptable to use in the same model as doing so will not severely impact estimates given both factors are less than 5.0.
+Overall there reveals no severe multicollinearity (all GVIF < 5). There is mild correlation between statistical capacity measures (spi_comp and sci_overall) with SPI slightly inflated by a factor of 2.93 and SCI inflated by a factor of  2.78. Nevertheless, it is acceptable to include both in the same model as doing so will not severely impact estimates with both factors less than 5.0. Even so, there are significant limitations in either model that warrant strong consideration, including sample size, and longitudinal suitability. All other variables show minimal multicollinearity concerns.
 
 ### Checking for Heteroskedasticity: Breusch-Pagan Test 
 This validates the need for integrating robust standard errors in our models
@@ -539,9 +288,9 @@ df_bptests <- bp_tests %>%
 #write.table(df_bptests, file = 'output_CSVs/df_bptests_heterosked.csv', row.names=F, sep = ",")
 ```
 Model:         BP statistic   p-value
-ols_spi           65.9       2.82e-12        
-ols_sci           92.1       1.10e-17 
-ols_multiple      23.2       1.59e-3 
+ols_spi           192.11       < 2.2e-16        
+ols_sci           101.71       < 2.2e-16 
+ols_multiple      36.54       < 2.169e-06
 
 The Breusch-Pagan Test was applied to test to see whether residuals are constant across observations, which signals unaccounted non-linear relationships, especially with macro factors such as GDP Per Capita and Population in the models. This is important because Ordinary Least Squares assumes constant error variance. In such a complex and diverse world, cross-national data, especially in development, is rarely ever linear. Accordingly, this test evaluates the extent of such non-linearity among specified predictors. 
 
@@ -848,9 +597,6 @@ viz_gni_class
 # Save to specific folder
 ggsave("figures/gni_subgroups_ols.png", viz_gni_class, width = 10, height = 6)
 ```
-
-**Reason to remove GINI from study:**
-while it is an important consideration, my study uses country-years as my primary unit of analysis, atleast in the corss-sectional component. Not all data points are available for every country, let alone every year. I suspect that this missingness is non-random, as not every country has the available statistical infrastructure to calculate a reliable estimate. With almost 2000 missing country-year values, including the GINI coefficient as a control would dramatically decrease my sample size and produce unreliable results. It is not good practice to impute list-wise values given the non-random nature of the missing values and especially to this extent. 
 
 
 ## TO DO LIST 
