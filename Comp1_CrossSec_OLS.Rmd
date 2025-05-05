@@ -1,24 +1,25 @@
 ---
-title: "First Tests: OLS, Interactions, Subgroups"
+title: "Component 1: Multiple OLS, Interactions, Subgroups"
 author: "Sevastian Sanchez"
 date: "`r Sys.Date()`"
 output:
   pdf_document: default
-  html_document: default
   word_document: default
+  html_document: default
 ---
 
 # All Countries, Preliminary Analysis (SPI x SDGs)
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
-  tidy.opts = list(width.cutoff = 60)
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 60)  # Adjust width as needed
 )
 ```
 
 #FIRST: Libraries, Directory & Data 
 
-```{r}
+```{r include=FALSE}
 # set working directory 
 setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 
@@ -163,57 +164,75 @@ coeftest(ols_sci, vcov = vcovHC(ols_sci, type = "HC1"))
 ols_multiple <- lm(sdg_overall ~ spi_comp + sci_overall + log_gdppc + population + di_score + year_fct, data = merged)
 summary(ols_multiple)
 coeftest(ols_multiple, vcov = vcovHC(ols_multiple, type = "HC1"))
+```
 
-# Table of non-robust models 
-stargazer(
-  ols_spi, ols_sci, ols_multiple,
-  type = "html",  # Use "latex" or "html" for journal submissions or web
-  title = "Regression Results: SDG Overall and Statistical Capacity Measures",
-  column.labels = c("SPI Model", "SCI Model", "Combined Model"),
-  dep.var.labels = "SDG Overall Score",
-  align = TRUE,
-  no.space = TRUE,
-  out = "figures/ols_nonrob_mods.html"
+# Creating dataframe combining summary and Robust SE results 
+```{r}
+# For model statistics extraction 
+summary_spi <- summary(ols_spi)
+summary_sci <- summary(ols_sci)
+summary_multiple <- summary(ols_multiple)
+
+# extracting robust SEs and coefficients (using coeftest)
+rob_stats_spi <- coeftest(ols_spi, vcov = vcovHC(ols_spi, type = "HC1"))
+rob_stats_sci <- coeftest(ols_sci, vcov = vcovHC(ols_sci, type = "HC1"))
+rob_stats_multiple <- coeftest(ols_multiple, vcov = vcovHC(ols_multiple, type = "HC1"))
+
+#SPI Statistics DF
+spi_df <- data.frame(
+  model = "M1: ols_spi",
+  term = rownames(rob_stats_spi),
+  estimate = rob_stats_spi[, 1],
+  std.error = rob_stats_spi[, 2],
+  t.statistic = rob_stats_spi[, 3],
+  p.value = rob_stats_spi[, 4],
+  residual.SE = summary_spi$sigma,
+  r.squared = summary_spi$r.squared,
+  adj.r.squared = summary_spi$adj.r.squared,
+  row.names = NULL
 )
 
-# Applying robust SEs and coefficients (using coeftest)
-ct_spi <- coeftest(ols_spi, vcov = vcovHC(ols_spi, type = "HC1"))
-ct_sci <- coeftest(ols_sci, vcov = vcovHC(ols_sci, type = "HC1"))
-ct_multiple <- coeftest(ols_multiple, vcov = vcovHC(ols_multiple, type = "HC1"))
+#SCI Statistics DF
+sci_df <- data.frame(
+  model = "M2: ols_sci",
+  term = rownames(rob_stats_sci),
+  estimate = rob_stats_sci[, 1],
+  std.error = rob_stats_sci[, 2],
+  t.statistic = rob_stats_sci[, 3],
+  p.value = rob_stats_sci[, 4],
+  residual.SE = summary_sci$sigma,
+  r.squared = summary_sci$r.squared,
+  adj.r.squared = summary_sci$adj.r.squared,
+  row.names = NULL
+)
 
-# Extract coefficients, SEs, t-values, and p-values
-coef_spi <- ct_spi[, 1]
-se_spi <- ct_spi[, 2]
-t_spi <- ct_spi[, 3]
-p_spi <- ct_spi[, 4]
+#Combined Mod Statistics DF
+multiple_df <- data.frame(
+  model = "M3: ols_multiple",
+  term = rownames(rob_stats_multiple),
+  estimate = rob_stats_multiple[, 1],
+  std.error = rob_stats_multiple[, 2],
+  t.statistic = rob_stats_multiple[, 3],
+  p.value = rob_stats_multiple[, 4],
+  residual.SE = summary_multiple$sigma,
+  r.squared = summary_multiple$r.squared,
+  adj.r.squared = summary_multiple$adj.r.squared,
+  row.names = NULL
+)
 
-coef_sci <- ct_sci[, 1]
-se_sci <- ct_sci[, 2]
-t_sci <- ct_sci[, 3]
-p_sci <- ct_sci[, 4]
+# Bind all together into one tidy dataframe
+robust_mods_df <- bind_rows(spi_df, sci_df, multiple_df)
 
-coef_multiple <- ct_multiple[, 1]
-se_multiple <- ct_multiple[, 2]
-t_multiple <- ct_multiple[, 3]
-p_multiple <- ct_multiple[, 4]
+# Attributes under column names 
+attr(robust_mods_df$std.error, "label") <- "Robust Std. Errors Adjusted"
+attr(robust_mods_df$t.statistic, "label") <- "Robust Std. Errors Adjusted"
+attr(robust_mods_df$p.value, "label") <- "Robust Std. Errors Adjusted"
 
-# Table with ALL robust statistics
-ols_robust_mods <- stargazer(ols_spi, ols_sci, ols_multiple,
-      type = "html",
-      title = "Comparing Statistical Capacity Measures' Effect on SDG Estimates (Robust Statistics)",
-      dep.var.labels = c("UN SDG Status - Composite Scores (0-100)"),
-      column.labels = c("Model 1: SPI", "Model 2: SCI", "Model 3: Combined"),
-      se = list(se_spi, se_sci, se_multiple),  # Robust SEs
-      t = list(t_spi, t_sci, t_multiple),      # Robust t-values
-      p = list(p_spi, p_sci, p_multiple),      # Robust p-values
-      omit.stat = "f",                         # Omit default F-statistic
-      note = "Applied robust standard errors (HC1) to address heteroskedasticity detected by Breusch-Pagan tests",
-      out = "figures/ols_robust_mods.html")  
+#save to output_CSVs folder
+write.csv(robust_mods_df, file = "output_CSVs/ols_mods_results.csv")
 
-#for right side pane & interactivity 
-#datatable(broom::tidy(ols_spi)) # SDG ~ SPI
-#datatable(broom::tidy(ols_sci)) # SDG ~ SCI
-#datatable(broom::tidy(ols_multiple)) # SDG ~ SPI & SCI 
+# View the result
+print(robust_mods_df)
 ```
 
 We reject the null hypothesis that there is no relationship between SPI and SDG composite scores. Additionally, we reject the null hypothesis that there is no relationship between SCI and SDG composite scores. Holding all else constant (log GDP per capita, democracy score and population), SPI and SCI exhibit positive moderate and statistically significant relationships with SDG status.
@@ -251,14 +270,26 @@ print(tidy_vif)
 
 _VIF Results:_
   term          vif
-1 spi_comp     2.93
-2 sci_overall  2.78
-3 log_gdppc    1.49
-4 population   1.05
-5 di_score     1.46
-6 year_fct     1.30 (categorical)
+1 spi_comp     4.29
+2 sci_overall  3.79
+3 log_gdppc    1.48
+4 population   1.03
+5 di_score     1.60
+6 year_fct     1.29 (categorical)
 
-Overall there reveals no severe multicollinearity (all GVIF < 5). There is mild correlation between statistical capacity measures (spi_comp and sci_overall) with SPI slightly inflated by a factor of 2.93 and SCI inflated by a factor of  2.78. Nevertheless, it is acceptable to include both in the same model as doing so will not severely impact estimates with both factors less than 5.0. Even so, there are significant limitations in either model that warrant strong consideration, including sample size, and longitudinal suitability. All other variables show minimal multicollinearity concerns.
+Overall there reveals no severe multicollinearity (all GVIF < 5). There is moderate correlation between statistical capacity measures (spi_comp and sci_overall) with SPI moderately inflated by a factor of 4.29 and SCI inflated by a factor of  3.79. Nevertheless, it is acceptable to include both in the same model as doing so will not severely impact estimates with both factors less than 5.0. Even so, there are significant limitations in either model that warrant strong consideration, including sample size, and longitudinal suitability. All other variables show minimal multicollinearity concerns.
+
+### Checking misspecification missing non-linear or omitted interactions
+```{r}
+#lm test package 
+resettest(ols_spi, power = 2:3, type = "fitted")
+resettest(ols_sci, power = 2:3, type = "fitted")
+resettest(ols_multiple, power = 2:3, type = "fitted")
+```
+All three models show statistically significant evidence of misspecification. Given the high variablility of statistical capacity measures and control variables like GDP Per Capita and Total Population, misspecification here is likely to be the result of ommitted interaction terms or heteroskedasticity.
+
+As pointed out by (AUTHOR) who maintained that ____. 
+Thus, to test for the existence of non-linear omitted variables, or lack thereof, I deploy a Breusch-Pagan test for heteroskedasticity.
 
 ### Checking for Heteroskedasticity: Breusch-Pagan Test 
 This validates the need for integrating robust standard errors in our models
@@ -292,26 +323,18 @@ ols_spi           192.11       < 2.2e-16
 ols_sci           101.71       < 2.2e-16 
 ols_multiple      36.54       < 2.169e-06
 
-The Breusch-Pagan Test was applied to test to see whether residuals are constant across observations, which signals unaccounted non-linear relationships, especially with macro factors such as GDP Per Capita and Population in the models. This is important because Ordinary Least Squares assumes constant error variance. In such a complex and diverse world, cross-national data, especially in development, is rarely ever linear. Accordingly, this test evaluates the extent of such non-linearity among specified predictors. 
+The Breusch-Pagan Test was applied to test to see whether residuals are constant across observations, which signals unaccounted non-linear relationships, especially with macro factors such as GDP Per Capita and Population in the models. This is important because Ordinary Least Squares models assume constant error variance. In such a complex world of diverse cultural and everchanging political structures across 200 countries, cross-national data, especially in development, is rarely ever linear. Accordingly, this test evaluates the extent of such non-linearity among specified predictors. 
 
 As such, results indicate strong evidence of heteroskedasticity in all three models. The small p-values in all models indicates that the variance of residuals are not constant across observations in all three models. This reinforces the motivation behind applying robust standard errors, which have been integrated to all OLS models. Without Robust SEs, there is a risk of inflated t-statistics, leading to false significance and misinterpretation of results.
 
-Despite the improvement from 65.9 (SPI) and 92.1 (SCI) to 23.2 (Both), there still remains statically significant heteroskedasticity in the combined model. Both statistical capacity measures creates a better-specified model (ols_multiple), though not enough to eliminate heteroskedasticity entirely.
-
-### Checking for other non-linear omitted Variables 
-```{r}
-#lm test package 
-resettest(ols_spi, power = 2:3, type = "fitted")
-resettest(ols_sci, power = 2:3, type = "fitted")
-resettest(ols_multiple, power = 2:3, type = "fitted")
-```
+Despite the improvement from 192.11 (SPI) and 101.71 (SCI) to 36.54 (Both), there still remains statically significant heteroskedasticity in the combined model. Both statistical capacity measures create a better-specified model (ols_multiple), though not enough to eliminate heteroskedasticity entirely.
 
 ### Missing Data Structure & Interpretations 
-**Systematic, non-random missing data pattern:** SPI has near complete country data coverage, but with a stubborn temporal limitation (2016-2023). On the other hand, SCI has longer temporal coverage (2004-2020), but lacks reporting on high-income countries focusing primarily on the developing world. 
+**Systematic, non-random missing data pattern:** SPI has near complete country data coverage (165 out of 168 countries with an SDG score), but with a stubborn temporal limitation (2016-2023). On the other hand, SCI has longer temporal coverage (2004-2020), but lacks reporting on high-income countries focusing primarily on the developing world (123 out of 168 countries with an SDG score). 
 
-In model 1 (SDG ~ SPI), democracy score (di_score) is non-significant (-0.0243, p=0.8673). However, in model 2 (SDG ~ SCI) democracy score is highly significant (0.5556***, p < 0.001). In model 3, with both SCI and SPI, democracy score is marginally significant (0.0301, p=0.0484). This suggests that SCI's relationship with SDG outcomes may be closely linked to regime/democratic governance. Considering the non-random missing data structured previously mentioned, the difference in significance between the models for democracy score signals an even greater need to perform subgroup analysis of countries at different stages/levels of development. 
+In model 1 (SDG ~ SPI), democracy score (di_score) is not statistically significant (-0.0243, p=0.8673). However, in model 2 (SDG ~ SCI) democracy score is highly significant (0.5556, p < 0.001). In model 3, with both SCI and SPI, democracy score is marginally significant (0.0301, p=0.0484). This suggests that SCI's relationship with SDG outcomes may be closely linked to regime/democratic governance. Considering the non-random missing data structured previously mentioned, the difference in significance between the models for democracy score signals an even greater need to perform subgroup analysis of countries at different stages/levels of development. 
 
-### AIC/BIC Checking Fit [FIX TEST- #N DIFFERS BTW MODELS]
+### AIC/BIC Checking Fit
 
 ```{r}
 # Compare all three models with AIC
@@ -319,17 +342,58 @@ AIC(ols_spi, ols_sci, ols_multiple)
 
 # Compare all three models with BIC
 BIC(ols_spi, ols_sci, ols_multiple)
+
+# INTO DATAFRAME 
+aic_vals <- c(
+  AIC(ols_spi),
+  AIC(ols_sci),
+  AIC(ols_multiple)
+)
+
+bic_vals <- c(
+  BIC(ols_spi),
+  BIC(ols_sci),
+  BIC(ols_multiple)
+)
+
+# Model names
+model_names <- c("ols_spi", "ols_sci", "ols_multiple")
+
+# Combine into a dataframe
+aic_bic_ols_results <- data.frame(
+  model = model_names,
+  AIC = aic_vals,
+  BIC = bic_vals
+)
+
+print(aic_bic_ols_results)
+
+# saving to output_CSVs
+write.csv(aic_bic_ols_results, file = "output_CSVs/aic_bic_ols_results.csv")
 ```
+**AIC/BIC Results**
+AIC(ols_spi, ols_sci, ols_multiple)
+             df      AIC
+ols_spi       7 6482.761
+ols_sci       7 9006.394
+ols_multiple  8 3279.338
 
-**Best fit:** ols_multiple (Adj Rsq: 0.7898) (AIC/BIC: ___)
+BIC(ols_spi, ols_sci, ols_multiple)
+             df      BIC
+ols_spi       7 6517.673
+ols_sci       7 9043.652
+ols_multiple  8 3314.060
 
-Adj. R-sqs
-SPI: 0.7983
-SCI: 0.8019
-Both: 0.8455
+**Adjusted R-squares**
+ols_spi: 0.7725
+ols_sci: 0.7383
+ols_multiple: 0.7614
 
-**Selecting model:** This analysis is specifically focused on overall statistical capacity rather than comparisons of measures. The SCI model reveals a better fit than the SPI model (Adj Rsq: 0.8019 > 0.7983). Model 3, containing both SPI and SCI, sustains a better fit compared to both model 1 with just SPI and model 2 with just SCI (Adj Rsq: 0.8455 > 0.7983; 0.8455 > 0.8019). Model 1 and 2 have significantly more country-year data points (n=457 and n=571, respectively) for regression analysis compared to model 3 (n=210). 
-[STILL TO DECIDE]
+## Selecting Best Model
+**Best fit:** ols_spi (Adj Rsq: 0.7725) (AIC/BIC: 6482.761, 6517.673) (n=1082)
+Model 3 (ols_multiple) sacrifices a significant portion of its sample size in order to include both statistical capacity measures. While ols_multiple appears to outperform the other two models, the lower AIC/BIC partially reflects its smaller sample size, not necessarily a better model fit. Model 1 (ols_spi) provides better country coverage and sustains slightly higher explanatory power (0.7725 > 0.7614) than model 3.
+
+**Selecting model:** This analysis is specifically focused on overall statistical capacity rather than comparisons of measures. Model 1 (ols_spi) reveals a better adjusted R-squares value than that of model 2 (Adj Rsq: 0.7725 > 0.7383) and model 3 (Adj Rsq: 0.7725 > 0.7614). Model 3, containing both SPI and SCI, has greater explanatory power than model 2, but as mentioned, has a much smaller sample size, which significantly impedes results. Models 1 and 2 have significantly more country-year data points (n=1082 and n=1513, respectively) for regression analysis compared to model 3 (n=566). With all else considered, this study employs the Statistical Performance Index (SPI) as the primary measure of statistical capacity. 
 
 ### Visual Analysis of Fit: SCI & SPI x SDG
 ```{r}
@@ -360,14 +424,15 @@ Compare_fit <- ggplot(merged, aes(x = spi_comp, y = sdg_overall))+
        color = "Statistical Capacity Measure") +  # Title for legend
   theme_bw() # Optional: adds a clean, black and white theme
 
+Compare_fit
+
 #make interactive
-ggplotly(Compare_fit)
+#ggplotly(Compare_fit)
 
 # Save to specific folder
 ggsave("figures/spi_sci_plot.png", Compare_fit, width = 10, height = 6)
 ```
 The SPI regression line is expected to appear higher in terms of SDG Score compared the SCI model because SPI countries include higher-income countries. As previously mentioned, the SCI soley focuses on lower to upper-middle income countries (146 countries over 17 years). 
-
 
 # INTERACTIONS AND SUBGROUP ANALYSIS
 
@@ -375,28 +440,43 @@ The SPI regression line is expected to appear higher in terms of SDG Score compa
 - Is there a need for subgroup analysis, and if so, by what kind of group? 
 - Options: GNI Classification (income_level), regime_type_2, regime_type_4, di_score
 ```{r}
+merged_2015 <- merged %>% 
+  filter(year > 2015) %>% 
+  mutate(regime_type_2 = as.factor(regime_type_2), 
+         regime_type_4 = as.factor(regime_type_4))
+
 #interaction 1: does GNI Classification (income_level) affect the relationship between x (spi) & y (sdg)?
-inc_lev_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*income_level + log_gdppc + population + year_fct,data = merged)
-summary(inc_lev_interaction)
+inc_lev_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*income_level + log_gdppc + population + year_fct, data = merged_2015)
+#summary(inc_lev_interaction)
 coeftest(inc_lev_interaction, vcov = vcovHC(inc_lev_interaction, type = "HC1")) #Robust SE
 
 #interaction 2: does regime_type_2 affect the relationship between x (spi) & y (sdg)?
-reg_type2_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log_gdppc + population + year_fct,data = merged)
-summary(reg_type2_interaction)
+reg_type2_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log_gdppc + population + year_fct,data = merged_2015)
+#summary(reg_type2_interaction)
 coeftest(reg_type2_interaction, vcov = vcovHC(reg_type2_interaction, type = "HC1")) #Robust SE
 
 #interaction 3: does regime_type_4 affect the relationship between x (spi) & y (sdg)?
 reg_type4_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_4 + log_gdppc + population + year_fct,
-                        data = merged)
-summary(reg_type4_interaction)
+                        data = merged_2015)
+#summary(reg_type4_interaction)
 coeftest(reg_type4_interaction, vcov = vcovHC(reg_type4_interaction, type = "HC1")) #Robust SE
 
 #interaction 4: does di affect the relationship between x (spi) & y (sdg)?
 reg_type_di_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*di_score + log_gdppc + population + year_fct,
-                        data = merged)
-summary(reg_type_di_interaction)
+                        data = merged_2015)
+#summary(reg_type_di_interaction)
 coeftest(reg_type_di_interaction, vcov = vcovHC(reg_type_di_interaction, type = "HC1")) #Robust SE
+```
+*Interaction 1: GNI Income Classification: Yes* there are statistically significant interactions found from GNI classifications that affects the relationship between spi and sdgs
 
+*Interaction 2: Binary Regime Type: Yes* there are statistically significant interactions (mildly, p = 0.0566) found from regime type (autocracy vs democracy) that affects the relationship between spi and sdgs. 
+
+*Interaction 3: Categorical Regime type (4 options): No* there are statistically significant interactions found depending on regime type (Closed autocracy, electoral autocracy, electoral democracy, liberal democracy) that affects the relationship between spi and sdgs. 
+
+*Interaction 4: Continuous di_score [0-1] Regime type: No* there are no statistically significant interactions found from regime type (infinate between 0-10) that affects the relationship between spi and sdgs. 
+
+## Interactions DF
+```{r}
 ################ in a table #################
 ct <- coeftest(reg_type_di_interaction, vcov = vcovHC(reg_type_di_interaction, type = "HC1"))
 
@@ -409,163 +489,133 @@ stargazer(ct_tidy, type = "text", summary = FALSE, rownames = FALSE)
 # In tidy table 
 ct_tidy
 ```
-*GNI Income Classification: Yes* there are statistically significant interactions found from GNI classifications that affects the relationship between spi and sdgs
 
-*Binary Regime Type: No* there is no statistically significant interactions found from regime type (autocracy vs democracy) that affects the relationship between spi and sdgs. 
 
-*Categorical Regime type (4 options): No* there is no statistically significant interactions found from regime type (Closed autocracy, electoral autocracy, electoral democracy, liberal democracy) that affects the relationship between spi and sdgs. 
-
-*Continuous di_score [0-1] Regime type: No* there is no statistically significant interactions found from regime type (infinate between 0-1) that affects the relationship between spi and sdgs. 
-
-## TEST 3: WB GNI Classifications: income_level ("H", "UM", "LM", "L") [REDO RESULTS FOR ROBUST SEs]
+## TEST 3: WB GNI Classifications: income_level ("H", "UM", "LM", "L") 
 **Disaggregated/Grouped by Development Status:** Make 4 regression models and then put them all together in a table to compare the slopes and R-sq values.
 ```{r}
 # 1. Overall model (all countries)
 overall_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + year_fct,
-                        data = merged)
-summary(overall_lm)
+                        data = merged_2015)
+#summary(overall_lm)
 coeftest(overall_lm, vcov = vcovHC(overall_lm, type = "HC1")) #Robust SE
 
 # 2. High income countries
 high_inc_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + year_fct,
-                        data = merged %>% 
+                        data = merged_2015 %>% 
                           filter(income_level == "H"))
-summary(high_inc_lm)
+#summary(high_inc_lm)
 coeftest(high_inc_lm, vcov = vcovHC(high_inc_lm, type = "HC1")) #Robust SE
 
 # 3. Upper-middle income countries
 upper_mid_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + year_fct,
-                         data = merged %>% 
+                         data = merged_2015 %>% 
                            filter(income_level == "UM"))
-summary(upper_mid_lm)
+#summary(upper_mid_lm)
 coeftest(upper_mid_lm, vcov = vcovHC(upper_mid_lm, type = "HC1")) #Robust SE
 
 # 4. Lower-middle income countries
 lower_mid_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + year_fct,
-                         data = merged %>% 
+                         data = merged_2015 %>% 
                            filter(income_level == "LM"))
-summary(lower_mid_lm)
+#summary(lower_mid_lm)
 coeftest(lower_mid_lm, vcov = vcovHC(lower_mid_lm, type = "HC1")) #Robust SE
 
 # 5. Low income countries
 low_inc_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + year_fct,
-                       data = merged %>% 
+                       data = merged_2015 %>% 
                          filter(income_level == "L"))
-summary(low_inc_lm)
+#summary(low_inc_lm)
 coeftest(low_inc_lm, vcov = vcovHC(low_inc_lm, type = "HC1")) #Robust SE
 ```
 
-
-### Extract coefficients and statistics of subgroups to comparison table
+# GNI Classifications DF
 ```{r}
-# Creating mod_compare_tab - comparison table
-mod_compare_tab <- data.frame(
-  model = c("Overall", "High Income", "Upper-Middle Income", 
-           "Lower-Middle Income", "Low Income"),
-  coefficient = c(
-    coef(overall_lm)["spi_comp"],
-    coef(high_inc_lm)["spi_comp"],
-    coef(upper_mid_lm)["spi_comp"],
-    coef(lower_mid_lm)["spi_comp"],
-    coef(low_inc_lm)["spi_comp"]
-  ),
-  
-  intercept = c(
-    coef(overall_lm)["(Intercept)"],
-    coef(high_inc_lm)["(Intercept)"],
-    coef(upper_mid_lm)["(Intercept)"],
-    coef(lower_mid_lm)["(Intercept)"],
-    coef(low_inc_lm)["(Intercept)"]
-  ),
-  
-  Std_error = c(
-  summary(overall_lm)$coefficients["spi_comp", 'Std. Error'], # just standard errors 
-  summary(high_inc_lm)$coefficients["spi_comp", 'Std. Error'], # just standard errors 
-  summary(upper_mid_lm)$coefficients["spi_comp", 'Std. Error'], # just standard errors 
-  summary(lower_mid_lm)$coefficients["spi_comp", 'Std. Error'], # just standard errors 
-  summary(low_inc_lm)$coefficients["spi_comp", 'Std. Error'] # just standard errors 
-  ),
-
-  t_value = c(
-    summary(overall_lm)$coefficients["spi_comp", "t value"],
-    summary(high_inc_lm)$coefficients["spi_comp", "t value"],
-    summary(upper_mid_lm)$coefficients["spi_comp", "t value"],
-    summary(lower_mid_lm)$coefficients["spi_comp", "t value"],
-    summary(low_inc_lm)$coefficients["spi_comp", "t value"]
-  ),
-  
-  p_value = c(
-    summary(overall_lm)$coefficients["spi_comp", "Pr(>|t|)"],
-    summary(high_inc_lm)$coefficients["spi_comp", "Pr(>|t|)"],
-    summary(upper_mid_lm)$coefficients["spi_comp", "Pr(>|t|)"],
-    summary(lower_mid_lm)$coefficients["spi_comp", "Pr(>|t|)"],
-    summary(low_inc_lm)$coefficients["spi_comp", "Pr(>|t|)"]
-  ),
-  
-  r_squared = c(
-    summary(overall_lm)$r.squared,
-    summary(high_inc_lm)$r.squared,
-    summary(upper_mid_lm)$r.squared,
-    summary(lower_mid_lm)$r.squared,
-    summary(low_inc_lm)$r.squared
-  ),
-  
-  adj_r_squared = c(
-    summary(overall_lm)$adj.r.squared,
-    summary(high_inc_lm)$adj.r.squared,
-    summary(upper_mid_lm)$adj.r.squared,
-    summary(lower_mid_lm)$adj.r.squared,
-    summary(low_inc_lm)$adj.r.squared
-  ),
-  
-  n_obs = c(
-    nobs(overall_lm),
-    nobs(high_inc_lm),
-    nobs(upper_mid_lm),
-    nobs(lower_mid_lm),
-    nobs(low_inc_lm)
-  )
+# 1. Overall model
+overall_ct <- coeftest(overall_lm, vcov = vcovHC(overall_lm, type = "HC1"))
+overall_df <- data.frame(
+  model = "overall_lm",
+  term = rownames(overall_ct),
+  estimate = overall_ct[, "Estimate"],
+  std.error = overall_ct[, "Std. Error"],
+  t.statistic = overall_ct[, "t value"],
+  p.value = overall_ct[, "Pr(>|t|)"],
+  n = nobs(overall_lm)
 )
 
-# Defining function for significance stars based on p-values
-sig_stars <- function(p_value) {
-  if (p_value <= 0.001) {
-    return("***")
-  } else if (p_value <= 0.01) {
-    return("**")
-  } else if (p_value <= 0.05) {
-    return("*")
-  } else if (p_value <= 0.1) {
-    return(".")
-  } else {
-    return("")
-  }
-}
+# 2. High income countries
+high_inc_ct <- coeftest(high_inc_lm, vcov = vcovHC(high_inc_lm, type = "HC1"))
+high_inc_df <- data.frame(
+  model = "high_inc_lm",
+  term = rownames(high_inc_ct),
+  estimate = high_inc_ct[, "Estimate"],
+  std.error = high_inc_ct[, "Std. Error"],
+  t.statistic = high_inc_ct[, "t value"],
+  p.value = high_inc_ct[, "Pr(>|t|)"],
+  n = nobs(high_inc_lm)
+)
 
-# make table and round for better display
-mod_compare_tab <- mod_compare_tab %>%
-  mutate(
-    coefficient = round(coefficient, 3),
-    intercept = round(intercept, 3),
-    Std_error = round(Std_error, 3),
-    t_value = round(t_value, 3),
-    p_value = p_value,
-    significance = sapply(p_value, sig_stars), #significance stars 
-    r_squared = round(r_squared, 3),
-    adj_r_squared = round(adj_r_squared, 3)
-  )
+# 3. Upper-middle income countries
+upper_mid_ct <- coeftest(upper_mid_lm, vcov = vcovHC(upper_mid_lm, type = "HC1"))
+upper_mid_df <- data.frame(
+  model = "upper_mid_lm",
+  term = rownames(upper_mid_ct),
+  estimate = upper_mid_ct[, "Estimate"],
+  std.error = upper_mid_ct[, "Std. Error"],
+  t.statistic = upper_mid_ct[, "t value"],
+  p.value = upper_mid_ct[, "Pr(>|t|)"],
+  n = nobs(upper_mid_lm)
+)
 
-# Print the comparison table
-print(mod_compare_tab)
+# 4. Lower-middle income countries
+lower_mid_ct <- coeftest(lower_mid_lm, vcov = vcovHC(lower_mid_lm, type = "HC1"))
+lower_mid_df <- data.frame(
+  model = "lower_mid_lm",
+  term = rownames(lower_mid_ct),
+  estimate = lower_mid_ct[, "Estimate"],
+  std.error = lower_mid_ct[, "Std. Error"],
+  t.statistic = lower_mid_ct[, "t value"],
+  p.value = lower_mid_ct[, "Pr(>|t|)"],
+  n = nobs(lower_mid_lm)
+)
 
-# export mod_compare_tab 
-write.table(mod_compare_tab, file = "output_CSVs/ols_gni_models.csv", row.names=F) 
+# 5. Low income countries
+low_inc_ct <- coeftest(low_inc_lm, vcov = vcovHC(low_inc_lm, type = "HC1"))
+low_inc_df <- data.frame(
+  model = "low_inc_lm",
+  term = rownames(low_inc_ct),
+  estimate = low_inc_ct[, "Estimate"],
+  std.error = low_inc_ct[, "Std. Error"],
+  t.statistic = low_inc_ct[, "t value"],
+  p.value = low_inc_ct[, "Pr(>|t|)"],
+  n = nobs(low_inc_lm)
+)
+
+# Combine all results
+gni_classes_ols <- bind_rows(
+  overall_df,
+  high_inc_df,
+  upper_mid_df,
+  lower_mid_df,
+  low_inc_df
+)
+
+attr(gni_classes_ols $std.error, "label") <- "Robust Std. Errors Adjusted"
+attr(gni_classes_ols $t.statistic, "label") <- "Robust Std. Errors Adjusted"
+attr(gni_classes_ols $p.value, "label") <- "Robust Std. Errors Adjusted"
+
+gni_classes_ols
+
+#interactive table for side access 
+#datatable(gni_classes_ols, caption = "Regression Results, by GNI Country Classifications")
+
+# write to directory 
+write.csv(gni_classes_ols, "output_CSVs/gni_classes_ols.csv")
 ```
-
 
 ##Visualizing Slopes: plotting multiple regression - by subgroup
 ```{r}
-viz_gni_class <- ggplot(data = merged, aes(x = spi_comp, 
+viz_gni_class <- ggplot(data = merged_2015, aes(x = spi_comp, 
                                            y = sdg_overall, 
                                            color = income_level_lab)) +
   geom_point(alpha = 0.25, size = 0.75) + 
@@ -597,9 +647,49 @@ viz_gni_class
 # Save to specific folder
 ggsave("figures/gni_subgroups_ols.png", viz_gni_class, width = 10, height = 6)
 ```
+[more results TBD]
 
+## Coefficient & Interval Plot
+```{r}
+# New fd with SPI coefficients data
+spi_plot_data <- data.frame(
+  model = c("overall_lm", "high_inc_lm", "upper_mid_lm", "lower_mid_lm", "low_inc_lm"),
+  estimate = c(0.286414727883271, 0.355563975838364, 0.174313752024353, 0.382217438772999, 0.169651614020134),
+  std.error = c(0.0156271299809294, 0.0170293332032076, 0.0139294904502819, 0.0262707606446246, 0.0441323334102258)
+)
 
-## TO DO LIST 
-- Finalise results first 
-- Remove Gini var 
+# Calculate confidence intervals
+spi_plot_data <- spi_plot_data %>%
+  mutate(
+    CI_lower = estimate - 1.96 * std.error,
+    CI_upper = estimate + 1.96 * std.error
+  )
 
+# Set model order
+model_order <- c("low_inc_lm", "lower_mid_lm", "upper_mid_lm", "high_inc_lm", "overall_lm")
+spi_plot_data$model <- factor(spi_plot_data$model, levels = model_order)
+
+# Create the coefficient plot
+coef_inter_spi_plot <- ggplot(spi_plot_data, aes(x = estimate, y = model)) +
+  geom_point(size = 3, color = "dodgerblue") +
+  geom_errorbarh(aes(xmin = CI_lower, xmax = CI_upper), 
+                 height = 0.2, 
+                 color = "dodgerblue") +
+  labs(
+    title = "Coefficient Estimates with 95% Confidence Intervals for SPI by Income Group Models",
+    x = "Coefficient Estimate for SPI",
+    y = NULL
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(limits = c(0, 0.45)) +
+  scale_y_discrete(labels = c("low_inc_lm" = "Low Income", 
+                              "lower_mid_lm" = "Lower-Middle Income",
+                              "upper_mid_lm" = "Upper-Middle Income", 
+                              "high_inc_lm" = "High Income",
+                              "overall_lm" = "Overall"))
+
+coef_inter_spi_plot
+
+ggsave("figures/coef_inter_spi_plot.png", coef_inter_spi_plot, width = 9, height = 5)
+```

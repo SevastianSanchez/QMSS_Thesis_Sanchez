@@ -1,18 +1,23 @@
 ---
-title: "Temporal_Lags_FD_FE"
+title: "Component 2: FE, FD, Granger Causality"
 author: "Sevastian Sanchez"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 60)  # Adjust width as needed
+)
 ```
 
 #TEMPORAL MEDIATION ANALYSIS: First Difference, Fixed Effects, Lags, Checks
 
 ##setup: packages and data
-```{r}
+```{r include=FALSE}
 setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 
 #load libraries 
@@ -105,6 +110,7 @@ Interpretation: A 1-unit DI increase boosts SDG scores by 0.63449 total units, w
 Because the indirect effect of SPI on sdg_overall (ACME) is highly significant (p < 0.001), there is evidence to suggest that SPI mediates the regime-SDG relationship, based on the model. 
 
 Because the ADE (the direct effect between di_score on sdg_overall) is not significant, SPI DOES ENTIRELY explain the connection between regime type and sdg status, based on the model. 
+--------------------------------------------------------------------------
 
 # **Panel Data Analysis**
 
@@ -112,98 +118,111 @@ Because the ADE (the direct effect between di_score on sdg_overall) is not signi
 
 **Fixed Effects (FE)** [description...]
 
-## Mediation Effect: connecting Regime -> SDGs
-Mediation analysis to formally test and quantify SPI's role in transmitting regime change effects to SDGs. This is how to quantify the connection between the Regime Change and the SDGs
-
-## TEST X: FD Mediation Analysis (no lags), SPI ~ DI & SDG ~ SPI 
+## TEST X, First Difference: SPI ~ DI & SDG ~ SPI 
 ```{r}
+# panel dataframe
 panel_data <- pdata.frame(
   fd_fe_data, 
   index = c("country_code", "year")  # Replace 'year' with your time variable
 )
 
-###### Mediation: SPI ~ DI ######
+###### SPI ~ DI ######
 fd_spi_di <- plm(
   spi_comp ~ di_score + log_gdppc + population,
   data = panel_data,
   model = "fd" #FD
 )
-summary(fd_spi_di)
+#summary(fd_spi_di)
 # Country-level custard Robust SEs
 coeftest(fd_spi_di, vcov = vcovHC(fd_spi_di, cluster = "group", type = "HC1"))
 
-###### Output: SDG ~ SPI ######
+###### SDG ~ SPI ######
 fd_sdg_spi <- plm(
   sdg_overall ~ spi_comp + di_score + log_gdppc + population,
   data = panel_data,
   model = "fd" #FD
 )
-summary(fd_sdg_spi)
+#summary(fd_sdg_spi)
 # Country-level custard Robust SEs
-coeftest(fd_spi_di, vcov = vcovHC(fd_spi_di, cluster = "group", type = "HC1"))
-
-####### Mediation analysis - FD models ####### 
-#seed 
-set.seed(124)
-
-med_fd_results <- mediate(
-  fd_spi_di, # mediator model
-  fd_sdg_spi, # outcome model 
-  treat = "di_score",   # Treatment variable (regime change)
-  mediator = "spi_comp", # SPI mediator
-  robustSE = TRUE
-)
-
-summary(med_fd_results)
-
-# Sensitivity Analysis: after running mediation
-sens_med_fd <- medsens(med_fd_results, rho.by = 0.1)
-plot(sens_med_fd)
+coeftest(fd_sdg_spi, vcov = vcovHC(fd_sdg_spi, cluster = "group", type = "HC1"))
 ```
 Results: 
 
-## TEST X: FE Mediation Analysis (no lags), SPI ~ DI & SDG ~ SPI 
+FD Models: 
+SPI ~ DI: -0.9927 (p = 0.0083**)
+SDG ~ SPI: 0.0158 (p = 0.0032**)
+
+## TEST X, Fixed Effects Models: SPI ~ DI & SDG ~ SPI  
 ```{r}
 ###### SPI ~ DI ######
 fe_spi_di <- plm(
-  spi_comp ~ di_score + log_gdppc + population + year_fct,
+  spi_comp ~ di_score + log_gdppc + population + factor(year),
   data = panel_data,
   model = "within" #FE
 )
 
 summary(fe_spi_di)
-coeftest(fe_spi_di, vcov = vcovDC(fe_spi_di)) # Robust SEs
+coeftest(fe_spi_di, vcov = vcovHC(fe_spi_di, cluster = "group", type = "HC1")) # Robust SEs
 
 ##### SDG ~ SPI #####
 fe_sdg_spi <- plm(
-  sdg_overall ~ spi_comp + di_score + log_gdppc + population + year_fct,
+  sdg_overall ~ spi_comp + di_score + log_gdppc + population + factor(year),
   data = panel_data,
   model = "within" #FE
 )
 
 summary(fe_sdg_spi)
-coeftest(fe_sdg_spi, vcov = vcovDC(fe_sdg_spi)) # Robust SEs
-
-
-####### Mediation analysis - FE models ####### 
-#seed
-set.seed(124)
-
-med_fe_results <- mediate(
-  fe_spi_di, # mediator model
-  fe_sdg_spi, # outcome model 
-  treat = "di_score",   # Treatment variable (regime change)
-  mediator = "spi_comp", # SPI mediator
-  robustSE = TRUE
-)
-
-summary(med_fe_results)
-
-# Sensitivity Analysis: after running mediation
-sens_med_fe <- medsens(med_fe_results, rho.by = 0.1)
-plot(sens_med_fe)
+coeftest(fe_sdg_spi, vcov = vcovHC(fe_sdg_spi, cluster = "group", type = "HC1"))  # Robust SEs
 ```
 Results:
+
+SPI ~ DI: -0.4976 (p = 0.3886) [not significant]
+  year_fct: 2.0536 (p < 2e-16***)
+SDG ~ SPI: 0.0324 (p = 0.1247) [not significant]
+  year_fct: 2.5292e-01 (p < 2.2e-16***)
+
+Neither SPI~DI or SDG~SPI models are statistically significant. This contrasts from previous first difference estimates that found both SPI~DI and SDG~SPI models statistically significant (p < 0.05). Interestingly, the factored-year variable (year_fct) in both FE models are extremely statistically significant with increasing coefficient estimates over the years. This suggests underlying trends that statistical capacity is, on average, increasing based on the model. 
+
+## TEST X: Granger Causality: DI & SPI
+Essentially tests whether a predictor variable in a prior year has an affect on a present day dependent variable. In this case, my study utilizes a granger test to both understand directionality of effects, assessing potential reverse causality of x and y variables, and determine the need to incorporate lagged predictors (DI and SPI variables).
+```{r}
+# SPI ~ DI [SIGNIFICANT]
+grangertest(spi_comp ~ di_score, order = 1, data = panel_data) # Most optimal 
+grangertest(spi_comp ~ di_score, order = 2, data = panel_data)
+
+# DI ~ SPI [NOT]
+grangertest(di_score ~ spi_comp, order = 1, data = panel_data)
+grangertest(di_score ~ spi_comp, order = 2, data = panel_data)
+```
+
+spi_comp ~ di_score[order=1]: F = 16.97, p = 4.048e-05 (***)
+- As speculated/hypothesized, democracy scores (di_score) DO help predict current SPI scores. 
+- Although we recieve statistically significant results upon increasing the lag order, the F statistic drops sharply from 16.97 to 8.8021 and then continues falling gradually, as p-value increases ever so slightly (although still extremely below alpha 0.05). Accordingly, 1st orderd lagged di_score predictors are optimal and sufficient for the following Fixed Effects models. 
+
+di_score ~ spi_comp[order=1]: F = 0.4086, p = 0.5228
+- As expected, past SPI scores do NOT help predict current democracy scores (di_score)
+- even incorporating more lags, the relationships remain not statistically significant 
+
+**Bottom Line**
+Changes in regime characteristics precede changes in statistical capacity, NOT vice versa
+
+## TEST X: Granger Causality: SPI & SDG
+```{r}
+# SDG ~ SPI [SIGNIFICANT?]
+grangertest(sdg_overall ~ spi_comp, order = 1, data = panel_data)
+grangertest(sdg_overall ~ spi_comp, order = 2, data = panel_data)
+
+# SPI ~ SDG [NOT?]
+grangertest(spi_comp ~ sdg_overall, order = 1, data = panel_data) # most optimal 
+grangertest(spi_comp ~ sdg_overall, order = 2, data = panel_data)
+```
+Results:
+
+SDG~SPI [order = 1]: F = 2.5447, p = 0.1109
+
+SPI~SDG [order = 1]: F = 8.7453, p = 0.00316 (**)
+
+Unexpectedly, the results of the granger causality tests showed that it is SDG status that preceeds changes in statistical capacity, similar to DI score. It is possible that certain SDG goals/indicators could predict statistical capacity, such as SDG 17 (strong institutions) and/or SDG 4 (Quality Education) that could facilitate the growth of national statistical capacity. Deeper analysis of separate SDG score (disaggregated by individual score 1-17) impacts on predictor variables (in a similar methodological scheme) would provide interesting insights into this 'chicken or the egg' problem on a deeper level. This study reconsiders strategy due to suprising, but valid, evidence of reverse causality.  
 
 ## Assessing Autocorrelation 
 ACF checks for independence of errors in regression analysis. This assesses whether x variables are correlated across time to determine correlation at different lags (autocorrelation).
@@ -212,25 +231,18 @@ ACF checks for independence of errors in regression analysis. This assesses whet
 ```{r}
 acf(resid(fd_spi_di), lag.max = 10)
 acf(resid(fd_sdg_spi), lag.max = 10)
-acf(resid(fd_spi_di), lag.max = 10)
-acf(resid(fd_spi_di), lag.max = 10)
+acf(resid(fe_spi_di), lag.max = 10)
+acf(resid(fe_sdg_spi), lag.max = 10)
 ```
-
-### Breusch-Godfrey Autocorrelation Tests: AR(1) + AR(2)
-```{r}
-pbgtest(fd_spi_di, order = 1) # AR(1)
-pbgtest(fd_spi_di, order = 2) # AR(2)
-```
-This analysis does not test for autocorrelation using the Durban Watson approach because the approach is designed for single time series, not panel models. Instead, this study adopts the Breusch-Godfrey (BG) approach to detect *high order* autocorrelation in addition to other forms. 
 
 # Temporal Dependent Lags
-In my study, I speculate that changes in SPI (comes first) produces subsequent changes in SDG progress (comes second). Based on current studies, it can take some time for implementation of statistical capacity structures to produce results.
+Considering results from the granger test, there is evidence that democracy score changes preceed changes in SPI (first). This is in line with studies that sustain it can take some time for implementation of statistical capacity structures to produce results.
 
-Furthermore, regime transition may have a delayed effect on statistical capacity, although I suspect it varies in time (do we notice a drop in SPI as a precondition or a symptom of autocratization)
+Similarly, I suspect that regime transition has a delayed effect on statistical capacity, although I suspect it varies in time (do we notice a drop in SPI as a precondition or a symptom of autocratization)?
 
-## Significant Autocorrelation: create lagged variables and first differences
+## Significant Autocorrelation: create lagged variables and first differences [MAY NOT NEED]
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 # Create lagged variables and first differences
 panel_data <- panel_data %>%
   arrange(country_code, year) %>% 
@@ -259,20 +271,35 @@ panel_data <- panel_data %>%
 #head(fd_data_testing %>% dplyr::select(country_code, year, sdg_overall, sdg_lag, fd_sdg, spi_comp, spi_lag, fd_spi) %>% arrange(country_code, year), 10)
 ```
 
-## FD & FE + LAGS: SPI ~ DI 
-```{r}
+
+
+## TEST X, First Difference + LAGS: SPI ~ DI & SDG ~ SPI [R STUDIO CRASHES HERE-BEYOND THIS POINT]
+```{r eval=FALSE, include=FALSE}
 #First Difference 
 fd_spi_di_lag <- plm(
-  spi_comp ~ plm::lag(di_score) + log_gdppc + population,
+  spi_comp ~ lag(di_score, 1) + log_gdppc + population,
   data = panel_data,
   index = c("country_code", "year"),
   model = "fd" #FD
 )
 
 summary(fd_spi_di_lag)
-coeftest(fe_sdg_spi, vcov = vcovDC(fe_sdg_spi))
 coeftest(fd_spi_di_lag, vcov = vcovHC(fd_spi_di_lag, cluster = "group")) # Robust SEs
 
+# First Difference 
+fd_sdg_spi_lag <- plm(
+  sdg_overall ~ lag(spi_comp, 1) + di_score + log_gdppc + population,
+  data = panel_data,
+  index = c("country_code", "year"),
+  model = "fd" #FD
+)
+
+summary(fd_sdg_spi_lag)
+coeftest(fd_sdg_spi_lag, vcov = vcovHC(fd_sdg_spi_lag, cluster = "group")) # Robust SEs
+```
+
+## TEST X, Fixed Effects + LAGS: SPI ~ DI & SDG ~ SPI
+```{r eval=FALSE, include=FALSE}
 # Fixed Effects 
 fe_spi_di_lag <- plm(
   spi_comp ~ plm::lag(di_score) + log_gdppc + population + year_fct,
@@ -283,21 +310,6 @@ fe_spi_di_lag <- plm(
 
 summary(fe_spi_di_lag)
 coeftest(fe_spi_di_lag, vcov = vcovHC(fe_spi_di_lag, cluster = "group")) # Robust SEs
-```
-
-
-## FD & FE + LAGS: SDG ~ SPI
-```{r}
-# First Difference 
-fd_sdg_spi_lag <- plm(
-  sdg_overall ~ plm::lag(spi_comp) + di_score + log_gdppc + population,
-  data = panel_data,
-  index = c("country_code", "year"),
-  model = "fd" #FD
-)
-
-summary(fd_sdg_spi_lag)
-coeftest(fd_sdg_spi_lag, vcov = vcovHC(fd_sdg_spi_lag, cluster = "group")) # Robust SEs
 
 # Fixed Effects 
 fe_sdg_spi_lag <- plm(
@@ -311,9 +323,30 @@ summary(fe_sdg_spi_lag)
 coeftest(fe_sdg_spi_lag, vcov = vcovHC(fe_sdg_spi_lag, cluster = "group")) # Robust SEs
 ```
 
+## ROBUSTNESS CHECKS 
+
+### AIC/BIC
+```{r eval=FALSE, include=FALSE}
+fe_lag1 <- plm(spi_comp ~ lag(di_score, 1), data = panel_data, model = "within")
+fe_lag2 <- plm(spi_comp ~ lag(di_score, 1) + lag(di_score, 2), data = panel_data, model = "within")
+AIC(fe_lag1, fe_lag2)
+
+```
+
+
+### Breusch-Godfrey Autocorrelation Tests: AR(1) + AR(2)
+```{r}
+#mediator models 
+pbgtest(fe_spi_di, order = 1) # AR(1)
+pbgtest(fe_spi_di, order = 2) # AR(2)
+```
+This analysis does not test for autocorrelation by using the Durban Watson approach because the approach is designed for single time series, not panel models. Instead, this study adopts the Breusch-Godfrey (BG) approach to detect *high order* autocorrelation in addition to other forms. 
+
+## Mediation Effect: connecting Regime -> SDGs 
+Mediation analysis to formally test and quantify SPI's role in transmitting regime change effects to SDGs. This is how to quantify the connection between the Regime Change and the SDGs
 
 ## Mediation Effect + Lags: connecting DI -> SDGs
-```{r}
+```{r eval=FALSE, include=FALSE}
 ## CONFIRM THE MED MODELS BELOW ARE OKAY W PERPLEXITY 
 
 # Mediation analysis - FD models 
@@ -349,198 +382,46 @@ sens_med <- medsens(med_fe_lag_results, rho.by = 0.1)
 plot(sens_med)
 ```
 
+## FD Mediation (including lags) [MAY NOT NEED]
+```{r eval=FALSE, include=FALSE}
 
-# Subgroup Analysis 
+####### Mediation analysis - FD models ####### 
+#seed 
+set.seed(124)
 
-
-
-
-# FD Subgroup Analysis: SDG ~ SPI + subgroup(income group)
-
-## Models - subgroups by income class 
-- No need for time dummy in FD models
-- just fd of the x variable 
-```{r}
-# Overall model
-fd_overall <- lm(fd_sdg ~ fd_spi + log_gdppc + population, 
-                data = fd_fe_data %>% 
-                  filter(!is.na(fd_sdg) & !is.na(fd_spi)))
-summary(fd_overall)
-
-# High income countries
-fd_high <- lm(fd_sdg ~ fd_spi + gdppc + population, 
-             data = fd_fe_data %>% 
-               filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
-                     income_level == "High Income Countries"))
-summary(fd_high)
-
-# Upper-middle income countries
-fd_upper <- lm(fd_sdg ~ fd_spi + log_gdppc + population, 
-              data = fd_fe_data %>% 
-                filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
-                      income_level == "Upper-Middle Income Countries"))
-summary(fd_upper)
-
-# Lower-middle income countries
-fd_lower <- lm(fd_sdg ~ fd_spi + log_gdppc + population, 
-              data = fd_fe_data %>% 
-                filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
-                      income_level == "Lower-Middle Income Countries"))
-summary(fd_lower)
-
-# Low income countries
-fd_low <- lm(fd_sdg ~ fd_spi + log_gdppc + population, 
-            data = fd_fe_data %>% 
-              filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
-                    income_level == "Low Income Countries"))
-summary(fd_low)
-```
-
-
-## FD Comparison Table: SDG ~ SPI
-
-```{r}
-# Extract coefficients and statistics from each model
-fd_comparison <- data.frame(
-  model = c("Overall", "High Income", "Upper-Middle Income", 
-           "Lower-Middle Income", "Low Income"),
-  coefficient = c(
-    coef(fd_overall)["fd_spi"],
-    coef(fd_high)["fd_spi"],
-    coef(fd_upper)["fd_spi"],
-    coef(fd_lower)["fd_spi"],
-    coef(fd_low)["fd_spi"]
-  ),
-  intercept = c(
-    coef(fd_overall)["(Intercept)"],
-    coef(fd_high)["(Intercept)"],
-    coef(fd_upper)["(Intercept)"],
-    coef(fd_lower)["(Intercept)"],
-    coef(fd_low)["(Intercept)"]
-  ),
-  t_value = c(
-    summary(fd_overall)$coefficients["fd_spi", "t value"],
-    summary(fd_high)$coefficients["fd_spi", "t value"],
-    summary(fd_upper)$coefficients["fd_spi", "t value"],
-    summary(fd_lower)$coefficients["fd_spi", "t value"],
-    summary(fd_low)$coefficients["fd_spi", "t value"]
-  ),
-  p_value = c(
-    summary(fd_overall)$coefficients["fd_spi", "Pr(>|t|)"],
-    summary(fd_high)$coefficients["fd_spi", "Pr(>|t|)"],
-    summary(fd_upper)$coefficients["fd_spi", "Pr(>|t|)"],
-    summary(fd_lower)$coefficients["fd_spi", "Pr(>|t|)"],
-    summary(fd_low)$coefficients["fd_spi", "Pr(>|t|)"]
-  ),
-  r_squared = c(
-    summary(fd_overall)$r.squared,
-    summary(fd_high)$r.squared,
-    summary(fd_upper)$r.squared,
-    summary(fd_lower)$r.squared,
-    summary(fd_low)$r.squared
-  ),
-  adj_r_squared = c(
-    summary(fd_overall)$adj.r.squared,
-    summary(fd_high)$adj.r.squared,
-    summary(fd_upper)$adj.r.squared,
-    summary(fd_lower)$adj.r.squared,
-    summary(fd_low)$adj.r.squared
-  ),
-  n_obs = c(
-    nobs(fd_overall),
-    nobs(fd_high),
-    nobs(fd_upper),
-    nobs(fd_lower),
-    nobs(fd_low)
-  )
+med_fd_results <- mediate(
+  fd_spi_di, # mediator model
+  fd_sdg_spi, # outcome model 
+  treat = "di_score",   # Treatment variable (regime change)
+  mediator = "spi_comp", # SPI mediator
+  robustSE = TRUE
 )
 
-# Format the numbers for better display
-fd_comparison <- fd_comparison %>%
-  mutate(
-    coefficient = round(coefficient, 3),
-    intercept = round(intercept, 3),
-    t_value = round(t_value, 3),
-    p_value = round(p_value, 4),
-    r_squared = round(r_squared, 3),
-    adj_r_squared = round(adj_r_squared, 3)
-  )
+summary(med_fd_results)
 
-# Print the comparison table
-print(fd_comparison)
-
-#export fd_comparison 
-#write.csv(fd_comparison, file = "fd_comparison.csv", row.names=F) 
+# Sensitivity Analysis: after running mediation
+sens_med_fd <- medsens(med_fd_results, rho.by = 0.1)
+plot(sens_med_fd)
 ```
 
-**RESULTS:**
+## FE Mediation (including lags) [MAY NOT NEED]
+```{r eval=FALSE, include=FALSE}
 
-The overall model shows a positive and statistically significant relationship (coefficient = 0.015, p = 0.0033) between improvements in statistical capacity and improvements in SDG performance. Although this confirms my hypothesis that better statistical systems contribute to better development outcomes, the intercept indicates that when SPI remains constant, SDG scores progress by 0.286 anyway.
+####### Mediation analysis - FE models ####### 
+#seed
+set.seed(124)
 
-The income group breakdown reveals fascinating variations:
+med_fe_results <- mediate(
+  fe_spi_di, # mediator model
+  fe_sdg_spi, # outcome model 
+  treat = "di_score",   # Treatment variable (regime change)
+  mediator = "spi_comp", # SPI mediator
+  robustSE = TRUE
+)
 
-1.  **High Income Countries** show a negative coefficient (-0.012) that is not statistically significant (p = 0.2537). This suggests that for developed economies, improvements in statistical capacity don't necessarily translate to SDG improvements, possibly because they already have well-established statistical systems and other factors drive their SDG performance.
+summary(med_fe_results)
 
-2.  **Upper-Middle Income Countries** show a stronger positive effect (0.021) that is statistically significant (p = 0.0163). This indicates that for these emerging economies, investments in statistical capacity yield meaningful SDG improvements.
-
-3.  **Lower-Middle Income Countries** demonstrate an even stronger relationship (0.025) with high statistical significance (p = 0.0088). This is the most significant relationship among all income groups.
-
-4.  **Low Income Countries** show the strongest coefficient (0.026), suggesting the largest potential impact, though with slightly lower statistical significance (p = 0.0459) than lower-middle income countries.
-
-The R-squared values are relatively low across all models (between 0.004 and 0.023), indicating that changes in statistical capacity explain only a small portion of the variation in SDG changes. This is common in first-difference models and suggests that many other factors also influence SDG progress.
-
-1.  The relationship between statistical capacity and sustainable development follows an inverted U-shaped pattern across the development spectrum - minimal impact for high-income countries, strongest for middle-income countries, and slightly less strong (but still significant) for low-income countries.
-
-2.  Statistical capacity improvements appear most beneficial for developing and emerging economies, suggesting that international efforts to strengthen statistical systems should prioritize these countries.
-
-3.  The consistently positive intercepts (ranging from 0.224 to 0.364) indicate that SDG scores tend to improve over time regardless of changes in statistical capacity, though the rate of improvement varies by income level.
-
-## FD Visual Analysis: SDG ~ SPI + Income Groups 
-
-**Error-bar**
-
-```{r}
-# Create dataframe for plotting 
-plot_data <- fd_comparison %>%
-  select(model, coefficient, p_value) %>%
-  mutate(significant = p_value < 0.05)
-
-# Create Horizontal error-bar graph 
-fd_errorbar <- ggplot(plot_data, aes(x = coefficient, y = model, color = significant)) +
-  geom_point(size = 3) +
-  geom_errorbarh(aes(xmin = 0, xmax = coefficient), height = 0.2) + 
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  scale_color_manual(values = c("gray", "blue")) +
-  labs(title = "Effect of SPI Change on SDG Change by Income Group",
-       x = "Coefficient (Effect Size)",
-       y = "") +
-  theme_bw() +
-  theme(legend.position = "none")
-
-fd_errorbar
-
-#export fd_errorbar
-# ggsave("fd_errorbar.png", width = 10, height = 6)
+# Sensitivity Analysis: after running mediation
+sens_med_fe <- medsens(med_fe_results, rho.by = 0.1)
+plot(sens_med_fe)
 ```
-
-**Scatter plot of FDs**
-
-```{r}
-fd_scatter <- ggplot(fd_fe_data %>% 
-         filter(!is.na(fd_sdg) & !is.na(fd_spi)), 
-       aes(x = fd_spi, y = fd_sdg, color = income_level)) +
-  geom_point(alpha = 0.5) +
-  geom_smooth(method = "lm", se = FALSE) +
-  facet_wrap(~income_level) +
-  labs(title = "Relationship between Changes in SPI and SDG by Income Group",
-       x = "Change in Statistical Performance (SPI)",
-       y = "Change in Sustainable Development (SDG)") +
-  theme_bw()
-
-fd_scatter
-
-#export fd_scatter
-# ggsave("iCloud_Drive/Documents/GitHub/QMSS_Thesis_Sanchez", width = 10, height = 6)
-```
-
-
