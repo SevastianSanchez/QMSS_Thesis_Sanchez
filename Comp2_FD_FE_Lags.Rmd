@@ -51,7 +51,7 @@ fd_fe_data <- fd_fe_data %>%
 # TEST X: The effect of democracy score on SDG 
 ```{r}
 #Total Effect: Check if regime type directly affects SDG scores (without SPI) + Controls & RobustSEs
-total_sdg_di_ols <- lm(sdg_overall ~ di_score + log_gdppc + population + year_fct, data = fd_fe_data)
+total_sdg_di_ols <- lm(sdg_overall ~ di_score + log_gdppc + year_fct, data = fd_fe_data)
 summary(total_sdg_di_ols)
 coeftest(total_sdg_di_ols, vcov = vcovHC(total_sdg_di_ols, type = "HC1"))  
 
@@ -133,7 +133,7 @@ panel_data <- pdata.frame(
 
 ###### SPI ~ DI ######
 fd_spi_di <- plm(
-  spi_comp ~ delib_dem + log_gdppc + population,
+  spi_comp ~ di_score + log_gdppc,
   data = panel_data,
   model = "fd" #FD
 )

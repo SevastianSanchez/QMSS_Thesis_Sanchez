@@ -444,17 +444,17 @@ merged_2015 <- merged %>%
          regime_type_4 = as.factor(regime_type_4))
 
 #interaction 1: does GNI Classification (income_level) affect the relationship between x (spi) & y (sdg)?
-inc_lev_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*income_level + log_gdppc + population + year_fct, data = merged_2015)
-#summary(inc_lev_interaction)
+inc_lev_interaction <- lm(sdg_overall ~ spi_comp + income_level + log_gdppc + population + year_fct, data = merged_2015)
+summary(inc_lev_interaction)
 coeftest(inc_lev_interaction, vcov = vcovHC(inc_lev_interaction, type = "HC1")) #Robust SE
 
 #interaction 2: does regime_type_2 affect the relationship between x (spi) & y (sdg)?
-reg_type2_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log_gdppc + population + year_fct, data = merged_2015)
-#summary(reg_type2_interaction)
+reg_type2_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log_gdppc, data = merged_2015)
+summary(reg_type2_interaction)
 coeftest(reg_type2_interaction, vcov = vcovHC(reg_type2_interaction, type = "HC1")) #Robust SE
 
 #interaction 3: does regime_type_4 affect the relationship between x (spi) & y (sdg)?
-reg_type4_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_4 + log_gdppc + population + year_fct,
+reg_type4_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_4 + log_gdppc + year_fct,
                         data = merged_2015)
 #summary(reg_type4_interaction)
 coeftest(reg_type4_interaction, vcov = vcovHC(reg_type4_interaction, type = "HC1")) #Robust SE

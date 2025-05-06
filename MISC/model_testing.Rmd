@@ -226,7 +226,7 @@ panel_regressed <- pdata.frame(
   index = c("country_code", "year"))  # Replace 'year' with your time variable
 
 # FE Model - ALL
-fe_testing_all <- plm(spi_comp ~ di_score + log_gdppc + population + factor(year), 
+fe_testing_all <- plm(spi_comp ~ di_score + log_gdppc + aut_ep + factor(year), 
                   data = panel_regressed,
                   model = "within")
 summary(fe_testing_all)
