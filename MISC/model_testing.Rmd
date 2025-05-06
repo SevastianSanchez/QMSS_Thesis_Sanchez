@@ -204,6 +204,59 @@ fd_scatter
 
 
 
+# Backsliding FE Model 
+```{r}
+#NICEEEE THIS WORKS!!
+regressed <- fd_fe_data %>%
+  # Filter to post-2015 first (if you want to check events only in this period)
+  filter(year >= 2015) %>%
+  # Group by country to check for any event
+  group_by(country_code) %>%
+  # Flag countries with at least one aut_ep == 1
+  mutate(has_aut_ep = any(aut_ep == 1, na.rm = TRUE)) %>%
+  ungroup() %>%
+  # Keep only countries with at least one event
+  filter(has_aut_ep) %>%
+  # Remove the helper column
+  select(-has_aut_ep)
+
+# panel df - all backsliding 
+panel_regressed <- pdata.frame(
+  regressed, 
+  index = c("country_code", "year"))  # Replace 'year' with your time variable
+
+# FE Model - ALL
+fe_testing_all <- plm(spi_comp ~ di_score + log_gdppc + population + factor(year), 
+                  data = panel_regressed,
+                  model = "within")
+summary(fe_testing_all)
+coeftest(fe_testing_all, vcov = vcovHC(fe_testing_all, cluster = "group", type = "HC1"))
+
+# Single Country: Hungary 
+hun_regressed <- regressed %>% 
+  filter(country_code == "HUN")
+
+# panel df - Hungary 
+panel_data_hun <- pdata.frame(
+  hun_regressed, 
+  index = c("country_code", "year")  # Replace 'year' with your time variable
+)
+
+# FE model - Hungary 
+fe_testing <- plm(spi_comp ~ di_score + log_gdppc + population + factor(year), 
+                  data = panel_data_hun,
+                  model = "within")
+summary(fe_testing)
+coeftest(fe_testing, vcov = vcovHC(fe_testing, cluster = "group", type = "HC1"))
+```
+
+```{r}
+# subset of countries that experienced atleast 1 democratization event 
+democratized <- merged %>% 
+  group_by(country_code) %>%
+  filter(dem_ep == 1) %>%
+  ungroup()
+```
 
 
 # OLS: including regime variable [which is best?]

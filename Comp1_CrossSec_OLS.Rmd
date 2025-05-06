@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-#FIRST: Libraries, Directory & Data 
+### FIRST: Libraries, Directory & Data 
 
 ```{r include=FALSE}
 # set working directory 
@@ -27,31 +27,26 @@ setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 source("packages.R")
 ```
 
-#SECOND: Run function in r-script: df_years_function.R   
+### SECOND: Run function in r-script: df_years_function.R   
 *[ADJUST TIME OR SKIP AND LOADING DATA FROM DIRECTORY]*
 
 ```{r eval=FALSE, include=FALSE}
 #df_years2.0():[Updated Version] used for extracting all available country data (based on country_codes) from specified range of years
 
 #load function: all available data within year range 
-source("df_years2.0_Function.R")
+#source("df_years2.0_Function.R")
 #specify start & end year
 #merged_full <- df_years2.0(2004, 2023) 
 
 #saving full version as CSV output 
-#write.table(merged_full, file = 'merged_full_df.csv', row.names=F, sep = ",")
-
-# Older Version, df_years() - Archived:
-#source("df_years()_Function.R")
-#merged2 <- df_years(yr1=2004) %>% 
-#  select(country_name.x, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, #regime_type_4, regch_event, income_level, income_level_lab, gini, log_gdppc, population)
+#write.table(merged_full, file = 'data/Main CSV Outputs/merged_full_df.csv', row.names=F, sep = ",")
 ```
 
-# THIRD: Load and Refine Data   
+### THIRD: Load and Refine Data   
 *[SKIP IF LOADING FROM DIRECTORY]*
 ```{r eval=FALSE, include=FALSE}
 # load merged_full csv [SKIP IF YOU CHANGED YEARS ABOVE]
-#merged_full <- read_csv('data/Main CSV Outputs/merged_full_final_df.csv')
+merged_full <- read_csv('data/Main CSV Outputs/merged_full_df.csv')
 
 # FILTERING FOR ALL COUNTRIES WITH ATLEAST 1 SDG VALUE 
 sdg_cols <- paste0("goal", 1:17)
@@ -66,27 +61,30 @@ merged_cleaned <- merged_full %>% # Removing all rows for those countries
   filter(!country_code %in% countries_all_sdg_missing)
 
 #saving merged CSV output 
-#write.table(merged_cleaned, file = 'merged_cleaned.csv', row.names=F, sep = ",")
+#write.table(merged_cleaned, file = 'data/Main CSV Outputs/merged_cleaned.csv', row.names=F, sep = ",")
 ```
 
-# FOURTH: Load cleaned 'merged' Dataset  
+### FOURTH: Load cleaned 'merged' Dataset  
 *[ADJUST VARIABLES OR SKIP IF LOADING FROM CSV]*
 ```{r eval=FALSE, include=FALSE}
 #Load final cleaned 'merged' Dataset & selecting variables 
-merged_final <- read_csv("data/Main CSV Outputs/merged_cleaned.csv") %>% 
-  dplyr::select(country_name, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, income_level, income_level_lab, gini, log_gdppc, population, p1_use, p2_services, p3_products, p4_sources, p5_infra, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17)
+#merged_final <- read_csv("data/Main CSV Outputs/merged_cleaned.csv") %>% 
+  dplyr::select(country_name, country_code, year, year_fct, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, income_level, income_level_lab, log_gdppc, gini, population, p1_use, p2_services, p3_products, p4_sources, p5_infra, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17)
 
 #writing final merged csv 
-#write.table(merged_final, file = 'merged_final_df.csv', row.names=F, sep = ",")
+write.table(merged_final, file = 'data/Main CSV Outputs/merged_final_df.csv', row.names=F, sep = ",")
 ```
 
-# FINALLY: LOAD FINAL MERGED CSV 
+### FINALLY: LOAD FINAL MERGED CSV 
 ```{r}
 #load final merged df 
 merged <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
 ```
 
 # COMPONENT 1: COMPARING SPI & SCI X VARIABLES
+**Description:**  
+
+
 
 **Aggregated SPI & SDG Scores**  
 *H0: Null, there is no relationship*  
@@ -109,7 +107,7 @@ string_corcoef <- "Correlation coefficient:"
 paste(string_corcoef, correlation_sdg_spi, "(SPI)", correlation_sdg_sci, "(SCI)", correlation_sdg_di, "(DI)") 
 ```
 
-Correlation coefficient/R-sq (SPI): 0.616037202309322  
+Correlation coefficient/R-sq (SPI): 0.616037202309322 [high correlation with SDG score]
 Correlation coefficient/R-sq (SCI): 0.410940651230861
 Correlation coefficient/R-sq (DI): 0.452968121616442
 
@@ -134,7 +132,7 @@ ols_multiple_naive: spi: 0.28779 (p-value < 0.001); sci: 0.15311 (p-value < 0.00
 
 The impact of SCI on SDG and SPI on SDG are statistically significant, in all models. SPI appears to have a greater impact on SDGs compared to that of SCI, regardless of the model. All of this is without controls. 
 
-#Checking for Heteroskedasticity: residual plots 
+### Checking for Heteroskedasticity: residual plots 
 ```{r}
 #residual plots 
 plot(ols_spi_naive, which = 1)  # SPI model  
@@ -166,8 +164,8 @@ summary(ols_multiple)
 coeftest(ols_multiple, vcov = vcovHC(ols_multiple, type = "HC1"))
 ```
 
-# Creating dataframe combining summary and Robust SE results 
-```{r}
+### Creating dataframe combining summary and Robust SE results 
+```{r echo=FALSE}
 # For model statistics extraction 
 summary_spi <- summary(ols_spi)
 summary_sci <- summary(ols_sci)
@@ -396,7 +394,7 @@ Model 3 (ols_multiple) sacrifices a significant portion of its sample size in or
 **Selecting model:** This analysis is specifically focused on overall statistical capacity rather than comparisons of measures. Model 1 (ols_spi) reveals a better adjusted R-squares value than that of model 2 (Adj Rsq: 0.7725 > 0.7383) and model 3 (Adj Rsq: 0.7725 > 0.7614). Model 3, containing both SPI and SCI, has greater explanatory power than model 2, but as mentioned, has a much smaller sample size, which significantly impedes results. Models 1 and 2 have significantly more country-year data points (n=1082 and n=1513, respectively) for regression analysis compared to model 3 (n=566). With all else considered, this study employs the Statistical Performance Index (SPI) as the primary measure of statistical capacity. 
 
 ### Visual Analysis of Fit: SCI & SPI x SDG
-```{r}
+```{r echo=FALSE}
 #define regression line colors
 spi_line <- "steelblue4"
 sci_line <- "darkgoldenrod"
@@ -451,7 +449,7 @@ inc_lev_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*income_level + log_g
 coeftest(inc_lev_interaction, vcov = vcovHC(inc_lev_interaction, type = "HC1")) #Robust SE
 
 #interaction 2: does regime_type_2 affect the relationship between x (spi) & y (sdg)?
-reg_type2_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log_gdppc + population + year_fct,data = merged_2015)
+reg_type2_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log_gdppc + population + year_fct, data = merged_2015)
 #summary(reg_type2_interaction)
 coeftest(reg_type2_interaction, vcov = vcovHC(reg_type2_interaction, type = "HC1")) #Robust SE
 
@@ -476,7 +474,7 @@ coeftest(reg_type_di_interaction, vcov = vcovHC(reg_type_di_interaction, type = 
 *Interaction 4: Continuous di_score [0-1] Regime type: No* there are no statistically significant interactions found from regime type (infinate between 0-10) that affects the relationship between spi and sdgs. 
 
 ## Interactions DF
-```{r}
+```{r eval=FALSE, include=FALSE}
 ################ in a table #################
 ct <- coeftest(reg_type_di_interaction, vcov = vcovHC(reg_type_di_interaction, type = "HC1"))
 
@@ -489,7 +487,6 @@ stargazer(ct_tidy, type = "text", summary = FALSE, rownames = FALSE)
 # In tidy table 
 ct_tidy
 ```
-
 
 ## TEST 3: WB GNI Classifications: income_level ("H", "UM", "LM", "L") 
 **Disaggregated/Grouped by Development Status:** Make 4 regression models and then put them all together in a table to compare the slopes and R-sq values.
@@ -530,7 +527,7 @@ coeftest(low_inc_lm, vcov = vcovHC(low_inc_lm, type = "HC1")) #Robust SE
 ```
 
 # GNI Classifications DF
-```{r}
+```{r echo=FALSE}
 # 1. Overall model
 overall_ct <- coeftest(overall_lm, vcov = vcovHC(overall_lm, type = "HC1"))
 overall_df <- data.frame(
@@ -613,8 +610,9 @@ gni_classes_ols
 write.csv(gni_classes_ols, "output_CSVs/gni_classes_ols.csv")
 ```
 
-##Visualizing Slopes: plotting multiple regression - by subgroup
-```{r}
+
+## Visualizing Slopes: plotting multiple regression - by subgroup
+```{r echo=FALSE}
 viz_gni_class <- ggplot(data = merged_2015, aes(x = spi_comp, 
                                            y = sdg_overall, 
                                            color = income_level_lab)) +
@@ -649,8 +647,9 @@ ggsave("figures/gni_subgroups_ols.png", viz_gni_class, width = 10, height = 6)
 ```
 [more results TBD]
 
+
 ## Coefficient & Interval Plot
-```{r}
+```{r echo=FALSE}
 # New fd with SPI coefficients data
 spi_plot_data <- data.frame(
   model = c("overall_lm", "high_inc_lm", "upper_mid_lm", "lower_mid_lm", "low_inc_lm"),
