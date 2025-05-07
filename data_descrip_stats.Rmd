@@ -105,6 +105,9 @@ dev.off()
 **Reason to remove GINI from study:**
 while it is an important consideration, my study uses country-years as my primary unit of analysis, atleast in the corss-sectional component. Not all data points are available for every country, let alone every year. I suspect that this missingness is non-random, as not every country has the available statistical infrastructure to calculate a reliable estimate. With almost 2000 missing country-year values, including the GINI coefficient as a control would dramatically decrease my sample size and produce unreliable results. It is not good practice to impute list-wise values given the non-random nature of the missing values and especially to this extent.  
 
+**Reason to remove Population from models**
+The models will not be including total national population although is theoretically important for my research as it likely contributes the nations ability to capture high quality statistics on the population as surly this can challenge current structures in place that are not equiped to track a growing population. The reason is because doing so would introduce colinearity with national (logged) Gross Domestic Product per capita (population), which would bias results.
+
 ## Box plots
 ```{r}
 #SPI & SCI BOX PLOTS: SIDE BY SIDE 

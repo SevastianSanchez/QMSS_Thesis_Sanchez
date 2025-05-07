@@ -21,8 +21,7 @@ SPI (spi_comp): Statistical Performance Indicators [0-100, 100 = full statistica
 DI (di_score): Democracy Score [0-10, 10 = fully democratic, continuous]
 
 **Main controls**
-log_gdppc: Log of GDP Per Capita of country 
-population: total population of country 
+log_gdppc: Log of GDP Per Capita of given country (based on reported gdp/population from the world bank)
 
 ##setup: packages and data
 ```{r include=FALSE}
@@ -31,8 +30,7 @@ setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 #load libraries 
 source("packages.R")
 
-#load data & function 
-#source("data/data_sources.R")
+#load function 
 #source("df_years2.0_Function.R")
 
 #load df_years() function: 2015-present
@@ -41,19 +39,28 @@ source("packages.R")
 #read merged_df csv
 fd_fe_data <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
 
-#selecting 
+#selecting vars
 fd_fe_data <- fd_fe_data %>% 
-  dplyr::select(country_code, year, year_fct, sdg_overall, spi_comp, di_score, aut_ep, dem_ep, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, income_level, income_level_lab, log_gdppc, population) %>% 
+  dplyr::select(country_code, year, sdg_overall, spi_comp, di_score, aut_ep, dem_ep, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, income_level, income_level_lab, log_gdppc, population) %>% 
   arrange(country_code, year) %>%  # Critical for correct lagging
   filter(year >= 2016)
 ```
 
-# TEST X: The effect of democracy score on SDG 
+# TEST 1: OLS Mediation analysis [REDO RESULTS FOR ROBUST SEs]
+To test if SPI mediates the relationship between regime type and SDG outcomes:  
+Democratic backsliding → reduces SPI → slows SDG progress  
+
+*H0: SPI DOES NOT mediate (indirectly effect) the relationship between regime type and SDG status* 
+*H1: SPI mediates (indirectly effects) the relationship between regime type and SDG status* 
+
+# TEST X: The effect of democracy score on SDG (Y ~ X)
 ```{r}
 #Total Effect: Check if regime type directly affects SDG scores (without SPI) + Controls & RobustSEs
-total_sdg_di_ols <- lm(sdg_overall ~ di_score + log_gdppc + year_fct, data = fd_fe_data)
-summary(total_sdg_di_ols)
-coeftest(total_sdg_di_ols, vcov = vcovHC(total_sdg_di_ols, type = "HC1"))  
+sdg_di_ols <- plm(formula = sdg_overall ~ di_score + log_gdppc + factor(year), 
+                        index = c("country_code", "year"),
+                        model = "pooling", 
+                        data = fd_fe_data)
+summary(sdg_di_ols, vcov = vcovHC(sdg_di_ols, cluster = "group", type = "HC1"))
 
 #plot relationship
 plot_sdg_di <- ggplot(fd_fe_data, aes(x = di_score, y = sdg_overall)) + 
@@ -69,29 +76,20 @@ plot_sdg_di <- ggplot(fd_fe_data, aes(x = di_score, y = sdg_overall)) +
 plot_sdg_di
 ```
 
-# TEST 1: OLS Mediation analysis [REDO RESULTS FOR ROBUST SEs]
-To test if SPI mediates the relationship between regime type and SDG outcomes:  
-Democratic backsliding → reduces SPI → slows SDG progress  
-
-*H0: SPI DOES NOT mediate (indirectly effect) the relationship between regime type and SDG status* 
-*H1: SPI mediates (indirectly effects) the relationship between regime type and SDG status* 
-
+## TEST X: The effect of democracy score on SPI (M ~ X)
 - ACME (Average Causal Mediation Effect): SPI’s indirect effect.
 - ADE (Average Direct Effect): Regime type’s direct effect, excluding SPI
 ```{r}
+#OLS Mediator model: Check if regime type affects SPI (M)
+med_spi_ols <- lm(spi_comp ~ di_score + log_gdppc + factor(year), data = fd_fe_data)
+summary(med_spi_ols, vcov = vcovHC(med_spi_ols, cluster = "group", type = "HC1"))
+
+#OLS Outcome model: Check if SPI affects SDG scores (Y ~ M) while controlling for regime type (X)
+output_sdg_ols <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + factor(year), data = fd_fe_data)
+summary(output_sdg_ols, vcov = vcovHC(output_sdg_ols, cluster = "group", type = "HC1"))
+
 #seed to reproduce estimates 
 set.seed(125)
-
-#OLS Mediator model: Check if regime type affects SPI
-med_spi_ols <- lm(spi_comp ~ di_score + log_gdppc + population + factor(year), data = fd_fe_data)
-summary(med_spi_ols)
-coeftest(med_spi_ols, vcov = vcovHC(med_spi_ols, type = "HC1")) #Robust SE
-
-#OLS Outcome model: Check if SPI affects SDG scores while controlling for regime type
-output_sdg_ols <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + factor(year), data = fd_fe_data)
-summary(output_sdg_ols)
-coeftest(output_sdg_ols, vcov = vcovHC(output_sdg_ols, type = "HC1")) #Robust SE
-
 #OLS Mediation test: Quantify how much of regime type’s effect on SDGs operates through SPI
 med_model <- mediate(med_spi_ols, output_sdg_ols, 
                      treat = "di_score", 
@@ -101,11 +99,11 @@ med_model <- mediate(med_spi_ols, output_sdg_ols,
 summary(med_model)
 
 #Sensitivity Analysis: Tests how robust mediation findings are to potential unmeasured confounding variables
-#sens_med <- medsens(med_model, rho.by = 0.1)
-#summary(sens_med)
-#plot(sens_med)
+sens_med <- medsens(med_model, rho.by = 0.1)
+summary(sens_med)
+plot(sens_med)
 ```
-*[UPDATE RESULTS - OMITTED GINI VAR]*
+*Results:*
 ACEM: SPI’s indirect effect = 1.0574  units (p < 2e-16***)
 ADE: Regime type’s direct effect, excluding SPI = 0.2143  (p = 0.066) [just over 0.05]
 Total Effect: = 1.2716 units (p < 2e-16***)
@@ -118,36 +116,42 @@ Interpretation: A 1-unit DI increase boosts SDG scores by 1.2716 total units, wi
 Because the indirect effect of SPI on sdg_overall (ACME) is highly significant (p < 0.001), there is evidence to suggest that SPI mediates the regime-SDG relationship, based on the model. 
 
 Because the ADE (the direct effect between di_score on sdg_overall) is not significant (or just barely), SPI has a complete/almost-complete effect on SDG status when SPI is accounted for, based on the model. 
---------------------------------------------------------------------------------------------------------
+
+*Robustness check: sensitivity analysis*
+This tests how much unmeasured confounding would be needed to nullify the mediation effect. Based on the results, a rho = 0.5 indicates the mediation is moderately robust. there would need to be relatively strong unmeasured cofounders to nullify the results.
+
+Any unmeasured confounder would need to explain 25% of the residual variance in both models to eliminate the mediation effect (R²_MR²_Y = 0.25). 
+-----------------------------------------------------------------------------------------------------
 
 # **Panel Data Analysis**
 
 ## TEST X, First Difference: SPI ~ DI & SDG ~ SPI 
-**First Difference (FD)** removes all time-invariant characteristics of each unit (like geography, culture, or baseline wealth). However, variables that do change over time, such as GDP per capita and country population, should be controlled.
+**First Difference (FD)** removes all time-invariant characteristics of each unit (like geography, culture, or baseline wealth). However, variables that do change over time, such as GDP per capita, should be controlled.
 ```{r}
 # panel dataframe
 panel_data <- pdata.frame(
   fd_fe_data, 
-  index = c("country_code", "year")  # Replace 'year' with your time variable
+  index = c("country_code", "year")  #country_code = subject ; # year = time (we need both)
 )
 
 ###### SPI ~ DI ######
 fd_spi_di <- plm(
-  spi_comp ~ di_score + log_gdppc,
+  formula = spi_comp ~ di_score + log_gdppc,
   data = panel_data,
   model = "fd" #FD
-)
+) 
 summary(fd_spi_di)
 # Country-level custard Robust SEs
 coeftest(fd_spi_di, vcov = vcovHC(fd_spi_di, cluster = "group", type = "HC1"))
 
 ###### SDG ~ SPI ######
 fd_sdg_spi <- plm(
-  sdg_overall ~ spi_comp + di_score + log_gdppc + population,
+  sdg_overall ~ spi_comp + di_score + log_gdppc,
   data = panel_data,
   model = "fd" #FD
 )
 #summary(fd_sdg_spi)
+summary(fd_sdg_spi, vcov = vcovHC(fd_sdg_spi, cluster = "group"))
 # Country-level custard Robust SEs
 coeftest(fd_sdg_spi, vcov = vcovHC(fd_sdg_spi, cluster = "group", type = "HC1"))
 ```
@@ -163,7 +167,7 @@ SDG ~ SPI: 0.0158 (p = 0.0032**)
 ```{r}
 ###### SPI ~ DI ######
 fe_spi_di <- plm(
-  spi_comp ~ di_score + log_gdppc + population + factor(year),
+  spi_comp ~ di_score + log_gdppc + factor(year),
   data = panel_data,
   model = "within" #FE
 )
@@ -173,7 +177,7 @@ coeftest(fe_spi_di, vcov = vcovHC(fe_spi_di, cluster = "group", type = "HC1")) #
 
 ##### SDG ~ SPI #####
 fe_sdg_spi <- plm(
-  sdg_overall ~ spi_comp + di_score + log_gdppc + population + factor(year),
+  sdg_overall ~ spi_comp + di_score + log_gdppc + factor(year),
   data = panel_data,
   model = "within" #FE
 )
@@ -184,11 +188,11 @@ coeftest(fe_sdg_spi, vcov = vcovHC(fe_sdg_spi, cluster = "group", type = "HC1"))
 Results:
 
 SPI ~ DI: -0.4976 (p = 0.3886) [not significant]
-  year_fct: 2.0536 (p < 2e-16***)
+  factor(year): 2.0536 (p < 2e-16***)
 SDG ~ SPI: 0.0324 (p = 0.1247) [not significant]
-  year_fct: 2.5292e-01 (p < 2.2e-16***)
+  factor(year): 2.5292e-01 (p < 2.2e-16***)
 
-Neither SPI~DI or SDG~SPI models are statistically significant. This contrasts from previous first difference estimates that found both SPI~DI and SDG~SPI models statistically significant (p < 0.05). Interestingly, the factored-year variable (year_fct) in both FE models are extremely statistically significant with increasing coefficient estimates over the years. This suggests underlying trends that statistical capacity is, on average, increasing based on the model. 
+Neither SPI~DI or SDG~SPI models are statistically significant. This contrasts from previous first difference estimates that found both SPI~DI and SDG~SPI models statistically significant (p < 0.05). Interestingly, the factored-year variable (factor(year)) in both FE models are extremely statistically significant with increasing coefficient estimates over the years. This suggests underlying trends that statistical capacity is, on average, increasing based on the model. 
 
 ## TEST X: Granger Causality: DI & SPI
 Essentially tests whether a predictor variable in a prior year has an affect on a present day dependent variable. In this case, my study utilizes a granger test to both understand directionality of effects, assessing potential reverse causality of x and y variables, and determine the need to incorporate lagged predictors (DI and SPI variables).
@@ -285,7 +289,7 @@ panel_data <- panel_data %>%
 ```{r eval=FALSE, include=FALSE}
 #First Difference 
 fd_spi_di_lag <- plm(
-  spi_comp ~ lag(di_score, order = 1) + log_gdppc + population,
+  spi_comp ~ lag(di_score, order = 1) + log_gdppc,
   data = panel_data,
   index = c("country_code", "year"),
   model = "fd" #FD
@@ -296,7 +300,7 @@ coeftest(fd_spi_di_lag, vcov = vcovHC(fd_spi_di_lag, cluster = "group")) # Robus
 
 # First Difference 
 fd_sdg_spi_lag <- plm(
-  sdg_overall ~ lag(spi_comp, 1) + di_score + log_gdppc + population,
+  sdg_overall ~ lag(spi_comp, 1) + di_score + log_gdppc,
   data = panel_data,
   index = c("country_code", "year"),
   model = "fd" #FD
@@ -310,7 +314,7 @@ coeftest(fd_sdg_spi_lag, vcov = vcovHC(fd_sdg_spi_lag, cluster = "group")) # Rob
 ```{r eval=FALSE, include=FALSE}
 # Fixed Effects 
 fe_spi_di_lag <- plm(
-  spi_comp ~ plm::lag(di_score) + log_gdppc + population + year_fct,
+  spi_comp ~ plm::lag(di_score) + log_gdppc + factor(year),
   data = panel_data,
   index = c("country_code", "year"),
   model = "within" #FE
@@ -321,7 +325,7 @@ coeftest(fe_spi_di_lag, vcov = vcovHC(fe_spi_di_lag, cluster = "group")) # Robus
 
 # Fixed Effects 
 fe_sdg_spi_lag <- plm(
-  sdg_overall ~ plm::lag(spi_comp) + di_score + log_gdppc + population + year_fct,
+  sdg_overall ~ plm::lag(spi_comp) + di_score + log_gdppc + factor(year),
   data = panel_data,
   index = c("country_code", "year"),
   model = "within" #FE

@@ -19,34 +19,34 @@ merged_testing <- df_years(yr1 = 2015)
 
 ```{r}
 # Overall model
-fd_overall <- lm(fd_sdg ~ fd_spi + log_gdppc + population, 
+fd_overall <- lm(fd_sdg ~ fd_spi + log_gdppc, 
                 data = fd_fe_data %>% 
                   filter(!is.na(fd_sdg) & !is.na(fd_spi)))
 summary(fd_overall)
 
 # High income countries
-fd_high <- lm(fd_sdg ~ fd_spi + gdppc + population, 
+fd_high <- lm(fd_sdg ~ fd_spi + gdppc,
              data = fd_fe_data %>% 
                filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
                      income_level == "High Income Countries"))
 summary(fd_high)
 
 # Upper-middle income countries
-fd_upper <- lm(fd_sdg ~ fd_spi + log_gdppc + population, 
+fd_upper <- lm(fd_sdg ~ fd_spi + log_gdppc,
               data = fd_fe_data %>% 
                 filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
                       income_level == "Upper-Middle Income Countries"))
 summary(fd_upper)
 
 # Lower-middle income countries
-fd_lower <- lm(fd_sdg ~ fd_spi + log_gdppc + population, 
+fd_lower <- lm(fd_sdg ~ fd_spi + log_gdppc,
               data = fd_fe_data %>% 
                 filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
                       income_level == "Lower-Middle Income Countries"))
 summary(fd_lower)
 
 # Low income countries
-fd_low <- lm(fd_sdg ~ fd_spi + log_gdppc + population, 
+fd_low <- lm(fd_sdg ~ fd_spi + log_gdppc,
             data = fd_fe_data %>% 
               filter(!is.na(fd_sdg) & !is.na(fd_spi) & 
                     income_level == "Low Income Countries"))
@@ -226,9 +226,10 @@ panel_regressed <- pdata.frame(
   index = c("country_code", "year"))  # Replace 'year' with your time variable
 
 # FE Model - ALL
-fe_testing_all <- plm(spi_comp ~ di_score + log_gdppc + aut_ep + factor(year), 
-                  data = panel_regressed,
-                  model = "within")
+fe_testing_all <- plm(
+  formula = spi_comp ~ di_score + log_gdppc + aut_ep + factor(year), 
+  data = panel_regressed,
+  model = "within")
 summary(fe_testing_all)
 coeftest(fe_testing_all, vcov = vcovHC(fe_testing_all, cluster = "group", type = "HC1"))
 
@@ -243,9 +244,10 @@ panel_data_hun <- pdata.frame(
 )
 
 # FE model - Hungary 
-fe_testing <- plm(spi_comp ~ di_score + log_gdppc + population + factor(year), 
-                  data = panel_data_hun,
-                  model = "within")
+fe_testing <- plm(
+  formula = spi_comp ~ di_score + log_gdppc + factor(year), 
+  data = panel_data_hun,
+  model = "within")
 summary(fe_testing)
 coeftest(fe_testing, vcov = vcovHC(fe_testing, cluster = "group", type = "HC1"))
 ```
@@ -257,47 +259,6 @@ democratized <- merged %>%
   filter(dem_ep == 1) %>%
   ungroup()
 ```
-
-
-# OLS: including regime variable [which is best?]
-```{r}
-# 1. regime_type_2 (0 or 1) control
-lm1_reg2 <- lm(sdg_overall ~ spi_comp + regime_type_2 + log(gdppc) + population,
-                        data = merged_testing)
-summary(lm1_reg2)
-
-# 2. lib_dem (continuous 0-1) control
-lm2_regcont <- lm(sdg_overall ~ spi_comp + lib_dem + log(gdppc) + population,
-                        data = merged_testing)
-summary(lm2_regcont)
-
-# 3. regime_type_2 (0 or 1) interaction 
-lm3_reg2_int <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log(gdppc) + population,
-                        data = merged_testing)
-summary(lm3_reg2_int)
-
-# 4. lib_dem (continuous 0-1) interaction
-lm4_libd_int <- lm(sdg_overall ~ spi_comp + spi_comp*lib_dem + log(gdppc) + population,
-                        data = merged_testing)
-summary(lm4_libd_int)
-
-# 5. regime_type_2 (0 or 1) interaction + control
-lm5_reg2_int_cont <- lm(sdg_overall ~ spi_comp + regime_type_2 + spi_comp*regime_type_2 + log(gdppc) + population,
-                        data = merged_testing)
-
-summary(lm5_reg2_int_cont)
-
-# 6. lib_dem (continuous 0-1) interaction + control 
-lm6_libd_int_cont <- lm(sdg_overall ~ spi_comp + lib_dem + spi_comp*lib_dem + log(gdppc) + population,
-                        data = merged_testing)
-summary(lm6_libd_int_cont)
-
-# just interaction?
-lm7_libd_int_cont <- lm(sdg_overall ~ spi_comp + spi_comp*lib_dem + log(gdppc) + population,
-                        data = merged_testing)
-summary(lm7_libd_int)
-```
-- Interactions are not statistically significant (lib_dem or )
 
 
 
@@ -346,7 +307,7 @@ abline(lm2)
 ```{r}
 library(rstanarm)
 
-gml_testing <- stan_glm(sdg_overall ~ spi_comp + regime_type + regime_type*spi_comp + log(gdppc) + population, data = merged_testing)
+gml_testing <- stan_glm(sdg_overall ~ spi_comp + regime_type + regime_type*spi_comp + log(gdppc), data = merged_testing)
 
 # glm_testing
 print(gml_testing)
@@ -356,7 +317,7 @@ summary(gml_testing)
 #First difference
 ```{r}
 fd_model <- plm(
-  spi_comp ~ di_score + log(gdppc) + population + year_fct + gini,
+  spi_comp ~ di_score + log(gdppc) + year_fct + gini,
   data = merged_testing,
   index = c("country_code", "year"),
   model = "fd"
@@ -373,7 +334,7 @@ lmtest::dwtest(fd_model)
 ## Fixed Effects Model
 ```{r}
 library(plm)
-fe_model <- plm(sdg_overall ~ spi_comp + regime_type + gdppc + population,
+fe_model <- plm(sdg_overall ~ spi_comp + regime_type + log_gdppc,
                 data = merged_testing, 
                 index = c("country_code", "year"), 
                 model = "within")
@@ -389,72 +350,12 @@ summary(fe_model)
 library(mediation)
 
 med_model <- mediate(
-  model.m = lm(spi_comp ~ di_score + log(gdppc) + population + gini, data = fd_fe_data),
-  model.y = lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + population + gini, data = fd_fe_data),
+  model.m = lm(spi_comp ~ di_score + log(gdppc) + gini, data = fd_fe_data),
+  model.y = lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + gini, data = fd_fe_data),
   treat = "aut_ep",
   mediator = "spi_comp"
 )
 
 summary(med_model)
-```
-
-
-# Significance of factor(year) Dummy Variable 
-
-## factor(year) for OLS: SDG ~ SPI
-```{r}
-#excludes year dummy 
-ols_spi <- lm(y_var_sdg ~ x_var_spi + log_gdppc + population + di_score + gini, data = merged)
-summary(ols_spi)
-
-#includes year dummy 
-ols_spi_fyr <- lm(y_var_sdg ~ x_var_spi + log_gdppc + population + di_score + gini + factor(year), data = merged)
-summary(ols_spi_fyr)
-
-# Joint significance
-anova(ols_spi, ols_spi_fyr)
-```
-
-## factor(year) for OLS: SDG ~ SCI
-```{r}
-#excludes year dummy 
-ols_sci <- lm(y_var_sdg ~ x_var_sci + log_gdppc + population + di_score + gini, data = merged)
-summary(ols_sci)
-
-#includes year dummy 
-ols_sci_fyr <- lm(y_var_sdg ~ x_var_sci + log_gdppc + population + di_score + gini + factor(year), data = merged)
-summary(ols_sci_fyr)
-
-# Joint significance
-anova(ols_sci, ols_sci_fyr)
-```
-
-## factor(year) for OLS: SDG ~ SPI + SCI 
-```{r}
-#excludes year dummy 
-ols_multiple <- lm(y_var_sdg ~ x_var_spi + x_var_sci + log_gdppc + population + di_score + gini, data = merged)
-summary(ols_multiple)
-
-#includes year dummy 
-ols_multiple_fyr <- lm(y_var_sdg ~ x_var_spi + x_var_sci + log_gdppc + population + di_score + gini + factor(year), data = merged)
-summary(ols_multiple_fyr)
-
-# Joint significance
-anova(ols_multiple, ols_multiple_fyr)
-```
-
-
-## VIF: Check for multicollinearity for models 
-```{r}
-# mainly concerned abt log_gdppc & factor(time)
-
-#SPI VIF 
-car::vif(ols_spi_fyr)  
-
-#SCI VIF
-car::vif(ols_sci_fyr) 
-
-#SPI + SCI VIF
-car::vif(ols_multiple_fyr) 
 ```
 
