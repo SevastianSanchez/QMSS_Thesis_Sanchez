@@ -152,6 +152,7 @@ The R-squared values are relatively low across all models (between 0.004 and 0.0
 
 3.  The consistently positive intercepts (ranging from 0.224 to 0.364) indicate that SDG scores tend to improve over time regardless of changes in statistical capacity, though the rate of improvement varies by income level.
 
+
 ## FD Visual Analysis: SDG ~ SPI + Income Groups 
 
 **Error-bar**
@@ -202,63 +203,6 @@ fd_scatter
 
 
 
-
-
-# Backsliding FE Model 
-```{r}
-#NICEEEE THIS WORKS!!
-regressed <- fd_fe_data %>%
-  # Filter to post-2015 first (if you want to check events only in this period)
-  filter(year >= 2015) %>%
-  # Group by country to check for any event
-  group_by(country_code) %>%
-  # Flag countries with at least one aut_ep == 1
-  mutate(has_aut_ep = any(aut_ep == 1, na.rm = TRUE)) %>%
-  ungroup() %>%
-  # Keep only countries with at least one event
-  filter(has_aut_ep) %>%
-  # Remove the helper column
-  select(-has_aut_ep)
-
-# panel df - all backsliding 
-panel_regressed <- pdata.frame(
-  regressed, 
-  index = c("country_code", "year"))  # Replace 'year' with your time variable
-
-# FE Model - ALL
-fe_testing_all <- plm(
-  formula = spi_comp ~ di_score + log_gdppc + aut_ep + factor(year), 
-  data = panel_regressed,
-  model = "within")
-summary(fe_testing_all)
-coeftest(fe_testing_all, vcov = vcovHC(fe_testing_all, cluster = "group", type = "HC1"))
-
-# Single Country: Hungary 
-hun_regressed <- regressed %>% 
-  filter(country_code == "HUN")
-
-# panel df - Hungary 
-panel_data_hun <- pdata.frame(
-  hun_regressed, 
-  index = c("country_code", "year")  # Replace 'year' with your time variable
-)
-
-# FE model - Hungary 
-fe_testing <- plm(
-  formula = spi_comp ~ di_score + log_gdppc + factor(year), 
-  data = panel_data_hun,
-  model = "within")
-summary(fe_testing)
-coeftest(fe_testing, vcov = vcovHC(fe_testing, cluster = "group", type = "HC1"))
-```
-
-```{r}
-# subset of countries that experienced atleast 1 democratization event 
-democratized <- merged %>% 
-  group_by(country_code) %>%
-  filter(dem_ep == 1) %>%
-  ungroup()
-```
 
 
 
@@ -314,48 +258,35 @@ print(gml_testing)
 summary(gml_testing)
 ```
 
-#First difference
-```{r}
-fd_model <- plm(
-  spi_comp ~ di_score + log(gdppc) + year_fct + gini,
-  data = merged_testing,
-  index = c("country_code", "year"),
-  model = "fd"
-)
-
-summary(fd_model)
-
-# Check for serial correlation
-lmtest::dwtest(fd_model)
-
-```
 
 
-## Fixed Effects Model
 ```{r}
 library(plm)
-fe_model <- plm(sdg_overall ~ spi_comp + regime_type + log_gdppc,
-                data = merged_testing, 
-                index = c("country_code", "year"), 
-                model = "within")
+library(lmtest)
 
-summary(fe_model)
-```
-
-
-# Mediation Model: SDG ~ SPI(DI)
-```{r}
-# Model SPI’s effect on SDG outcomes with regime change as mediator
-
-library(mediation)
-
-med_model <- mediate(
-  model.m = lm(spi_comp ~ di_score + log(gdppc) + gini, data = fd_fe_data),
-  model.y = lm(sdg_overall ~ spi_comp + di_score + log(gdppc) + gini, data = fd_fe_data),
-  treat = "aut_ep",
-  mediator = "spi_comp"
+# First stage: DI → SPI
+fe_stage1 <- plm(
+  spi_comp ~ lag(di_score, 1) + lag(spi_comp, 1) + log_gdppc + factor(year),
+  data = fd_fe_data,
+  index = c("country_code", "year"),
+  model = "within",
+  effect = "twoways"
 )
 
-summary(med_model)
+# Second stage: SPI → SDG (with DI as control)
+fe_stage2 <- plm(
+  sdg_overall ~ spi_comp + lag(di_score, 1) + lag(sdg_overall, 1) + log_gdppc + factor(year),
+  data = your_data,
+  index = c("country", "year"),
+  model = "within",
+  effect = "twoways"
+)
+
+# Report with HAC standard errors (Newey-West)
+results_stage1 <- coeftest(fe_stage1, vcov = NeweyWest(fe_stage1, lag = 1))
+results_stage2 <- coeftest(fe_stage2, vcov = NeweyWest(fe_stage2, lag = 1))
+
+# Extract indirect effect (DI → SPI → SDG)
+indirect_effect <- coef(fe_stage1)["lag(di_score, 1)"] * coef(fe_stage2)["spi_comp"]
 ```
 
