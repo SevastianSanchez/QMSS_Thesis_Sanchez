@@ -58,14 +58,6 @@ fe_spi_di_lag3 <- plm(
   model = "within" 
 )
 
-###### SPI ~ DI (M ~ X) ###### LAG + DVL 
-fe_spi_di_lag4 <- plm(
-  formula = spi_comp ~ di_score + lag(di_score, 1) + lag(spi_comp, 1) + log_gdppc + factor(year),
-  index = c("country_code", "year"),
-  data = fd_fe_data,
-  model = "within" 
-)
-
 #Creating AIC/BIC function for plm models 
 plm_aic_bic <- function(model) {
   res <- residuals(model)
@@ -88,7 +80,6 @@ fe_spi_di_lag4
 plm_aic_bic(fe_spi_di1)
 plm_aic_bic(fe_spi_di_lag2)
 plm_aic_bic(fe_spi_di_lag3)
-plm_aic_bic(fe_spi_di_lag4)
 ```
 
 
@@ -121,26 +112,15 @@ fe_sdg_spi_lag3 <- plm(
   model = "within"
 )
 
-###### SDG ~ SPI (Y ~ M) ###### 4. LAGS + LDV
-fe_sdg_spi_lag4 <- plm(
-  sdg_overall ~ lag(spi_comp, 1) + lag(di_score, 1) + lag(sdg_overall, 1) + log_gdppc + factor(year),
-  index = c("country_code", "year"),
-  data = fd_fe_data,
-  effect = "twoways",
-  model = "within"
-)
-
 #Models 
 fe_sdg_spi1
 fe_sdg_spi_lag2
 fe_sdg_spi_lag3
-fe_sdg_spi_lag4
 
 # Comparing fit 
 plm_aic_bic(fe_sdg_spi1)
 plm_aic_bic(fe_sdg_spi_lag2)
 plm_aic_bic(fe_sdg_spi_lag3)
-plm_aic_bic(fe_sdg_spi_lag4)
 ```
 
 
