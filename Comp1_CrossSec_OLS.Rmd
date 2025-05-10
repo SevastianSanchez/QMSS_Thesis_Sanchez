@@ -75,7 +75,7 @@ write.table(merged_cleaned, file = 'data/Main CSV Outputs/merged_cleaned.csv', r
 ```{r echo=TRUE}
 #Load final cleaned 'merged' Dataset & selecting variables 
 merged_final <- read_csv("data/Main CSV Outputs/merged_cleaned.csv") %>% 
-  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, income_level, income_level_lab, log_gdppc, gini, population, p1_use, p2_services, p3_products, p4_sources, p5_infra, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17)
+  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, income_level, income_level_lab, gdp_pc, log_gdppc, gini, population, p1_use, p2_services, p3_products, p4_sources, p5_infra, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17)
 
 #writing final merged csv 
 write.table(merged_final, file = 'data/Main CSV Outputs/merged_final_df.csv', row.names=F, sep = ",")

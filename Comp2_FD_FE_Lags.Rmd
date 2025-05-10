@@ -54,20 +54,21 @@ fd_fe_data <- fd_fe_data %>%
   ungroup() 
 ```
 
-# TEST 1: OLS Mediation analysis [REDO RESULTS FOR ROBUST SEs]
+# Mediation analysis
 To test if SPI mediates the relationship between regime type and SDG outcomes:  
 Democratic backsliding → reduces SPI → slows SDG progress  
 
 *H0: SPI DOES NOT mediate (indirectly effect) the relationship between regime type and SDG status* 
 *H1: SPI mediates (indirectly effects) the relationship between regime type and SDG status* 
 
-# TEST X: The effect of democracy score on SDG (Y ~ X)
+## TEST 1: OLS (Y ~ X), The effect of democracy score on SDG
 ```{r}
-#Total Effect: Check if regime type directly affects SDG scores (without SPI) + Controls & RobustSEs
+#Total Effect: (Y ~ X) Check if regime type directly affects SDG scores (without SPI) + Controls & RobustSEs
 sdg_di_ols <- plm(formula = sdg_overall ~ di_score + log_gdppc + factor(year), 
                         index = c("country_code", "year"),
                         model = "pooling", 
                         data = fd_fe_data)
+summary(sdg_di_ols)
 summary(sdg_di_ols, vcov = vcovHC(sdg_di_ols, cluster = "group", type = "HC1"))
 
 #plot relationship
@@ -83,8 +84,13 @@ plot_sdg_di <- ggplot(fd_fe_data, aes(x = di_score, y = sdg_overall)) +
 
 plot_sdg_di
 ```
+This OLS is applied to check if democracy level directly affects SDG scores (without SPI). This is the first step in the mediation analysis to test if statistical capacity mediates the relationship between democracy levels and sustainable development progress. Controlling for log GDP Per Capita, a one point increase of SDG performance (0-100 scale) is associated with a 1.2 point increase in democracy levels of countries, on average. This relationship is highly statistically significant (p < 0.001). 
 
-## TEST X: OLS The effect of democracy score on SDG (Y ~ M ~ X)
+di_score: 1.215181 (p <2e-16)
+log_gdppc: 4.412016 (p <2e-16)
+
+
+## TEST 2: OLS The effect of democracy score on SDG (Y ~ M ~ X)
 - ACME (Average Causal Mediation Effect): SPI’s indirect effect.
 - ADE (Average Direct Effect): Regime type’s direct effect, excluding SPI
 ```{r}
@@ -96,14 +102,13 @@ summary(med_spi_ols, vcov = vcovHC(med_spi_ols, cluster = "group", type = "HC1")
 output_sdg_ols <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + factor(year), data = fd_fe_data)
 summary(output_sdg_ols, vcov = vcovHC(output_sdg_ols, cluster = "group", type = "HC1"))
 
-#seed to reproduce estimates 
-set.seed(125)
 #OLS Mediation test: Quantify how much of regime type’s effect on SDGs operates through SPI
+set.seed(125) #for replicability 
 med_model <- mediate(med_spi_ols, output_sdg_ols, 
                      treat = "di_score", 
                      mediator = "spi_comp", 
-                     sims = 1000, 
-                     robustSE = TRUE)
+                     boot = TRUE,
+                     sims = 1000)
 summary(med_model)
 
 #Sensitivity Analysis: Tests how robust mediation findings are to potential unmeasured confounding variables
@@ -131,77 +136,32 @@ This tests how much unmeasured confounding would be needed to nullify the mediat
 Any unmeasured confounder would need to explain 25% of the residual variance in both models to eliminate the mediation effect (R²_MR²_Y = 0.25). 
 -----------------------------------------------------------------------------------------------------
 
-# **First Difference & Fixed Effects**
+# **Fixed Effects**
+[description...]
 
-## TEST X, First Difference: SPI ~ DI & SDG ~ SPI 
-**First Difference (FD)** removes all time-invariant characteristics of each unit (like geography, culture, or baseline wealth). However, variables that do change over time, such as GDP per capita, should be controlled.
+## TEST 2: Fixed Effects Models (Y ~ M ~ X)
 ```{r}
-###### SPI ~ DI (M ~ X) ######
-fd_spi_di <- plm(
-  formula = spi_comp ~ di_score + log_gdppc,
+###### Total Effect: SDG ~ DI (Y ~ X) ######
+fe_sdg_di <- plm(
+  formula = sdg_overall ~ di_score + log_gdppc + factor(year),
   index = c("country_code", "year"),
-  data = fd_fe_data, #sub = (has_aut_ep == TRUE),
-  model = "fd" #FD
-) 
-# Country-level custard Robust SEs
-summary(fd_spi_di, vcov = vcovHC(fd_spi_di, cluster = "group", type = "HC1"))
-
-###### SDG ~ SPI (Y ~ M) ######
-fd_sdg_spi <- plm(
-  formula = sdg_overall ~ spi_comp + di_score + log_gdppc,
-  index = c("country_code", "year"),
-  data = fd_fe_data, 
-  model = "fd" #FD
+  data = fd_fe_data,
+  model = "within" #FE
 )
-# Country-level custard Robust SEs
-summary(fd_sdg_spi, vcov = vcovHC(fd_sdg_spi, cluster = "group", type = "HC1"))
+summary(fe_sdg_di)
+summary(fe_sdg_di, vcov = vcovHC(fe_sdg_di, cluster = "group", type = "HC1")) # Robust SEs
 
-###### MEDIATION ANALYSIS (Y ~ (M) ~ X) ######
-#seed 
-set.seed(124)
-
-med_fd_results <- mediate(
-  fd_spi_di, # mediator model
-  fd_sdg_spi, # outcome model 
-  treat = "di_score",   # Treatment variable (regime change)
-  mediator = "spi_comp", # SPI mediator
-  robustSE = TRUE
-)
-summary(med_fd_results)
-
-# Sensitivity Analysis: after running mediation
-sens_med_fd <- medsens(med_fd_results, rho.by = 0.1)
-plot(sens_med_fd)
-
-#### pbg tests for autocorrelation ####
-pbgtest(fd_spi_di, order = 1) # AR(1)
-pbgtest(fd_sdg_spi, order = 2) # AR(2)
-```
-
-Results: 
-
-FD Models: 
-SPI ~ DI: -0.9927 (p = 0.0083**)
-  Adj.R-squared: 0.0076734
-SDG ~ SPI: 0.0158 (p = 0.0032**)
-  Adj.R-squared:
-On average, when a country improves its DI score by 1 point, that same country typically sees a -0.9927-point fall in SPI. 
-On average, when a country improves its SPI score by 1 point, that same country typically sees a 0.0158-point fall in SDG score.  
-
-
-## TEST X, Fixed Effects Models: SPI ~ DI & SDG ~ SPI  
-**Fixed Effects (FE)** [description...]
-```{r}
-###### SPI ~ DI (M ~ X) ######
+###### Mediator: SPI ~ DI (M ~ X) ######
 fe_spi_di <- plm(
   formula = spi_comp ~ di_score + log_gdppc + factor(year),
   index = c("country_code", "year"),
   data = fd_fe_data,
   model = "within" #FE
 )
+summary(fe_spi_di)
 summary(fe_spi_di, vcov = vcovHC(fe_spi_di, cluster = "group", type = "HC1")) # Robust SEs
 
-###### SDG ~ SPI (Y ~ M) ######
+###### Outcome: SDG ~ SPI (Y ~ M) ######
 fe_sdg_spi <- plm(
   sdg_overall ~ spi_comp + di_score + log_gdppc + factor(year),
   index = c("country_code", "year"),
@@ -212,89 +172,237 @@ summary(fe_sdg_spi)
 summary(fe_sdg_spi, vcov = vcovHC(fe_sdg_spi, cluster = "group", type = "HC1")) # Robust SEs
 
 ####### MEDIATION ANALYSIS (Y ~ (M) ~ X) ####### 
-#seed
-set.seed(124)
+# converted to lm form: total effect
+#fe_sdg_di_lm <- lm(
+#  sdg_overall ~ di_score + log_gdppc + 
+#    factor(year) + factor(country_code),
+#  data = fd_fe_data
+#)
+# converted to lm form: mediation
+#fe_spi_di_lm <- lm(
+#  spi_comp ~ di_score + log_gdppc + 
+#    factor(year) + factor(country_code),
+#  data = fd_fe_data
+#)
+# converted to lm form: outcome 
+#fe_sdg_spi_lm <- lm(
+#  sdg_overall ~ spi_comp + di_score + log_gdppc + 
+#    factor(year) + factor(country_code),
+#  data = fd_fe_data
+#)
 
-med_fe_results <- mediate(
-  fe_spi_di, # mediator model
-  fe_sdg_spi, # outcome model 
-  treat = "di_score",   # Treatment variable (regime change)
-  mediator = "spi_comp", # SPI mediator
-  robustSE = TRUE
-)
-summary(med_fe_results)
+#Mediation model 
+#set.seed(124) #seed
+#med_fe_results <- mediate(
+#  fe_spi_di_lm, # mediator model
+#  fe_sdg_spi_lm, # outcome model 
+#  treat = "di_score",   # Treatment variable (regime change)
+#  mediator = "spi_comp", # SPI mediator
+#  robustSE = TRUE
+#)
+#summary(med_fe_results)
 
-# Sensitivity Analysis: after running mediation
-sens_med_fe <- medsens(med_fe_results, rho.by = 0.1)
-plot(sens_med_fe)
+# Sensitivity Analysis
+#sens_med_fe <- medsens(med_fe_results, rho.by = 0.1)
+#plot(sens_med_fe)
 
 #### pbg tests for autocorrelation ####
+# total effect 
+pbgtest(fe_sdg_di, order = 1) # AR(1)
+pbgtest(fe_sdg_di, order = 2) # AR(2)
+# mediator 
 pbgtest(fe_spi_di, order = 1) # AR(1)
 pbgtest(fe_spi_di, order = 2) # AR(2)
+# outcome
+pbgtest(fe_sdg_spi, order = 1) # AR(1)
+pbgtest(fe_sdg_spi, order = 2) # AR(2)
 ```
-Results:
+FE Results: Both the total effect and mediator models are not statistically significant. The outcome model, however, the effect of the independent variable (statistical capacity measured in SPI) on the dependent variable (SDG performance), with all time-invariant factors constant, indicate that a one unit increase in statistical capacity is associated with a 0.0439 point increase in SDG progress. This relationship is statistically significant (p < 0.05).
 
-SPI ~ DI: -0.4976 (p = 0.3886) [not significant]
-  factor(year): 2.0536 (p < 2e-16***)
-SDG ~ SPI: 0.0324 (p = 0.1247) [not significant]
-  factor(year): 2.5292e-01 (p < 2.2e-16***)
+Additionally, within democracy level (di_score) and SDG progress (sdg_overall) relationship (total effect model), all year coefficients (factored to measure within unit changes), incrementally increase starting from years 2017 to 2023. There is a similar upward trend found between statistical capacity (spi_comp) and democracy level (mediator model) and between SDG performance and statistical capacity (outcome model). All models exhibit extremely high statistical significance across all years (p < 0.001). 
 
-SPI~DI is not statistically significant. This contrasts from previous first difference estimates that found both SPI~DI and SDG~SPI models statistically significant (p < 0.05). Interestingly, the factored-year variable (factor(year)) in both FE models are extremely statistically significant with increasing coefficient estimates over the years. This suggests underlying trends that statistical capacity is, on average, increasing based on the model. 
+Total Effect (SDG ~ DI): 0.103688 (p = 0.2746) [not significant]
+  factor(2017): 0.432077 (p < 0.001) [significant]
+  factor(2023): 2.179580 (p < 0.001) [significant]
+Mediator (SPI ~ DI): -0.4976 (p = 0.3886) [not significant]
+  factor(2017): 0.432077 (p < 0.001) [significant]
+  factor(2023): 2.179580 (p < 0.001) [significant]
+Outcome (SDG ~ SPI): 0.043900 (p = 0.003263**) [significant]
+  factor(2017): 0.432077 (p < 0.001) [significant]
+  factor(2023): 2.179580 (p < 0.001) [significant]
 
-## TEST X: Granger Tests: DI & SPI
+Given the total effect two-way fixed effects models are statistically significant, there is no evidence of a possible mediation pathway between democracy levels and SDG progress. Accordingly, there is no reason to assume that statistical capacity mediates this relationship. No mediation analysis is necessary. 
+
+*Panel Breusch-Godfrey Test for Autocorrlation*
+This study adopts the Breusch-Godfrey (BG) approach to detect *high order* autocorrelation in panal data, in addition to other forms of testing. The results identify significant autocorrelation found in all three models: total effect, mediator and outcome models. 
+
+## TEST X, First Difference: SPI ~ DI & SDG ~ SPI [FOR ROBUSTNESS]
+**First Difference (FD)** removes all time-invariant characteristics of each unit (like geography, culture, or baseline wealth). However, variables that do change over time, such as GDP per capita, should be controlled.
+```{r}
+#fd dataframe 
+fd_data <- fd_fe_data %>%
+  select(country_code, year, sdg_overall, di_score, spi_comp, log_gdppc) %>%
+  filter(!is.na(di_score) & !is.na(spi_comp)) %>% 
+  arrange(country_code, year) %>%
+  group_by(country_code) %>%
+  # Create first differences for selected variables
+  mutate(
+    sdg_diff = sdg_overall - dplyr::lag(sdg_overall, n=1),
+    di_diff = di_score - dplyr::lag(di_score, n=1),
+    spi_diff = spi_comp - dplyr::lag(spi_comp,n=1),
+    log_gdppc_diff = log_gdppc - dplyr::lag(log_gdppc, n=1)
+  ) %>%
+  ungroup()
+
+###### Total Effect: SDG ~ SPI (Y ~ X) ######
+fd_spi_di <- plm(
+  formula = sdg_overall ~ di_score + log_gdppc,
+  index = c("country_code", "year"),
+  data = fd_data, 
+  model = "fd"
+) 
+# Country-level custard Robust SEs
+summary(fd_spi_di, vcov = vcovHC(fd_spi_di, cluster = "group", type = "HC1"))
+
+###### Mediator: SPI ~ DI (M ~ X) ######
+fd_spi_di <- plm(
+  formula = spi_comp ~ di_score + log_gdppc,
+  index = c("country_code", "year"),
+  data = fd_data, #sub = (has_aut_ep == TRUE),
+  model = "fd"
+) 
+# Country-level custard Robust SEs
+summary(fd_spi_di, vcov = vcovHC(fd_spi_di, cluster = "group", type = "HC1"))
+
+###### Outcome: SDG ~ SPI (Y ~ M) ######
+fd_sdg_spi <- plm(
+  formula = sdg_overall ~ spi_comp + di_score + log_gdppc,
+  index = c("country_code", "year"),
+  data = fd_data, 
+  model = "fd"
+)
+# Country-level custard Robust SEs
+summary(fd_sdg_spi, vcov = vcovHC(fd_sdg_spi, cluster = "group", type = "HC1"))
+
+###### MEDIATION ANALYSIS (Y ~ (M) ~ X) #######
+
+# mediation 
+fd_spi_di_lm <- lm(
+  spi_diff ~ di_diff + log_gdppc_diff,
+  data = fd_data
+)
+# outcome 
+fd_sdg_spi_lm <- lm(
+  sdg_diff ~ spi_diff + di_diff + log_gdppc_diff,
+  data = fd_data
+)
+
+# mediation model 
+set.seed(124) #seed 
+med_results <- mediate(
+  model.m = fd_spi_di_lm,  # Mediator model (DI → SPI)
+  model.y = fd_sdg_spi_lm, # Outcome model (SPI → SDG, controlling for DI)
+  treat = "di_diff",       # Treatment variable (first-differenced DI)
+  mediator = "spi_diff",   # Mediator (first-differenced SPI)
+  boot = TRUE,             # Use bootstrapping for SEs
+  sims = 1000              # Number of bootstrap samples
+)
+summary(med_results)
+
+# Sensitivity Analysis: after running mediation
+sens_med_fd <- medsens(med_fd_results, rho.by = 0.1)
+plot(sens_med_fd)
+
+##### pbg tests for autocorrelation ####
+pbgtest(fd_spi_di, order = 1) # AR(1)
+pbgtest(fd_sdg_spi, order = 2) # AR(2)
+```
+total effect: On average, when a country improves it's democracy score (di_score) by 1 point, that same country typically sees a 0.029029 increase in SDG progress, holding log GDP per capita constant. However, this model is not statistically significant, which contrasts the significant results of the total effect fixed effect's model (Y ~ X).
+
+mediator: On average, when a country improves it's democracy score (di_score) by 1 point, that same country typically sees a -0.711012-point fall in statistical capacity (spi_comp), holding log GDP per capita constant. Unlike that of the fixed effects model, first difference estimates between SPI and Democracy Index scores are statistically significant. *[FACT CHECK]*
+
+outcome: Similarly, on average, when a country experiences a 1 point increase in statistical capacity (spi_comp), that same country typically sees a 0.0162939-point increase in SDG score, holding log GDP per capita constant. Like the mediator model, the effect is statistically significant in the outcome model. 
+
+Total Effect (SDG ~ DI): 0.022099 (p = 0.7925) [not significant]
+Mediator (SPI ~ DI): -0.711012 (p = 0.033029*) [significant]
+Outcome (SDG ~ SPI): 0.0162939 (p = 0.00658**) [significant]
+
+Although there is no statistically significant relationship that suggests that changes in democracy scores have a *direct* affect on SDG performance, there is significant evidence of a potential *indirect* mediation pathway between democracy levels and SDG progress. The presence of a non-significant total effect does not preclude the existence of mediation, as indirect pathways (e.g., DI → SPI → SDG) may be obscured by countervailing direct effects or temporal heterogeneity in the mediation process. First-difference models, which isolate short-term within-country variation, are particularly adept at identifying immediate mediation mechanisms-such as rapid improvements in statistical capacity (SPI) following democratic reforms (DI) that static specifications may overlook due to aggregation over time.
+
+[something here about incrementalism in democratic backsliding]
+
+## TEST 3: Panel Granger Tests: DI & SPI
 Essentially tests whether a predictor variable in a prior year has an affect on a present day dependent variable. In this case, my study utilizes a granger test to both understand directionality of effects, assessing potential reverse causality of x and y variables, and determine the need to incorporate lagged predictors (DI and SPI variables).
 ```{r}
-bal_granger_data <- fd_fe_data %>% select(sdg_overall, spi_comp, di_score, year, country_code)
-colSums(is.na(bal_granger_data))
+#balancing panel data 
+bal_granger <- fd_fe_data %>%
+  select(country_code, year, sdg_overall, spi_comp, di_score) %>% 
+  group_by(country_code) %>%
+  filter(!any(is.na(across(everything())))) %>%
+  ungroup()
 
-# SPI ~ DI [SIGNIFICANT]
-pgrangertest(formula = spi_comp ~ di_score, order = 1, 
-            index = c("country_code", "year"), 
-            test = "Zbar",  # Changed to Zbar? [according to perplexity]
-            data = bal_granger_data)
-pgrangertest(spi_comp ~ di_score, order = 2, 
-            index = c("country_code", "year"), 
-            data = bal_granger_data)
+# validation 
+table(bal_granger$country_code) # Number of rows per country
+colSums(is.na(bal_granger)) # Number of NAs per column 
 
-# DI ~ SPI [NOT]
-pgrangertest(di_score ~ spi_comp, order = 1, 
+# Identify countries lost due to NA filtering
+original_countries <- unique(fd_fe_data$country_code) #all data
+filtered_countries <- unique(bal_granger$country_code) #filtered data
+lost_countries <- setdiff(original_countries, filtered_countries) # Countries lost
+# print lost countries 
+print(lost_countries)
+
+# SPI ~ DI (order = 1 and 2) 
+spi_di_order1 <- pgrangertest(formula = spi_comp ~ di_score, order = 1, # [SIGNIFICANT]
             index = c("country_code", "year"), 
-            data = fd_fe_data)
-pgrangertest(di_score ~ spi_comp, order = 2, 
+            test = "Zbar",  # Zbar needed for balanced panels 
+            data = bal_granger)
+spi_di_order2 <- pgrangertest(formula = spi_comp ~ di_score, order = 2, # [SIGNIFICANT]
             index = c("country_code", "year"), 
-            data = fd_fe_data)
+            test = "Zbar",
+            data = bal_granger)
+
+# DI ~ SPI (order = 1 and 2) 
+di_spi_order1 <- pgrangertest(formula = di_score ~ spi_comp, order = 1, # [SIGNIFICANT]
+            index = c("country_code", "year"), 
+            test = "Zbar",
+            data = bal_granger)
+di_spi_order2 <- pgrangertest(formula = di_score ~ spi_comp, order = 2, # [SIGNIFICANT, over-fitting warning]
+            index = c("country_code", "year"), 
+            test = "Zbar",
+            data = bal_granger)
 ```
 
 spi_comp ~ di_score[order=1]: F = 16.97, p = 4.048e-05 (***)
-- As speculated/hypothesized, democracy scores (di_score) DO help predict current SPI scores. 
-- Although we recieve statistically significant results upon increasing the lag order, the F statistic drops sharply from 16.97 to 8.8021 and then continues falling gradually, as p-value increases ever so slightly (although still extremely below alpha 0.05). Accordingly, 1st orderd lagged di_score predictors are optimal and sufficient for the following Fixed Effects models. 
+- As speculated/hypothesized, democracy scores (di_score) do help predict current SPI scores. 
+- Although we receive statistically significant results upon increasing the lag order, the F statistic drops sharply from 16.97 to 8.8021 and then continues falling gradually, as p-value increases ever so slightly (although still extremely below alpha 0.05). Accordingly, 1st orderd lagged di_score predictors are optimal and sufficient for the following Fixed Effects models. 
 
 di_score ~ spi_comp[order=1]: F = 0.4086, p = 0.5228
 - As expected, past SPI scores do NOT help predict current democracy scores (di_score)
 - even incorporating more lags, the relationships remain not statistically significant 
 
-**Bottom Line**
-Changes in regime characteristics precede changes in statistical capacity, NOT vice versa???
-
-## TEST X: Granger Tests: SPI & SDG
+## TEST 4: Granger Tests: SPI & SDG
 ```{r}
-# SDG ~ SPI [SIGNIFICANT?]
-pgrangertest(sdg_overall ~ spi_comp, order = 1, 
+# SDG ~ SPI (order = 1 and 2)
+sdg_spi_order1 <- pgrangertest(sdg_overall ~ spi_comp, order = 1, # [SIGNIFICANT]
              index = c("country_code", "year"), 
-             data = fd_fe_data)
-pgrangertest(sdg_overall ~ spi_comp, order = 2, 
+             test = "Zbar",
+             data = bal_granger)
+sdg_spi_order2 <- pgrangertest(sdg_overall ~ spi_comp, order = 2, # [SIGNIFICANT]
              index = c("country_code", "year"),
-             data = fd_fe_data)
+             test = "Zbar",
+             data = bal_granger)
 
-# SPI ~ SDG [NOT?]
-pgrangertest(spi_comp ~ sdg_overall, order = 1, 
+# SPI ~ SDG (order = 1 and 2)
+spi_sdg_order1 <- pgrangertest(spi_comp ~ sdg_overall, order = 1, # [SIGNIFICANT]
              index = c("country_code", "year"), 
-             data = fd_fe_data)
-pgrangertest(spi_comp ~ sdg_overall, order = 2, 
+             test = "Zbar",
+             data = bal_granger)
+spi_sdg_order2 <- pgrangertest(spi_comp ~ sdg_overall, order = 2, # [SIGNIFICANT]
              index = c("country_code", "year"), 
-             data = fd_fe_data)
+             test = "Zbar",
+             data = bal_granger)
 ```
-Results:
 
 SDG~SPI [order = 1]: F = 2.5447, p = 0.1109
 
@@ -302,48 +410,70 @@ SPI~SDG [order = 1]: F = 8.7453, p = 0.00316 (**)
 
 Unexpectedly, the results of the granger causality tests showed that it is SDG status that preceeds changes in statistical capacity, similar to DI score. It is possible that certain SDG goals/indicators could predict statistical capacity, such as SDG 17 (strong institutions) and/or SDG 4 (Quality Education) that could facilitate the growth of national statistical capacity. Deeper analysis of separate SDG score (disaggregated by individual score 1-17) impacts on predictor variables (in a similar methodological scheme) would provide interesting insights into this 'chicken or the egg' problem on a deeper level. This study reconsiders strategy due to suprising, but valid, evidence of reverse causality.  
 
+## P Granger Test Dataframe 
+```{r}
+# loads function to extract and build df 
+source("panel_granger_function.R")
+
+# granger results dataframe 
+pgranger_results <- extract_pgrang_results(spi_di_order1, spi_di_order2, di_spi_order1, di_spi_order2, sdg_spi_order1, sdg_spi_order2, spi_sdg_order1, spi_sdg_order2)
+
+#save file
+write.csv(pgranger_results, file = "output_CSVs/pgranger_results.csv")
+```
+
+
 # Temporal Dependent Lags
 Considering results from the granger test, there is evidence that democracy score changes preceed changes in SPI (first). This is in line with studies that sustain it can take some time for implementation of statistical capacity structures to produce results.
 
 Similarly, I suspect that regime transition has a delayed effect on statistical capacity, although I suspect it varies in time (do we notice a drop in SPI as a precondition or a symptom of autocratization)?
 
-## Significant Autocorrelation: create lagged variables and first differences [MAY NOT NEED]
-
+## TEST X, Fixed Effects + LAGS: SPI ~ DI & SDG ~ SPI
 ```{r eval=FALSE, include=FALSE}
-# Create lagged variables and first differences
-panel_data <- panel_data %>%
-  arrange(country_code, year) %>% 
-  group_by(country_code) %>%
-  mutate(
-    # 1 year lags
-    sdg_lag_1 = dplyr::lag(sdg_overall, n = 1),
-    spi_lag_1 = dplyr::lag(spi_comp, n = 1),
-    di_lag_1 = dplyr::lag(di_score, n = 1),
-    # 2-year lags 
-    sdg_lag_2 = dplyr::lag(sdg_overall, n = 2),
-    spi_lag_2 = dplyr::lag(spi_comp, n = 2),
-    di_lag_2 = dplyr::lag(di_score, n = 2),
-    
-    # Calculate first differences
-    fd_sdg_1 = sdg_overall - sdg_lag_1,
-    fd_spi_1 = spi_comp - spi_lag_1,
-    fd_di_1 = di_score - di_lag_1,
-    fd_sdg_2 = sdg_overall - sdg_lag_2,
-    fd_spi_2 = spi_comp - spi_lag_2,
-    fd_di_2 = di_score - di_lag_2
-  ) %>%
-  ungroup()
+###### SPI ~ DI (M ~ X) ######
+fe_spi_di_lag <- plm(
+  spi_comp ~ di_score + lag(di_score, 1) + lag(di_score, 2) + log_gdppc + factor(year),
+  index = c("country_code", "year"),
+  data = fd_fe_data,
+  model = "within" 
+)
+summary(fe_spi_di_lag, vcov = vcovHC(fe_spi_di_lag, cluster = "group", type = "HC1")) # Robust SEs
 
-# To verify the lag creation works correctly
-#head(fd_data_testing %>% dplyr::select(country_code, year, sdg_overall, sdg_lag, fd_sdg, spi_comp, spi_lag, fd_spi) %>% arrange(country_code, year), 10)
+###### SDG ~ SPI (Y ~ M) ######
+fe_sdg_spi_lag <- plm(
+  sdg_overall ~ spi_comp + lag(spi_comp, 1) + lag(spi_comp, 2) + di_score + lag(di_score, 1) + lag(di_score, 2) + log_gdppc + factor(year),
+  index = c("country_code", "year"),
+  data = fd_fe_data,
+  model = "within" 
+)
+summary(fe_sdg_spi_lag, vcov = vcovHC(fe_sdg_spi_lag, cluster = "group", type = "HC1")) # Robust SEs
+
+#### pbg tests for autocorrelation ####
+# total effect 
+pbgtest(fe_sdg_di_lag, order = 1) # AR(1)
+pbgtest(fe_sdg_di_lag, order = 2) # AR(2)
+# mediator 
+pbgtest(fe_spi_di_lag, order = 1) # AR(1)
+pbgtest(fe_spi_di_lag, order = 2) # AR(2)
+# outcome
+pbgtest(fe_sdg_spi_lag, order = 1) # AR(1)
+pbgtest(fe_sdg_spi_lag, order = 2) # AR(2)
 ```
+*fe_spi_di_lag*
+di_score: -0.31101 (p = 0.5556) [not significant]
+plm::lag(di_score, 1): 0.14895 (p=0.7736) [not significant]
 
+*fe_sdg_spi_lag*
+spi_comp: 0.0242614 (p = 0.0324657) [significant]
+plm::lag(spi_comp): 0.0239796 (p = 0.0324657) [significant]
+di_score:  0.1844171 (p = 0.0110328) [significant]
+plm::lag(di_score, 1): -0.0345650 (p = 0.7485891) [not significant]
 
 ## TEST X, First Difference + LAGS: SPI ~ DI & SDG ~ SPI 
 ```{r}
 ###### SPI ~ DI (M ~ X) ######
 fd_spi_di_lag <- plm(
-  spi_comp ~ di_score + lag(di_score, 1) + log_gdppc,
+  spi_comp ~ di_score + lag(di_score, 1) + lag(di_score, 2) + log_gdppc,
   index = c("country_code", "year"), # two-way
   data = fd_fe_data,
   model = "fd" 
@@ -352,7 +482,7 @@ summary(fd_spi_di_lag, vcov = vcovHC(fd_spi_di_lag, cluster = "group", type = "H
 
 ###### SDG ~ SPI (Y ~ M) ######
 fd_sdg_spi_lag <- plm(
-  sdg_overall ~ spi_comp + lag(spi_comp, 1) + di_score + lag(di_score, 1) + log_gdppc,
+  sdg_overall ~ spi_comp + lag(spi_comp, 1) + lag(spi_comp, 2) + di_score + lag(di_score, 1) + lag(di_score, 2) + log_gdppc,
   index = c("country_code", "year"),
   data = fd_fe_data,
   model = "fd" 
@@ -369,45 +499,7 @@ lag(spi_comp, 1): 0.0075453 (p=0.21093) [not significant]
 di_score: 0.0655585 (p=0.43406) [not significant]
 lag(di_score, 1): 0.1369567 (p=0.06269) [kinda/not significant]
 
-## TEST X, Fixed Effects + LAGS: SPI ~ DI & SDG ~ SPI
-```{r eval=FALSE, include=FALSE}
-###### SPI ~ DI (M ~ X) ######
-fe_spi_di_lag <- plm(
-  spi_comp ~ di_score + plm::lag(di_score, 1) + log_gdppc + factor(year),
-  index = c("country_code", "year"),
-  data = fd_fe_data,
-  model = "within" 
-)
-summary(fe_spi_di_lag, vcov = vcovHC(fe_spi_di_lag, cluster = "group", type = "HC1")) # Robust SEs
-
-###### SDG ~ SPI (Y ~ M) ######
-fe_sdg_spi_lag <- plm(
-  sdg_overall ~ spi_comp + plm::lag(spi_comp) + di_score + plm::lag(di_score, 1) + log_gdppc + factor(year),
-  index = c("country_code", "year"),
-  data = fd_fe_data,
-  model = "within" 
-)
-summary(fe_sdg_spi_lag, vcov = vcovHC(fe_sdg_spi_lag, cluster = "group", type = "HC1")) # Robust SEs
-```
-*fe_spi_di_lag*
-di_score: -0.31101 (p = 0.5556) [not significant]
-plm::lag(di_score, 1): 0.14895 (p=0.7736) [not significant]
-
-*fe_sdg_spi_lag*
-spi_comp: 0.0242614 (p = 0.0324657) [significant]
-plm::lag(spi_comp): 0.0239796 (p = 0.0324657) [significant]
-di_score:  0.1844171 (p = 0.0110328) [significant]
-plm::lag(di_score, 1): -0.0345650 (p = 0.7485891) [not significant]
-
 ## ROBUSTNESS CHECKS [SEE DISTRIBUTED_LAGS_TESTING]
-
-### Breusch-Godfrey Autocorrelation Tests: AR(1) + AR(2)
-```{r}
-#mediator models 
-pbgtest(fe_spi_di, order = 1) # AR(1)
-pbgtest(fe_spi_di, order = 2) # AR(2)
-```
-This analysis does not test for autocorrelation by using the Durban Watson or ACF approach because they're designed for single time series models, not panel models. Instead, this study adopts the Breusch-Godfrey (BG) approach to detect *high order* autocorrelation in addition to other forms. 
 
 ## Mediation Effect: connecting Regime -> SDGs 
 Mediation analysis to formally test and quantify SPI's role in transmitting regime change effects to SDGs. This is how to quantify the connection between the Regime Change and the SDGs
@@ -447,4 +539,37 @@ summary(med_fe_lag_results)
 # After running mediation
 sens_med <- medsens(med_fe_lag_results, rho.by = 0.1)
 plot(sens_med)
+```
+
+
+# ALL MISC OR NO LONGER NEEDED OR TEMORARILY OUT OF THE WAY 
+## Significant Autocorrelation: create lagged variables and first differences [MAY NOT NEED]
+
+```{r eval=FALSE, include=FALSE}
+# Create lagged variables and first differences
+panel_data <- panel_data %>%
+  arrange(country_code, year) %>% 
+  group_by(country_code) %>%
+  mutate(
+    # 1 year lags
+    sdg_lag_1 = dplyr::lag(sdg_overall, n = 1),
+    spi_lag_1 = dplyr::lag(spi_comp, n = 1),
+    di_lag_1 = dplyr::lag(di_score, n = 1),
+    # 2-year lags 
+    sdg_lag_2 = dplyr::lag(sdg_overall, n = 2),
+    spi_lag_2 = dplyr::lag(spi_comp, n = 2),
+    di_lag_2 = dplyr::lag(di_score, n = 2),
+    
+    # Calculate first differences
+    fd_sdg_1 = sdg_overall - sdg_lag_1,
+    fd_spi_1 = spi_comp - spi_lag_1,
+    fd_di_1 = di_score - di_lag_1,
+    fd_sdg_2 = sdg_overall - sdg_lag_2,
+    fd_spi_2 = spi_comp - spi_lag_2,
+    fd_di_2 = di_score - di_lag_2
+  ) %>%
+  ungroup()
+
+# To verify the lag creation works correctly
+#head(fd_data_testing %>% dplyr::select(country_code, year, sdg_overall, sdg_lag, fd_sdg, spi_comp, spi_lag, fd_spi) %>% arrange(country_code, year), 10)
 ```
