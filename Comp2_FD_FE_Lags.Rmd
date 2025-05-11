@@ -90,7 +90,7 @@ di_score: 1.215181 (p <2e-16)
 log_gdppc: 4.412016 (p <2e-16)
 
 
-## TEST 2: OLS The effect of democracy score on SDG (Y ~ M ~ X)
+## TEST 2: OLS Democracy Score's Effect on SDG (Y ~ M ~ X)
 - ACME (Average Causal Mediation Effect): SPI’s indirect effect.
 - ADE (Average Direct Effect): Regime type’s direct effect, excluding SPI
 ```{r}
@@ -513,7 +513,7 @@ pbgtest(fd_sdg_spi_lag, order = 2) # AR(2)
 ```
 *fd_spi_di_lag*
 di_score: -0.82917 (p = 0.01966) [significant]
-plm::lag(di_score, 1): -0.64157 (p = 0.09281) [kinda/not significant]
+plm::lag(di_score, 1): -0.64157 (p = 0.09281) [significant]
 
 *fd_sdg_spi_lag*
 spi_comp: 0.0111140 (p=0.08375) [kinda/not significant]
