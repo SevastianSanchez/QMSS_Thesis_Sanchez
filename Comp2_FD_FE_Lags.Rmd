@@ -89,7 +89,6 @@ This OLS is applied to check if democracy level directly affects SDG scores (wit
 di_score: 1.215181 (p <2e-16)
 log_gdppc: 4.412016 (p <2e-16)
 
-
 ## TEST 2: OLS Democracy Score's Effect on SDG (Y ~ M ~ X)
 - ACME (Average Causal Mediation Effect): SPI’s indirect effect.
 - ADE (Average Direct Effect): Regime type’s direct effect, excluding SPI
@@ -104,7 +103,8 @@ summary(output_sdg_ols, vcov = vcovHC(output_sdg_ols, cluster = "group", type = 
 
 #OLS Mediation test: Quantify how much of regime type’s effect on SDGs operates through SPI
 set.seed(125) #for replicability 
-med_model <- mediate(med_spi_ols, output_sdg_ols, 
+med_model <- mediate(model.m = med_spi_ols, 
+                     model.y = output_sdg_ols, 
                      treat = "di_score", 
                      mediator = "spi_comp", 
                      boot = TRUE,

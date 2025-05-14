@@ -73,6 +73,7 @@ sdg_overall  spi_comp  sci_overall di_score log_gdppc   population  gini
 Number of years per variable:
 sdg_overall  spi_comp  sci_overall di_score log_gdppc  population   gini 
      20         8          17        16        20          19        20 
+
 # Histograms 
 ```{r}
 # SPI & SCI HISTOGRAMS: side-by-side layout
@@ -168,7 +169,7 @@ quant_breaks_sdg <- quantile(merged$sdg_overall, probs = c(0, 0.25, 0.5, 0.75, 1
 quant_breaks_spi <- quantile(merged$spi_comp, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
 quant_breaks_sci <- quantile(merged$sci_overall, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
 
-# Inputting SDG quartiles in main DF 
+# Inputting SDG quantiles in main DF 
 merged$sdg_quant_bins <- cut(merged$sdg_overall, 
                       breaks = quant_breaks_sdg, 
                       include.lowest = TRUE, 
@@ -238,49 +239,3 @@ summary(merged$sci_overall)
 summary(merged$di_score)
    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
   0.260   3.520   5.780   5.509   7.280   9.930     800 
-
-# Descriptive stats & Missing Data: Transitioning Countries Dataset 
-```{r}
-# new variable: experienced either kind of regime change event 
-merged <- merged %>%
-  group_by(country_code) %>%
-  mutate(either_event = as.integer(any(dem_ep == 1 | aut_ep == 1))) %>%
-  ungroup()
-
-# subset of countries that experienced atleast 1 backsliding event  
-regressed <- merged %>%
-  group_by(country_code) %>%
-  filter(aut_ep == 1) %>%
-  ungroup()
-
-# subset of countries that experienced atleast 1 democratization event 
-democratized <- merged %>% 
-  group_by(country_code) %>%
-  filter(dem_ep == 1) %>%
-  ungroup()
-
-# number of countries that experienced a regime change event (autocratization or democratization)
-n_countries_events <- length(unique(merged$country_code[merged$either_event == 1]))
-n_countries_events
-
-# number of countries that experienced autocratization
-n_countries_aut <- length(unique(merged$country_code[merged$aut_ep == 1]))
-n_countries_aut
-
-# number of countries that experienced democratization
-n_countries_dem <- length(unique(merged$country_code[merged$dem_ep == 1]))
-n_countries_dem
-
-#Frequency of countries that experienced democratization 2004-2024
-hist(merged$year[merged$regch_event==1], breaks = 20)
-
-#Frequency of countries that experienced autocratization 2004-2024
-hist(merged$year[merged$regch_event==-1], breaks = 20)
-
-#Frequency of countries that experienced no change 2004-2024
-hist(merged$year[merged$regch_event==0], breaks = 20)
-
-#frequency/proportion table: instances of backsliding, stability, democratization from 2004-2024
-table(merged$regch_event) # frequency
-prop.table(table(merged$regch_event)) # proportions 
-```

@@ -3,7 +3,19 @@ title: "Comp3_trends&backsliders"
 output: html_document
 ---
 
+# load data and packages
 ```{r}
+
+```
+
+# list of countries that experienced backsliding 
+```{r}
+# Subset for Hungary
+trends_hun_ts <- trends[trends$country_code=="HUN",]
+
+# Subset for Turkey 
+trends_tur_ts <- trends[trends$country_code=="TUR",]
+
 
 ```
 
