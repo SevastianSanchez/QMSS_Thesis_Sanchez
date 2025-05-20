@@ -97,8 +97,8 @@ event_data <- event_data %>%
   #filter(has_aut_ep == TRUE | has_dem_ep == TRUE) #FILTERS TO ONLY CHANGING REGIMES
 
 # subgroups: regressing and democratizing coutries 
-aut_data <- event_data %>% filter(has_aut_ep == 1) ## experienced atleast 1 backsliding event 
-dem_data <- event_data %>% filter(has_dem_ep == 1) ## experienced atleast 1 democratizing event 
+aut_data <- event_data %>% filter(has_aut_ep == 1) ## experienced at least 1 backsliding event 
+dem_data <- event_data %>% filter(has_dem_ep == 1) ## experienced at least 1 democratizing event 
 ```
 
 # complete regime change
