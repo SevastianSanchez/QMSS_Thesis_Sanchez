@@ -1,0 +1,21 @@
+---
+title: "DAGs"
+output: html_document
+---
+
+# packages
+```{r}
+source("packages.R")
+```
+
+# SPI -> SDG
+```{r}
+
+```
+
+
+# ...
+```{r}
+
+```
+

@@ -9,7 +9,7 @@ source("packages.R")
 
 # set working directory 
 setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
-#SOURCES
+##### SOURCES #####
 
 #Vdem package from github 
 vdem <- vdemdata::vdem %>% 

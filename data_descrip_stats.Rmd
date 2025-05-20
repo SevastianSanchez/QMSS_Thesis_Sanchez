@@ -239,3 +239,14 @@ summary(merged$sci_overall)
 summary(merged$di_score)
    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
   0.260   3.520   5.780   5.509   7.280   9.930     800 
+  
+```{r}
+library(jsonlite)
+
+# Fetch the data
+df <- read.csv("https://ourworldindata.org/grapher/democracy-index-by-source.csv?v=1&csvType=full&useColumnShortNames=true")
+
+# Fetch the metadata
+metadata <- fromJSON("https://ourworldindata.org/grapher/democracy-index-by-source.metadata.json?v=1&csvType=full&useColumnShortNames=true")
+```
+  
