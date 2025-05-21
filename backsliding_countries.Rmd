@@ -39,17 +39,8 @@ country_events <- country_events %>%
     neither_event = (aut_ep_duration == 0 & dem_ep_duration == 0) * 1 # experienced neither event 
   )
 
-# labels for sorting 
-country_events <- country_events %>%
-  mutate(event_pattern = case_when(
-    has_aut_ep == 1 & has_dem_ep == 1 ~ "Both Events", #must go first to label both events 
-    has_aut_ep == 1 ~ "Backsliding Only",
-    has_dem_ep == 1 ~ "Democratizing Only",
-    neither_event == 1 ~ "Neither Event",
-  ))
-
-# Creating summary statistics 
-summary_counts <- country_events %>%
+# frequency summary stats [inclusive]
+summary_counts_incl <- country_events %>%
   summarize(
     num_countries_with_aut_events = sum(has_aut_ep),
     num_countries_with_dem_events = sum(has_dem_ep),
@@ -58,36 +49,103 @@ summary_counts <- country_events %>%
     total_countries = n()
   )
 
-# frequency
-print(summary_counts)
+# labels for exclusive sorting [exclusive]
+country_events <- country_events %>%
+  mutate(event_pattern_excl = case_when(
+    has_aut_ep == 1 & has_dem_ep == 1 ~ "Both Events", #must go first to label both events 
+    has_aut_ep == 1 ~ "Backsliding Only",
+    has_dem_ep == 1 ~ "Democratizing Only",
+    neither_event == 1 ~ "Neither Event",
+  ))
 
-# proportions 
-print(summary_counts / 167)
-
-# frequency table of exclusive event patterns
-table(country_events$event_pattern)
-
-# proportion table of exclusive event patterns
-prop.table(country_events$event_pattern) # CANNOT DO BC event_patterns IS A STRING <-  FIX LATERRR
+# frequency summary stats [exclusive]
+summary_counts_excl <- country_events %>%
+  summarize(
+    num_countries_with_only_aut_events = sum(event_pattern_excl== "Backsliding Only"),
+    num_countries_with_only_dem_events = sum(event_pattern_excl== "Democratizing Only"),
+    num_countries_with_both_events = sum(event_pattern_excl== "Both Events"),
+    num_countries_with_neither_events = sum(event_pattern_excl== "Neither Event"),
+    total_countries = n()
+  )
 ```
-**Frequency**
-167: countries total
 
-Within the time period of 2015-2023:  
+# creating summary table of event patterns (CSV & Stargazer Table)
+```{r}
+# Frequency & proportion table of event patterns [inclusive & exclusive]
+country_events_summary <- data.frame(
+  Event_Pattern = c("Countries with Autocratization Events", 
+                    "Countries with Democratization Events", 
+                    "Countries with Either Event", 
+                    "Countries with ONLY Autocratization Events",
+                    "Countries with ONLY Democratization Events",
+                    "Countries with Both Events",
+                    "Countries with Neither Event",
+                    "Total Countries"),
+  Frequency = c(summary_counts_incl$num_countries_with_aut_events, 
+                summary_counts_incl$num_countries_with_dem_events, 
+                summary_counts_incl$num_countries_with_events, 
+                summary_counts_excl$num_countries_with_only_aut_events,
+                summary_counts_excl$num_countries_with_only_dem_events,
+                summary_counts_excl$num_countries_with_both_events,
+                summary_counts_excl$num_countries_with_neither_events,
+                summary_counts_excl$total_countries
+                ),
+  Proportion = c(summary_counts_incl$num_countries_with_aut_events / summary_counts_incl$total_countries,
+                 summary_counts_incl$num_countries_with_dem_events / summary_counts_incl$total_countries,
+                 summary_counts_incl$num_countries_with_events / summary_counts_incl$total_countries,
+                 summary_counts_excl$num_countries_with_only_aut_events / summary_counts_excl$total_countries,
+                 summary_counts_excl$num_countries_with_only_dem_events / summary_counts_excl$total_countries,
+                 summary_counts_excl$num_countries_with_both_events / summary_counts_excl$total_countries,
+                 summary_counts_excl$num_countries_with_neither_events / summary_counts_excl$total_countries,
+  summary_counts_excl$total_countries / summary_counts_excl$total_countries
+))
 
-60 countries experienced at least 1 episode of autocratization   
-  *40 countries experienced ONLY autocratization*  
-35 countries experienced at least 1 episode of democratization  
-  *15 countries experienced ONLY democratization*  
-75 countries experienced at least 1 episode of either autocratization or democratization  
-  *20 countries experienced BOTH democratization and autocratization*  
-92 countries experienced neither kind of episode, autocratization or democratization  
+# write to csv
+write_csv(country_events_summary, "output_CSVs/country_events_summary.csv")
 
-**Proportions**
+# creating stargazer table object
+country_events_table <- stargazer(country_events_summary, 
+                                    summary = FALSE, 
+                                    title = "Summary of Transition Event Patterns in 167 Countries (2015-2023)", 
+                                    type = "text", 
+                                    digits = 2,
+                                    rownames = FALSE,
+                                    align = TRUE,
+                                    no.space = TRUE,
+                                    font.size = "small",
+                                    #style = "ajps",
+                                    label = "tab:country_events_summary", 
+                                  
+                                    out = "figures/country_events_summary.txt"
+                                  )
+# print table 
+print(country_events_table)
+```
+
+**Frequency [inclusive]** 
+167: countries total; 
+within the time period of 2015-2023:  
+
+- 60 countries experienced at least 1 episode of autocratization  - 35 countries experienced at least 1 episode of democratization  
+- 75 countries experienced at least 1 episode of either autocratization or democratization  
+- 92 countries experienced neither kind of episode, autocratization or democratization
+
+**Proportions [inclusive]**
 - The proportion of countries that have experienced at least 1 episode of autocratization in the time period between 2015 and 2023 is 60/167 = 0.3592814 (35.93%)
 - The proportion of countries that have experienced at least 1 episode of democratization in the time period between 2015 and 2023 is 35/167 = 0.2095808 (20.96%)
 - The proportion of countries that have experienced either kind of transition episode (democratization or autocratization) in the time period between 2015 and 2023 is 75/167 =  0.4491018 (44.91%)
 - The proportion of countries that have NOT experienced any kind of transition episode the time period between 2015 and 2023 is 92/167 = 0.5508982 (55.09%)
+
+**Frequency [exclusive]** 
+- 40 countries experienced ONLY autocratization events
+- 15 countries experienced ONLY democratization events
+- 20 countries experienced both events (democratization and autocratization)
+
+**Proportions [exclusive]**
+- The proportion of countries that have experienced both events (democratization and autocratization) in the time period between 2015 and 2023 is 20/167 = 0.11976 (11.98%)
+- The proportion of countries that have experienced only backsliding in the time period between 2015 and 2023 is 40/167 = 0.23952 (23.95%)
+- The proportion of countries that have experienced only democratization in the time period between 2015 and 2023 is 15/167 = 0.08982 (8.98%)
+- The proportion of countries that have experienced neither event in the time period between 2015 and 2023 is 92/167 = 0.55090 (55.09%)
 
 # merging country_events df with event_data
 ```{r}
