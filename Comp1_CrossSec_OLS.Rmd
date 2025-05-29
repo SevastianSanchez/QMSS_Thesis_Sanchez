@@ -338,7 +338,7 @@ df_bptests
 Model:         BP statistic   p-value
 ols_spi           192.11       < 2.2e-16        
 ols_sci           101.71       < 2.2e-16 
-ols_multiple      36.54       < 2.169e-06
+ols_multiple      36.54        < 2.169e-06
 
 The Breusch-Pagan Test was applied to test to see whether residuals are constant across observations, which signals unaccounted non-linear relationships, especially with macro factors such as GDP Per Capita and Population in the models. This is important because Ordinary Least Squares models assume constant error variance. In such a complex world of diverse cultural and everchanging political structures across almost 200 countries, cross-national data, especially in development, is rarely ever linear. Accordingly, this test evaluates the extent of such non-linearity among specified predictors. 
 
@@ -462,7 +462,7 @@ merged_2015 <- merged %>%
          regime_type_4 = as.factor(regime_type_4))
 
 #interaction 1: does GNI Classification (income_level) affect the relationship between x (spi) & y (sdg)?
-inc_lev_interaction <- lm(sdg_overall ~ spi_comp + income_level + log_gdppc + population + factor(year), data = merged_2015)
+inc_lev_interaction <- lm(sdg_overall ~ spi_comp*income_level + log_gdppc + population + factor(year), data = merged_2015)
 summary(inc_lev_interaction)
 coeftest(inc_lev_interaction, vcov = vcovHC(inc_lev_interaction, type = "HC1")) #Robust SE
 
