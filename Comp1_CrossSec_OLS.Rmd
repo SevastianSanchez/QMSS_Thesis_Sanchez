@@ -377,7 +377,8 @@ tidy_vif <- enframe(vif_vals, name = "term", value = "vif")
 print(tidy_vif)
 ```
 
-**colinearity:** The correlation between SCI and SPI is about 0.8277. When placed within the same model, SCI inflated the standard error of SPI from 0.01396 to 0.02671. SCI had a similar reaction from the SPI with its standard error increasing from 0.00969 to 0.02398.
+**colinearity:** The correlation between SCI and SPI is about 0.8277. When placed within the same model, SCI inflated the standard error of SPI from 0.013079 to 0.027054. SCI had a similar reaction from the SPI with its standard error increasing from 0.0095864 to 0.024096.
+
 
 **VIF:** Such multicollinearity is moderately reflected in the VIF test which accounts for all x variables in the model instead of just the two measures of statistical capacity (SCI & SPI).
 
@@ -390,22 +391,8 @@ log_gdppc    1.485085  1        1.218641
 factor(year) 1.302733  4        1.033611 
 
 Overall there reveals no severe multicollinearity (all GVIF < 5). There is moderate correlation between statistical capacity measures (spi_comp and sci_overall) with SPI moderately inflated by a factor of 4.32 and SCI inflated by a factor of  3.75. Nevertheless, it is acceptable to include both in the same model as doing so will not severely impact estimates with both factors less than 5.0. Even so, there are significant limitations in either model that warrant strong consideration, including sample size, and longitudinal suitability. All other variables show minimal multicollinearity concerns.
-# PICK UP BACK HERE AND DOWN!
-### Checking misspecification missing non-linear or omitted interactions
-```{r}
-#FIX LATER 
-#lm test package 
-resettest(ols_spi, power = 2:3, type = "fitted")
-resettest(ols_sci, power = 2:3, type = "fitted")
-resettest(ols_multiple, power = 2:3, type = "fitted")
-```
-[Co-pilot] The Ramsey RESET test for model misspecification indicates that all three models (SPI, SCI, and Multiple) show significant evidence of misspecification. This suggests that the models may not adequately capture the relationship between the predictors and the SDG composite scores. This could be due to omitted variables, non-linear relationships, or other forms of model misspecification. The p-values for the RESET test are all less than 0.001, indicating strong evidence against the null hypothesis of no misspecification.This suggests that the models may not adequately capture the relationship between the predictors and the SDG composite scores.
 
-Given the high variablility of statistical capacity measures and control variables like GDP per capita, misspecification is likely to be the result of omitted interaction terms or heteroskedasticity.
-
-To test for the existence of non-linear omitted variables, or lack thereof, I deploy a Breusch-Pagan test for heteroskedasticity.
-
-### Checking for Heteroskedasticity: Breusch-Pagan Test 
+### Checking for Heteroskedasticity: Breusch-Pagan Test [DONE]
 This validates the need for integrating robust standard errors in our models
 ```{r}
 #Breusch-Pagan tests 
@@ -431,23 +418,33 @@ df_bptests <- bp_tests %>%
 
 df_bptests
 
-#write.table(df_bptests, file = 'output_CSVs/df_bptests_heterosked.csv', row.names=F, sep = ",")
+write.table(df_bptests, file = 'output_CSVs/df_bptests_heterosked.csv', row.names=F, sep = ",")
 ```
-Model:         BP statistic   p-value
-ols_spi           192.11       < 2.2e-16        
-ols_sci           101.71       < 2.2e-16 
-ols_multiple      36.54        < 2.169e-06
+Model:         BP statistic      p-value
+ols_spi           207.         = 7.05e-39       
+ols_sci           86.6         = 4.22e-12
+ols_multiple      31.1         = 1.33e- 4 
 
-The Breusch-Pagan Test was applied to test to see whether residuals are constant across observations, which signals unaccounted non-linear relationships, especially with macro factors such as GDP Per Capita and Population in the models. This is important because Ordinary Least Squares models assume constant error variance. In such a complex world of diverse cultural and everchanging political structures across almost 200 countries, cross-national data, especially in development, is rarely ever linear. Accordingly, this test evaluates the extent of such non-linearity among specified predictors. 
+The Breusch-Pagan Test was applied to test to see whether residuals are constant across observations, which signals unaccounted non-linear relationships, especially with macro factors such as GDP Per Capita and Population in the models. This is important because Ordinary Least Squares models assume constant error variance. In such a complex world of diverse cultural and ever-changing political structures across almost 200 countries, cross-national data, especially in development, is rarely ever linear. Accordingly, this test evaluates the extent of such non-linearity among specified predictors. 
 
 As such, results indicate strong evidence of heteroskedasticity in all three models. The small p-values in all models indicates that the variance of residuals are not constant across observations in all three models. This reinforces the motivation behind applying robust standard errors, which have been integrated to all OLS models. Without Robust SEs, there is a risk of inflated t-statistics, leading to false significance and misinterpretation of results.
 
-Despite the improvement from 192.11 (SPI) and 101.71 (SCI) to 36.54 (Both), there still remains statically significant heteroskedasticity in the combined model. Both statistical capacity measures create a better-specified model (ols_multiple), though not enough to eliminate heteroskedasticity entirely.
+Despite the improvement from 206.5 (SPI) and 86.6 (SCI) to 31.1 (Both), there still remains statically significant heteroskedasticity in the combined model. Both statistical capacity measures create a better-specified model (ols_multiple), though not enough to eliminate heteroskedasticity entirely.
+
+### Checking for Non-Linearity and general omitted interactions [needs regular ols models not PLM =  FIX LATER]
+```{r}
+#FIX LATER 
+#lm test package 
+resettest(ols_spi, power = 2:3, type = "fitted")
+resettest(ols_sci, power = 2:3, type = "fitted")
+resettest(ols_multiple, power = 2:3, type = "fitted")
+```
+The Ramsey RESET test for model misspecification highlights that all three models (SPI, SCI, and Multiple) exhibit significant signs of misspecification. Specifically, the p-values for the RESET test are all less than 0.001, indicating strong evidence against the null hypothesis of no misspecification. This suggests that the models do not adequately capture the relationship between the predictors and the SDG composite scores due to the existence of non-linear or combined functional form factors. Such is not limited to omitted variables, non-linear or high order polynomial relationships, or other forms of model misspecification.
+
+Given the high variablility of statistical capacity measures and control variables like GDP per capita, misspecification is possibly the result of omitted interaction terms or heteroskedasticity (Appendix X).
 
 ### Missing Data Structure & Interpretations 
-**Systematic, non-random missing data pattern:** SPI has near complete country data coverage (165 out of 168 countries with an SDG score), but with a stubborn temporal limitation (2016-2023). On the other hand, SCI has longer temporal coverage (2004-2020), but lacks reporting on high-income countries focusing primarily on the developing world (123 out of 168 countries with an SDG score). 
-
-In model 1 (SDG ~ SPI), democracy score (di_score) is not statistically significant (-0.0243, p=0.8673). However, in model 2 (SDG ~ SCI) democracy score is highly significant (0.5556, p < 0.001). In model 3, with both SCI and SPI, democracy score is marginally significant (0.0301, p=0.0484). This suggests that SCI's relationship with SDG outcomes may be closely linked to regime/democratic governance. Considering the non-random missing data structured previously mentioned, the difference in significance between the models for democracy score signals an even greater need to perform subgroup analysis of countries at different stages/levels of development. 
+**Systematic, non-random missing data pattern:** SPI has near complete country data coverage (165 out of 168 countries with an SDG score), but with a stubborn temporal limitation (2016-2023). On the other hand, SCI has longer temporal coverage (2004-2020) but lacks reporting on high-income countries focusing primarily on the developing world (123 out of 168 countries with an SDG score).
 
 ### AIC/BIC Checking Fit
 *H0: Null, SCI model > SPI model; combined model > SPI model*
@@ -499,7 +496,8 @@ m2: ols_sci       9003.178  9093.672
 m3: ols_multiple  3292.001  3335.405
 note: all models have different number of observations, ols_multiple containing the least.
 
-**Adjusted R-squares**
+**Adjusted R-squares** 
+##[CONTINUE FROM HERE DOWN]
 m3: ols_spi:      0.7757 [best fit]
 m2: ols_sci:      0.74152
 m1: ols_multiple: 0.75683
@@ -562,39 +560,37 @@ merged_2015 <- merged %>%
 
 # Interaction 1: 
 # H0: NUll, there is no interaction between x (spi) & y (sdg) by income_level
-# H1: GNI Classification (income_level) Interacts with the relationship between x (spi) & y (sdg)?
-inc_lev_interaction <- lm(sdg_overall ~ spi_comp*income_level + log_gdppc + population + factor(year), data = merged_2015)
-summary(inc_lev_interaction)
-coeftest(inc_lev_interaction, vcov = vcovHC(inc_lev_interaction, type = "HC1")) #Robust SE
+# H1: GNI Classification (income_level) Interacts with the relationship between x (spi) & y (sdg)? 
+inc_lev_interaction <- lm(sdg_overall ~ spi_comp*income_level + di_score + log_gdppc + factor(year), data = merged_2015)
+summary(inc_lev_interaction, vcov = vcovHC(inc_lev_interaction, cluster = "group", type = "HC1"))
+# [All interactions ARE significant]
 
 # Interaction 2: 
 # H0: NUll, there is no interaction between x (spi) & y (sdg) by regime type (regime_type_2)
 # H1: regime type (regime_type_2) interacts with the relationship between x (spi) & y (sdg)?
-reg_type2_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_2 + log_gdppc, data = merged_2015)
-summary(reg_type2_interaction)
-coeftest(reg_type2_interaction, vcov = vcovHC(reg_type2_interaction, type = "HC1")) #Robust SE
+reg_type2_interaction <- lm(sdg_overall ~ spi_comp*regime_type_2 + log_gdppc + factor(year), data = merged_2015)
+summary(reg_type2_interaction, vcov = vcovHC(reg_type2_interaction, cluster = "group", type = "HC1"))
+# [Interaction is NOT significant]
 
 # Interaction 3: 
 # H0: NUll, there is no interaction between x (spi) & y (sdg) by regime type (regime_type_4)
 # H1: regime type (regime_type_4) interacts with the relationship between x (spi) & y (sdg)?
-reg_type4_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*regime_type_4 + log_gdppc + factor(year),
-                        data = merged_2015)
-#summary(reg_type4_interaction)
-coeftest(reg_type4_interaction, vcov = vcovHC(reg_type4_interaction, type = "HC1")) #Robust SE
+reg_type4_interaction <- lm(sdg_overall ~ spi_comp*regime_type_4 + log_gdppc + factor(year), data = merged_2015)
+summary(reg_type4_interaction, vcov = vcovHC(reg_type4_interaction, cluster = "group", type = "HC1"))
+# [Interactions are NOT significant, other than spi_comp:regime_type_41 (p = 0.048704)]
 
 # Interaction 4: 
 # H0: NUll, there is no interaction between x (spi) & y (sdg) by democracy level (di_score)
 # H1: Democracy level (di_score) interacts with the relationship between x (spi) & y (sdg)?
-reg_type_di_interaction <- lm(sdg_overall ~ spi_comp + spi_comp*di_score + log_gdppc + population + factor(year),
-                        data = merged_2015)
-#summary(reg_type_di_interaction)
-coeftest(reg_type_di_interaction, vcov = vcovHC(reg_type_di_interaction, type = "HC1")) #Robust SE
+reg_type_di_interaction <- lm(sdg_overall ~ spi_comp*di_score + log_gdppc + factor(year), data = merged_2015)
+summary(reg_type_di_interaction, vcov = vcovHC(reg_type_di_interaction, cluster = "group", type = "HC1"))
+# [Interactions are NOT significant]
 ```
-*Interaction 1: GNI Income Classification: Yes* there are statistically significant interactions found from GNI classifications that affects the relationship between spi and sdgs
+*Interaction 1: GNI Income Classification: Yes* All GNI classifications (High, Upper-Middle, Lower-Middle, and Low) exhibit statistically significant interactions affecting the relationship between SPI and SDG performance. The significant interaction terms for each income level suggest the relationship SPI and SDG performance varies across different GNI classifications of countries.
 
-*Interaction 2: Binary Regime Type: Yes* there are statistically significant interactions (mildly, p = 0.0566) found from regime type (autocracy vs democracy) that affects the relationship between spi and sdgs. 
+*Interaction 2: RoW Binary Regime Type (2 options): No* there's no statistically significant interactions found from RoW regime type classifications (autocracy vs democracy) that affects the relationship between spi and sdgs.
 
-*Interaction 3: Categorical Regime type (4 options): No* there are statistically significant interactions found depending on regime type (Closed autocracy, electoral autocracy, electoral democracy, liberal democracy) that affects the relationship between spi and sdgs. 
+*Interaction 3: RoW Categorical Regime type (4 options): Yes* there is one statistically significant interaction found within RoW's regime type classifications, specifically ____ (p < 0.05*). For the rest, there's no statistically significant interactions found based on RoW regime type classifications (Closed autocracy, electoral autocracy, electoral democracy, liberal democracy[FIGURE OUT WHICH ONE IS SIGNIFICANT]) that affects the relationship between SPI and SDG performance. 
 
 *Interaction 4: Continuous di_score [0-1] Regime type: No* there are no statistically significant interactions found from regime type (infinate between 0-10) that affects the relationship between spi and sdgs. 
 
