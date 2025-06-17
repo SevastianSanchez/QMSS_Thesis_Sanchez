@@ -551,7 +551,7 @@ Following standard econometric practice, I first established the appropriate fun
 7) Repeat steps 1-6 with Interactions
 8) Re-run Ramsey RESET with final model to confirm no misspecification
 
-### Test 2a: Ramsey RESET Test for Misspecification
+### Test 2a: Ramsey RESET Test & Residual Diagnostics for Misspecification
 ```{r}
 #Transforming to standard OLS for resettest
 ols_base_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + factor(year), data = merged)
@@ -565,18 +565,41 @@ resettest(ols_sci_lm, power = 2:3, type = "regressor",
           vcov = function(x) vcovHC(x, cluster = "group", type = "HC1"))
 resettest(ols_multiple_lm, power = 2:3, type = "regressor",
           vcov = function(x) vcovHC(x, cluster = "group", type = "HC1"))
+
+# Saving results to a dataframe
+reset_results <- data.frame(
+  model = c("ols_base_lm", "ols_sci_lm", "ols_multiple_lm"),
+  F_statistic = c(resettest(ols_base_lm, power = 2:3, type = "regressor", 
+                             vcov = function(x) vcovHC(x, cluster = "group", type = "HC1"))$statistic,
+                  resettest(ols_sci_lm, power = 2:3, type = "regressor",
+                             vcov = function(x) vcovHC(x, cluster = "group", type = "HC1"))$statistic,
+                  resettest(ols_multiple_lm, power = 2:3, type = "regressor",
+                             vcov = function(x) vcovHC(x, cluster = "group", type = "HC1"))$statistic),
+  p_value = c(resettest(ols_base_lm, power = 2:3, type = "regressor", 
+                        vcov = function(x) vcovHC(x, cluster = "group", type = "HC1"))$p.value,
+              resettest(ols_sci_lm, power = 2:3, type = "regressor",
+                        vcov = function(x) vcovHC(x, cluster = "group", type = "HC1"))$p.value,
+              resettest(ols_multiple_lm, power = 2:3, type = "regressor",
+                        vcov = function(x) vcovHC(x, cluster = "group", type = "HC1"))$p.value)
+)
+# Save the results to a CSV file
+write.csv(reset_results, file = "output_CSVs/reset_test_results.csv", row.names = FALSE)
 ```
 The Ramsey RESET test results indicate that the null hypothesis of no omitted variables or non-linear relationships can be rejected for all three models (SPI, SCI, and Multiple). The p-values are all less than 0.05, suggesting that there are indeed non-linear relationships or omitted interactions in the models. This implies that the functional form of the models may not be correctly specified, and further investigation into non-linear terms or interactions is warranted.
 
-### Residuals Plots: Checking for Non-Linearity
+#### Selecting variables and filtering years +2015
 ```{r}
 # Wrangling for analysis and multicollinearity concerns 
 merged_2015 <- merged %>% 
-  # Filtering to include only data from 2016 onwards
   filter(year >= 2016) %>% 
   # Selecting relevant variables for analysis 
-  select(country_name, country_code, year, sdg_overall, spi_comp, di_score, log_gdppc, income_level, aut_ep, dem_ep, regime_type_2, regime_type_4)
+  dplyr::select(country_code, year, sdg_overall, spi_comp, di_score, log_gdppc, income_level, regime_type_2, regime_type_4, aut_ep, dem_ep, regch_event)
+```
 
+### Residuals Plots: Checking for Non-Linearity
+
+#### Residual plots 
+```{r}
 # Extract the data actually used in the base model
 ols_base_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + factor(year), data = merged_2015) # regular linear model
 model_data <- model.frame(ols_base_lm)
@@ -615,7 +638,7 @@ par(mfrow = c(1, 1))
 ```
 The residuals vs fitted values plot shows a clear pattern, indicating non-linearity in the relationship between the predictors and the SDG performance. The residuals are not randomly distributed around zero, suggesting that the linear model does not adequately capture the underlying relationship.
 
-#### Log Transformation: log(gdppc) & log(gdppc)^2 Residuals Plots [Extra - Do later]
+##### Log Transformation: log(gdppc) & log(gdppc)^2 Residuals Plots [Extra - Do later]
 ```{r}
 # Residuals vs log(gdppc) plot
 plot(log(model_data$gdp_pc), resid(ols_base_lm),
@@ -631,9 +654,7 @@ lines(lowess(I(log(model_data$gdp_pc)^2), resid(ols_base_lm)), col = "black", lw
 
 # Set up plotting area for side-by-side comparison
 par(mfrow = c(1, 3))  # 1 row, 3 columns for the 3 continuous variables
-
 ```
-
 
 
 
@@ -713,9 +734,9 @@ stargazer(ols_spi_reg, ols_spi_quad1, ols_spi_quad2, ols_spi_quad2b, #ols_spi_qu
           title = "Regression Models with Robust Standard Errors",
           align = TRUE,
           dep.var.labels = "SDG Overall Score",
-          column.labels = c("Linear", "Quad GDP", "Quad SPI+GDP", "Quad DI+GDP"#, "Full Quadratic"
-                            ),
-         covariate.labels = c("SPI Component", "SPI Squared", "Democracy Index", "Democracy Index Squared",
+          column.labels = c("Linear", "Quad GDP", "Quad SPI+GDP", "Quad DI+GDP"),
+                            #, "Full Quadratic"),
+          covariate.labels = c("SPI Component", "SPI Squared", "Democracy Index", "Democracy Index Squared",
                                "Log GDPpc", "Log GDPpc Squared", "testing", "Intercept"),
           omit = "factor\\(year\\)",  # Omits year fixed effects from display
           notes = "Robust standard errors clustered by country in parentheses",
@@ -743,28 +764,32 @@ Further validated by AIC/BIC results, the quadratic model has lower AIC and BIC 
 Although these results show meaningful improvements in the quadratic model, it is important to note that VIF estimates for the quadratic terms are higher than those for the linear terms, signaling multicollinearity issues (Appendix X). The severity of VIF results (all > 10) suggests that quadratic terms are inflating the variance of the coefficient estimates. Assessing which variable(s) is causing the most non-linearity is essential to determine if the quadratic terms are necessary.
 
 ### Test 2c: Checking for Interactions
-- modeling how the effect of SPI on SDG performance depends on one/any of the following moderators:
+modeling how the effect of SPI on SDG performance depends on one/any of the following moderators:
   - income level (GNI Classification)
   - regime type (RoW Binary & Categorical)
   - democracy index (di_score)
 - Is there a need for subgroup analysis, and if so, by what kind of group? 
 - Possible Moderators: GNI Classification (income_level), regime_type_2, regime_type_4, di_score
+
+#### Recoding for Interactions
 ```{r}
 # Recode to dummy variables
 merged_2015 <- merged_2015 %>% 
   # Recoding income_level, split income_level into dummy variables using case_when()
   mutate(income_level_recoded = case_when(
-    income_level == "L" ~ 1, # Low-Income
-    income_level == "LM" ~ 2, # Lower-Middle-Income
-    income_level == "UM" ~ 3, # Upper-Middle-Income
-    income_level == "H" ~ 4, # High-Income
+    income_level == "L" ~ 0, # Low-Income
+    income_level == "LM" ~ 1, # Lower-Middle-Income
+    income_level == "UM" ~ 2, # Upper-Middle-Income
+    income_level == "H" ~ 3, # High-Income
     TRUE ~ NA_real_  # Handle any other cases
   )) %>% 
   mutate(income_level_recoded = as.factor(income_level_recoded)) %>% 
   # recoding/factorizing regime_type_2: 0 = Autocracy; 1 = Democracy 
   mutate(regime_type_binary = as.factor(regime_type_2)) %>% 
   # recoding regime_type_4: 0 = Closed Autocracy; 1 = Electoral Autocracy; 2 = Electoral Democracy; 3 = Full Democracy
-  mutate(regime_type_categ = as.factor(regime_type_4))
+  mutate(regime_type_categ = as.factor(regime_type_4)) %>% 
+  mutate(aut_ep = as.factor(aut_ep), # autocratization episode
+         dem_ep = as.factor(dem_ep)) # democratization episode
 
 ### HYPOTHESES ###
 # H0: NUll, the impact of SPI on SDG Performance does NOT vary depending on Z [income_level_recoded, regime_type_binary, regime_type_categ, di_score]
@@ -772,82 +797,170 @@ merged_2015 <- merged_2015 %>%
 
 # Interaction 1: 
 # HA: The impact of SPI on SDG performance varies depending on GNI Classification (income_level_recoded: 1 = Low; 2 = Lower-Middle; 3 = Upper-Middle; 4 = High)
-spi_x_inc_lvl <- lm(sdg_overall ~ cen_spi_comp*factor(income_level_recoded) + cen_di_score + cen_log_gdppc + I(cen_log_gdppc^2) + factor(year), data = merged_2015)
+spi_x_inc_lvl <- plm(sdg_overall ~ cen_spi_comp*factor(income_level_recoded) + cen_di_score +
+                       cen_log_gdppc + I(cen_log_gdppc^2) + factor(year), 
+                     model = "pooling", 
+                     index = c("country_code", "year"),
+                     data = merged_2015)
 summary(spi_x_inc_lvl, vcov = vcovHC(spi_x_inc_lvl, cluster = "group", type = "HC1"))
+
 
 # Interaction 2: 
 # HA: The impact of SPI on SDG performance varies depending on Regime Type (Binary: 0 = Autocracy; 1 = Democracy)
-spi_x_reg_binary <- lm(sdg_overall ~ cen_spi_comp*factor(regime_type_binary) + cen_di_score + cen_log_gdppc + I(cen_log_gdppc^2) + factor(year), data = merged_2015)
+spi_x_reg_binary <- plm(sdg_overall ~ cen_spi_comp*factor(regime_type_binary) + cen_di_score +
+                          cen_log_gdppc + I(cen_log_gdppc^2) + factor(year), 
+                        model = "pooling", 
+                        index = c("country_code", "year"),
+                        data = merged_2015)
 summary(spi_x_reg_binary, vcov = vcovHC(spi_x_reg_binary, cluster = "group", type = "HC1"))
+
 
 # Interaction 3: 
 # HA: The impact of SPI on SDG performance varies depending on Regime Type (Categorical: 0 = Closed Autocracy; 1 = Electoral Autocracy; 2 = Electoral Democracy; 3 = Full Democracy)
-spi_x_reg_categ <- lm(sdg_overall ~ cen_spi_comp*factor(regime_type_categ) + cen_di_score + cen_log_gdppc + I(cen_log_gdppc^2) + factor(year), data = merged_2015)
+spi_x_reg_categ <- plm(sdg_overall ~ cen_spi_comp*factor(regime_type_categ) + cen_di_score + 
+                         cen_log_gdppc + I(cen_log_gdppc^2) + factor(year), 
+                       model = "pooling", 
+                       index = c("country_code", "year"),
+                       data = merged_2015)
 summary(spi_x_reg_categ, vcov = vcovHC(spi_x_reg_categ, cluster = "group", type = "HC1"))
+
 
 # Interaction 4: 
 # HA: The impact of SPI on SDG performance varies depending on Democracy Score (cen_di_score: 0-1, continuous)
-spi_x_di_score <- lm(sdg_overall ~ cen_spi_comp*cen_di_score + cen_log_gdppc + I(cen_log_gdppc^2) + factor(year), data = merged_2015)
+spi_x_di_score <- plm(sdg_overall ~ cen_spi_comp*cen_di_score + cen_log_gdppc + I(cen_log_gdppc^2) +
+                        factor(year), 
+                      model = "pooling", 
+                      index = c("country_code", "year"),
+                      data = merged_2015)
 summary(spi_x_di_score, vcov = vcovHC(spi_x_di_score, cluster = "group", type = "HC1"))
 
+# Interaction 5
+# HA: The impact of SPI on SDG performance varies depending on Regime Change Status/Direction
+spi_x_reg_eps <- plm(sdg_overall ~ cen_spi_comp*aut_ep + cen_spi_comp*dem_ep +
+                     cen_log_gdppc + I(cen_log_gdppc^2) + factor(year), 
+                   model = "pooling", 
+                   index = c("country_code", "year"),
+                   data = merged_2015)
+summary(spi_x_reg_eps, vcov = vcovHC(spi_x_reg_eps, cluster = "group", type = "HC1"))
+
 # Final Model 
-final_model <- lm(sdg_overall ~ cen_spi_comp*factor(income_level_recoded) + cen_spi_comp*cen_di_score + cen_log_gdppc + I(cen_log_gdppc^2) + factor(year), data = merged_2015)
+final_model <- plm(sdg_overall ~ cen_spi_comp*factor(income_level_recoded) + cen_spi_comp*cen_di_score + cen_log_gdppc + I(cen_log_gdppc^2) + factor(year), 
+                   model = "within", 
+                   index = c("country_code", "year"),
+                   data = merged_2015)
 summary(final_model, vcov = vcovHC(final_model, cluster = "group", type = "HC1"))
-
 ```
-*Interaction 1: GNI Income Classification: Yes* All GNI classifications (High, Upper-Middle, Lower-Middle, and Low) exhibit statistically significant interactions affecting the relationship between SPI and SDG performance. But the strength of the interaction varies across income levels, with the strongest interaction found in ___
+*Interaction 1: GNI Income Classification:* 
+*HA: The impact of SPI on SDG performance varies depending on GNI Classification (income_level_recoded: 1 = Low; 2 = Lower-Middle; 3 = Upper-Middle; 4 = High)*
+[results in doc]...
 
-*Interaction 2: RoW Binary Regime Type (2 options): No* there's no statistically significant interactions found from RoW regime type classifications (autocracy vs democracy) that affects the relationship between spi and sdgs.
+*Interaction 2: Regime Type (Binary):*
+*HA: The impact of SPI on SDG performance varies depending on Regime Type (Binary: 0 = Autocracy; 1 = Democracy)*
+...
 
-*Interaction 3: RoW Categorical Regime type (4 options): Yes* there is one statistically significant interaction found within RoW's regime type classifications, specifically ____ (p < 0.05*). For the rest, there's no statistically significant interactions found based on RoW regime type classifications (Closed autocracy, electoral autocracy, electoral democracy, liberal democracy[FIGURE OUT WHICH ONE IS SIGNIFICANT]) that affects the relationship between SPI and SDG performance. 
+*Interaction 3: Regime Type (Categorical):*
+*HA: The impact of SPI on SDG performance varies depending on Regime Type (Categorical: 0 = Closed Autocracy; 1 = Electoral Autocracy; 2 = Electoral Democracy; 3 = Full Democracy)*
+...
 
-*Interaction 4: Continuous di_score [0-1] Regime type: No* there are no statistically significant interactions found from regime type (infinate between 0-10) that affects the relationship between spi and sdgs. 
+*Interaction 4: Democracy Index (Continuous):*
+*HA: The impact of SPI on SDG performance varies depending on Democracy Score (cen_di_score: 0-1, continuous)*
+...
 
-## Interactions DF
-```{r eval=FALSE, include=FALSE}
-################ in a table #################
+*Interaction 5: Regime Change Status/Direction:*
+*HA: The impact of SPI on SDG performance varies depending on Regime Change Status/Direction*
+Results: 
 
-# collect all interaction models into a list for further analysis 
-interaction_models <- list(
-  spi_x_inc_lvl = spi_x_inc_lvl,
-  spi_x_reg_binary = spi_x_reg_binary,
-  spi_x_reg_categ = spi_x_reg_categ,
-  spi_x_di_score = spi_x_di_score
+
+#### Interactions DF 
+```{r}
+# Create a helper function for tidying plm models with robust SEs
+tidy_plm_robust <- function(model, model_name) {
+  tidy(model, 
+       conf.int = TRUE, 
+       vcov. = vcovHC(model, cluster = "group", type = "HC1")) %>%
+    mutate(model = model_name,
+           n_obs = n_obs)
+}
+
+# Enhanced helper function
+tidy_plm_robust <- function(model, model_name) {
+  tidy_coef <- tidy(model, 
+                    conf.int = TRUE, 
+                    vcov. = vcovHC(model, cluster = "group", type = "HC1")) %>%
+    mutate(model = model_name)
+  
+  # Extract model statistics
+  model_summary <- summary(model)
+  tidy_coef %>%
+    mutate(
+      adj_r_squared = model_summary$r.squared["adjrsq"]
+    )
+}
+
+# Apply tidy_plm_robust() function to all models
+tidy_spi_x_inc_lvl    <- tidy_plm_robust(spi_x_inc_lvl, "Moderator: SPI x Income Level")
+tidy_spi_x_reg_binary <- tidy_plm_robust(spi_x_reg_binary, "Moderator: SPI x Regime Binary")
+tidy_spi_x_reg_categ  <- tidy_plm_robust(spi_x_reg_categ, "Moderator: SPI x Regime Categ")
+tidy_spi_x_di_score   <- tidy_plm_robust(spi_x_di_score, "Moderator: SPI x DI Score")
+tidy_spi_x_reg_eps   <- tidy_plm_robust(spi_x_reg_eps, "Moderator: SPI x Regime Change")
+
+model_n_obs <- tibble(
+  model = c("Moderator: SPI x Income Level", "Moderator: SPI x Regime Binary", 
+            "Moderator: SPI x Regime Categ", "Moderator: SPI x DI Score", "Moderator: SPI x Regime Change"),
+  n_obs = c(nobs(spi_x_inc_lvl), nobs(spi_x_reg_binary),
+            nobs(spi_x_reg_categ), nobs(spi_x_di_score), nobs(spi_x_reg_eps))
 )
-# Extracting robust standard errors for each interaction model
-robust_se_interactions <- lapply(interaction_models, function(model) {
-  coeftest(model, vcov = vcovHC(model, cluster = "group", type = "HC1"))
-})
-# Extracting adjusted R-sq and number of observations for each interaction model
-interaction_adj_r_squared <- sapply(interaction_models, function(model) {
-  summary(model)$adj.r.squared
-})
-interaction_nobs <- sapply(interaction_models, nobs)
-# Create a summary table for interaction models
-interaction_summary <- lapply(names(interaction_models), function(model_name) {
-  model <- interaction_models[[model_name]]
-  coefs <- robust_se_interactions[[model_name]]
-  data.frame(
-    model = model_name,
-    term = rownames(coefs),
-    estimate = coefs[, "Estimate"],
-    std.error = coefs[, "Std. Error"],
-    t.statistic = coefs[, "t value"],
-    p.value = coefs[, "Pr(>|t|)"],
-    n = nobs(model),
-    adj.r.squared = summary(model)$adj.r.squared
+
+# Combine all tidy data frames into one
+all_models_tidy <- bind_rows(tidy_spi_x_inc_lvl, 
+                             tidy_spi_x_reg_binary, 
+                             tidy_spi_x_reg_categ, 
+                             tidy_spi_x_di_score, 
+                             tidy_spi_x_reg_eps) %>%
+  left_join(model_n_obs, by = "model") %>% 
+  select(model, term, estimate, std.error, p.value, adj_r_squared, n_obs, everything()) %>%
+  arrange(model, term)
+
+# Save the tidy data frame to a CSV file
+write_csv(all_models_tidy, "output_CSVs/interaction_models.csv")
+
+
+# extracting robust standard errors for each interaction model
+rob_se_spi_x_inc_lvl <- coeftest(spi_x_inc_lvl, vcov = vcovHC(spi_x_inc_lvl, cluster = "group", type = "HC1"))
+rob_se_spi_x_reg_binary <- coeftest(spi_x_reg_binary, vcov = vcovHC(spi_x_reg_binary, cluster = "group", type = "HC1"))
+rob_se_spi_x_reg_categ <- coeftest(spi_x_reg_categ, vcov = vcovHC(spi_x_reg_categ, cluster = "group", type = "HC1"))
+#rob_se_spi_x_di_score <- coeftest(spi_x_di_score, vcov = vcovHC(spi_x_di_score, cluster = "group", type = "HC1"))
+rob_se_spi_x_reg_eps <- coeftest(spi_x_reg_eps, vcov = vcovHC(spi_x_reg_eps, cluster = "group", type = "HC1"))
+
+# Create a list of robust standard errors for stargazer
+robust_se_list <- list(
+  rob_se_spi_x_inc_lvl[, 2], 
+  rob_se_spi_x_reg_binary[, 2], 
+  rob_se_spi_x_reg_categ[, 2], 
+  #rob_se_spi_x_di_score[, 2] #,
+  rob_se_spi_x_reg_eps[, 2]
   )
-})
-# Combine all results into a single data frame
-interaction_df <- bind_rows(interaction_summary)
-# Save the interaction_df to a CSV file
-write.csv(interaction_df, file = "output_CSVs/interaction_df.csv", row.names = FALSE)
+          
+stargazer(
+  spi_x_inc_lvl, spi_x_reg_binary, spi_x_reg_categ, #spi_x_di_score,
+  spi_x_reg_eps,
+  se = robust_se_list,
+  type = "html",
+  out = "figures/pooled_ols_interactions.html",
+  title = "Pooled OLS Interaction Models",
+  align = TRUE,
+  column.labels = c("Income Level", "Regime Binary", "Regime Categ", "Regime Change Episode"),
+  dep.var.labels = "SDG Overall",
+  omit = "factor\\(year\\)",  # Omits year fixed effects from display
+  model.names = FALSE
+)
 
 ```
 
 
 ## TEST 3: WB GNI Classifications: income_level ("H", "UM", "LM", "L") 
-**Disaggregated/Grouped by Development Status:** Make 4 regression models and then put them all together in a table to compare the slopes and R-sq values.
+#### Disaggregated/Grouped by Development Status:
+Make 4 regression models and then put them all together in a table to compare the slopes and R-sq values.
 ```{r}
 # 1. Overall model (all countries)
 overall_lm <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + population + factor(year),
@@ -885,7 +998,7 @@ coeftest(low_inc_lm, vcov = vcovHC(low_inc_lm, type = "HC1")) #Robust SE
 ```
 
 
-# GNI Classifications DF
+### GNI Classifications DF
 ```{r echo=FALSE}
 # 1. Overall model
 overall_ct <- coeftest(overall_lm, vcov = vcovHC(overall_lm, type = "HC1"))
@@ -970,7 +1083,7 @@ write.csv(gni_classes_ols, "output_CSVs/gni_classes_ols.csv")
 ```
 
 
-## Visualizing Slopes: plotting multiple regression - by subgroup
+### Visualizing Slopes: plotting multiple regression - by subgroup
 ```{r echo=FALSE}
 viz_gni_class <- ggplot(data = merged_2015, aes(x = spi_comp, 
                                            y = sdg_overall, 
@@ -1007,7 +1120,7 @@ ggsave("figures/gni_subgroups_ols.png", viz_gni_class, width = 10, height = 6)
 [more results TBD]
 
 
-## Coefficient & Interval Plot
+#### Coefficient & Interval Plot
 ```{r echo=FALSE}
 # New fd with SPI coefficients data
 spi_plot_data <- data.frame(
