@@ -49,6 +49,7 @@ fit <- sem(
 
 ```
 
+
 ```{r}
 summary(fit, standardized = TRUE, fit.measures = TRUE)
 
