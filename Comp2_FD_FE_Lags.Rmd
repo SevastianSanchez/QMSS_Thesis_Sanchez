@@ -54,7 +54,7 @@ fd_fe_data <- fd_fe_data %>%
   mutate(has_dem_ep = any(dem_ep == 1, na.rm = TRUE)) %>% 
   ungroup() 
 
-# centralized variables  
+# centralized variables for higher-order multicollinearity 
 fd_fe_data <- fd_fe_data %>%
   mutate(
     cen_sdg_overall = sdg_overall - mean(sdg_overall, na.rm = TRUE),
@@ -62,6 +62,28 @@ fd_fe_data <- fd_fe_data %>%
     cen_di_score = di_score - mean(di_score, na.rm = TRUE),
     cen_log_gdppc = log_gdppc - mean(log_gdppc, na.rm = TRUE)
   )
+
+# year-year lags for FD Models - DF
+fd_data <- fd_fe_data %>%
+  select(country_code, year, sdg_overall, di_score, spi_comp, log_gdppc) %>%
+  filter(!is.na(di_score) & !is.na(spi_comp)) %>% 
+  arrange(country_code, year) %>%
+  group_by(country_code) %>%
+  mutate(
+    # first differences for selected variables
+    sdg_diff = sdg_overall - dplyr::lag(sdg_overall, n=1),
+    di_diff = di_score - dplyr::lag(di_score, n=1),
+    spi_diff = spi_comp - dplyr::lag(spi_comp,n=1),
+    log_gdppc_diff = log_gdppc - dplyr::lag(log_gdppc, n=1),
+    # lagged first differences 
+    di_diff_lag1 = dplyr::lag(di_diff, n=1),
+    di_diff_lag2 = dplyr::lag(di_diff, n=2),
+    spi_diff_lag1 = dplyr::lag(spi_diff, n=1),
+    spi_diff_lag2 = dplyr::lag(spi_diff, n=2),
+    log_gdppc_diff_lag1 = dplyr::lag(log_gdppc_diff, n=1),
+    log_gdppc_diff_lag1 = dplyr::lag(log_gdppc_diff, n=2)
+  ) %>%
+  ungroup()
 ```
 
 # Mediation analysis
@@ -71,80 +93,8 @@ Democratic backsliding → reduces SPI → slows SDG progress
 *H0: SPI DOES NOT mediate (indirectly effect) the relationship between regime type and SDG status* 
 *H1: SPI mediates (indirectly effects) the relationship between regime type and SDG status* 
 
-## TEST 1: OLS (Y ~ X), The effect of democracy score on SDG
-```{r}
-#Total Effect: (Y ~ X) Check if regime type directly affects SDG scores (without SPI) + Controls & RobustSEs
-sdg_di_ols <- plm(formula = sdg_overall ~ di_score + spi_comp + log_gdppc + factor(year), 
-                        index = c("country_code", "year"),
-                        model = "pooling", 
-                        data = fd_fe_data)
-summary(sdg_di_ols, vcov = vcovHC(sdg_di_ols, cluster = "group", type = "HC1"))
+## TEST 1: POLS Mediation (Y ~ M ~ X) [See >> SPI~DI_Validation.Rmd]
 
-#plot relationship
-plot_sdg_di <- ggplot(fd_fe_data, aes(x = di_score, y = sdg_overall)) + 
-  geom_point(color = "#EE6A50", size = 1, alpha = 0.65) +
-  geom_smooth(#method = "lm", 
-              se = TRUE, color = "darkred", size = 1) +
-  labs(
-    title = "Effect of Democracy Score on SDG Status",
-    x = "Democracy Score",
-    y = "SDG Progress"
-  ) +
-  theme_minimal()
-
-plot_sdg_di
-```
-This OLS is applied to check if democracy level directly affects SDG scores (without SPI). This is the first step in the mediation analysis to test if statistical capacity mediates the relationship between democracy levels and sustainable development progress. Controlling for log GDP Per Capita, a one point increase of SDG performance (0-100 scale) is associated with a 1.2 point increase in democracy levels of countries, on average. This relationship is highly statistically significant (p < 0.001). 
-
-di_score: 1.215181 (p <2e-16)
-log_gdppc: 4.412016 (p <2e-16)
-
-## TEST 2: OLS Democracy Score's Effect on SDG (Y ~ M ~ X)
-- ACME (Average Causal Mediation Effect): SPI’s indirect effect.
-- ADE (Average Direct Effect): Regime type’s direct effect, excluding SPI
-```{r}
-#OLS Mediator: Check if regime type affects SPI (M)
-med_spi_ols <- lm(spi_comp ~ di_score + log_gdppc + factor(year), data = fd_fe_data)
-summary(med_spi_ols, vcov = vcovHC(med_spi_ols, cluster = "group", type = "HC1"))
-
-#OLS Outcome: Check if SPI affects SDG scores (Y ~ M) while controlling for regime type (X)
-output_sdg_ols <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + factor(year), data = fd_fe_data)
-summary(output_sdg_ols, vcov = vcovHC(output_sdg_ols, cluster = "group", type = "HC1"))
-
-#OLS Mediation test: Quantify how much of regime type’s effect on SDGs operates through SPI
-set.seed(125) #for replicability 
-med_model <- mediate(model.m = med_spi_ols, 
-                     model.y = output_sdg_ols, 
-                     treat = "di_score", 
-                     mediator = "spi_comp", 
-                     boot = TRUE,
-                     sims = 1000)
-summary(med_model)
-
-#Sensitivity Analysis: Tests how robust mediation findings are to potential unmeasured confounding variables
-sens_med <- medsens(med_model, rho.by = 0.1)
-summary(sens_med)
-plot(sens_med)
-```
-*Results:*
-ACEM: SPI’s indirect effect = 1.0285  units (p < 2e-16***)
-ADE: Regime type’s direct effect, excluding SPI = 0.2027  (p = 0.064) [just over 0.05]
-Total Effect: = 1.2312 units (p < 2e-16***)
-Proportion Mediated: = 0.8347 or 83.47% of total units
-
-`Proportion Mediated` = the percent difference between the total effect (SDG ~ DI) and indirect ACEM effect (+ SPI)
-
-Interpretation: A 1-unit DI increase boosts SDG scores by 1.2312 total units, with 1.0285 units (83.47% of units) transmitted through SPI. The remaining 0.2027 units represents democracy score's effect (e.g., governance reforms unrelated to statistics) on SDG progress. 
-
-Because the indirect effect of SPI on sdg_overall (ACME) is highly significant (p < 0.001), there is evidence to suggest that SPI mediates the regime-SDG relationship, based on the model. 
-
-Because the ADE (the direct effect between di_score on sdg_overall) is not significant (or just barely), SPI has a complete/almost-complete effect on SDG status when SPI is accounted for, based on the model. 
-
-*Robustness check: sensitivity analysis*
-This tests how much unmeasured confounding would be needed to nullify the mediation effect. Based on the results, a rho = 0.5 indicates the mediation is moderately robust. there would need to be relatively strong unmeasured cofounders to nullify the results.
-
-Any unmeasured confounder would need to explain 25% of the residual variance in both models to eliminate the mediation effect (R²_MR²_Y = 0.25). 
------------------------------------------------------------------------------------------------------
 
 # **Fixed Effects**
 [description...]
@@ -159,7 +109,6 @@ fe_sdg_di <- plm(
   data = fd_fe_data,
   model = "within" #FE
 )
-summary(fe_sdg_di)
 summary(fe_sdg_di, vcov = vcovHC(fe_sdg_di, cluster = "group", type = "HC1")) # Robust SEs
 
 ###### Mediator: SPI ~ DI (M ~ X) ######
@@ -169,7 +118,6 @@ fe_spi_di <- plm(
   data = fd_fe_data,
   model = "within" #FE
 )
-summary(fe_spi_di)
 summary(fe_spi_di, vcov = vcovHC(fe_spi_di, cluster = "group", type = "HC1")) # Robust SEs
 
 ###### Outcome: SDG ~ SPI (Y ~ M) ######
@@ -179,7 +127,6 @@ fe_sdg_spi <- plm(
   data = fd_fe_data,
   model = "within" #FE
 )
-summary(fe_sdg_spi)
 summary(fe_sdg_spi, vcov = vcovHC(fe_sdg_spi, cluster = "group", type = "HC1")) # Robust SEs
 
 ####### MEDIATION ANALYSIS (Y ~ (M) ~ X) ####### 

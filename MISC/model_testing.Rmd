@@ -13,6 +13,32 @@ merged_testing <- df_years(yr1 = 2015)
 ```
 
 
+### these results should be the same 
+```{r}
+#Total Effect: (Y ~ X) Check if regime type directly affects SDG scores (without SPI) + Controls & RobustSEs
+sdg_di_ols <- plm(formula = sdg_overall ~ di_score + spi_comp + log_gdppc + factor(year), 
+                        index = c("country_code", "year"),
+                        model = "pooling", 
+                        data = fd_fe_data)
+summary(sdg_di_ols, vcov = vcovHC(sdg_di_ols, cluster = "group", type = "HC1"))
+
+# 1. OLS for SPI and SDG - Overall 
+ols_spi <- plm(formula = sdg_overall ~ spi_comp + di_score + log_gdppc + factor(year), 
+               model = "pooling", 
+               index = c("country_code", "year"),
+               data = fd_fe_data)
+summary(ols_spi, vcov = vcovHC(ols_spi, cluster = "group", type = "HC1"))
+
+
+# 1. OLS for SPI and SDG - Overall 
+ols_spi <- plm(formula = sdg_overall ~ spi_comp + di_score + log_gdppc + factor(year), 
+               model = "pooling", 
+               index = c("country_code", "year"),
+               data = merged)
+summary(ols_spi, vcov = vcovHC(ols_spi, cluster = "group", type = "HC1"))
+```
+Results: YUP ALL THE SAME RESULTS REGARDLESS OF WHETHER I USE fd_fe_data OR merged!
+
 # FD Subgroup Analysis: SDG ~ SPI + subgroup(income group)
 
 ## Models - subgroups by income class 
@@ -55,7 +81,6 @@ summary(fd_low)
 
 
 ## FD Comparison Table: SDG ~ SPI
-
 ```{r}
 # Extract coefficients and statistics from each model
 fd_comparison <- data.frame(

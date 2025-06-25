@@ -762,7 +762,7 @@ Further validated by AIC/BIC results, the quadratic model has lower AIC and BIC 
 
 Although these results show meaningful improvements in the quadratic model, it is important to note that VIF estimates for the quadratic terms are higher than those for the linear terms, signaling multicollinearity issues (Appendix X). The severity of VIF results (all > 10) suggests that quadratic terms are inflating the variance of the coefficient estimates. Assessing which variable(s) is causing the most non-linearity is essential to determine if the quadratic terms are necessary.
 
-### Test 2c: Checking for Interactions
+### Test 3: Checking for Interactions
 modeling how the effect of SPI on SDG performance depends on one/any of the following moderators:
   - income level (GNI Classification)
   - regime type (RoW Binary & Categorical)
@@ -957,7 +957,8 @@ stargazer(
 ```
 
 
-## TEST 3: WB GNI Classifications: income_level ("H", "UM", "LM", "L") 
+
+## TEST 3b: WB GNI Classifications: income_level ("H", "UM", "LM", "L") 
 #### Disaggregated/Grouped by Development Status:
 Make 4 regression models and then put them all together in a table to compare the slopes and R-sq values.
 ```{r}
