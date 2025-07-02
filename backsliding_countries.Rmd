@@ -176,23 +176,26 @@ hist(merged$year[merged$regch_event==0], breaks = 20)
 ```
 
 
-
-
 # Backsliding FD Models 
+
+## Stage 1
 ```{r}
-###### SPI ~ DI (M ~ X) ######
+# SPI ~ DI (M ~ X) 
 fd_spi_di_aut <- plm(
-  formula = spi_comp ~ di_score + log_gdppc,
+  formula = spi_comp ~ dplyr::lag(di_score, 1) + log_gdppc,
   index = c("country_code", "year"),
   data = aut_data, 
   model = "fd" #FD
 ) 
 # Country-level custard Robust SEs
 summary(fd_spi_di_aut, vcov = vcovHC(fd_spi_di_aut, cluster = "group", type = "HC1"))
+```
 
-###### SDG ~ SPI (Y ~ M) ######
+## Stage 2
+```{r}
+# SDG ~ SPI (Y ~ M)
 fd_sdg_spi_aut <- plm(
-  formula = sdg_overall ~ spi_comp + di_score + log_gdppc,
+  formula = sdg_overall ~ lag(spi_comp, 1) + dplyr::lag(di_score, 2) + log_gdppc,
   index = c("country_code", "year"),
   data = aut_data, 
   model = "fd"
