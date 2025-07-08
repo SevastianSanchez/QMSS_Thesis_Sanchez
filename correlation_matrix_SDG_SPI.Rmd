@@ -9,6 +9,120 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Correlation Matrix: Stage 1 & 2 predictors 
+create correlation matrix for SDG score, SPI score, DI score and log GDP per capita
+```{r}
+# Load necessary libraries
+library(plm)
+library(ggplot2)
+library(reshape2)
+library(dplyr)
+library(car)  # For VIF calculation
+
+# set working directory
+setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
+
+#load libraries/packages
+source("packages.R")
+
+# load data
+source("Comp2_panel_wrangling.R")
+
+panel_data <- panel_data %>%
+  dplyr::select(sdg_overall, spi_comp, di_score, log_gdppc, country_code, year)
+# Impute missing data: log_gdppc
+panel_data <- panel_data %>%
+  mutate(
+    log_gdppc = ifelse(is.na(log_gdppc), median(log_gdppc, na.rm = TRUE), log_gdppc)
+  )
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(panel_data[, c("sdg_overall", "spi_comp", "di_score", "log_gdppc")], use = "pairwise.complete.obs")
+
+# Convert the correlation matrix to a data frame for ggplot
+melted_correlation <- melt(correlation_matrix)
+
+# Visualize the correlation matrix using ggplot2
+correlation_plot <- ggplot(data = melted_correlation, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile(color = "black") +
+  scale_fill_gradient2(
+    low = "red", mid = "white", high = "darkgreen", midpoint = 0,
+    limits = c(-1, 1), name = "Correlation"
+  ) +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 3) +
+  theme_minimal() +
+  labs(title = "Correlation Matrix: Main Variables",
+       x = "", y = "") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Show the correlation plot
+correlation_plot
+
+# save the plot
+ggsave("figures/correlation_matrix_main_vars.png", plot = correlation_plot, width = 5, height = 4, dpi = 300)
+
+# VIF Test: Stage 1 & 2 predictors
+# Load necessary libraries
+library(plm)
+library(car)  # For VIF calculation
+# Calculate VIF for the predictors in the panel data
+vif_data <- panel_data %>%
+  dplyr::select(sdg_overall, spi_comp, di_score, log_gdppc)
+# Fit a linear model to assess multicollinearity
+vif_model <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc, data = vif_data)
+# Calculate VIF
+vif_values <- vif(vif_model)
+# Print VIF values
+vif_values
+
+```
+
+
+# VIF Test: Stage 1 POLS Model 
+```{r}
+# BASELINE POLS MODEL
+ols_spi_di_reg <- plm(formula = sdg_overall ~ spi_comp + di_score + log_gdppc + factor(year),
+               model = "pooling", 
+               index = c("country_code", "year"),
+               data = panel_data)
+
+# Assess multi-colinearity 
+vif(ols_spi_di_reg)
+
+# CENTERED POLS MODEL
+ols_spi_di_cen <- plm(formula = sdg_overall ~ cen_spi_comp + cen_di_score + cen_log_gdppc + factor(year),
+               model = "pooling", 
+               index = c("country_code", "year"),
+               data = panel_data)
+
+# Assess multi-colinearity 
+vif(ols_spi_di_cen)
+```
+
+# VIF Test: Stage 2 POLS Model
+```{r}
+# BASELINE POLS MODEL
+ols_sdg_spi_reg <- plm(formula = sdg_overall ~ spi_comp + di_score + log_gdppc + factor(year),
+               model = "pooling", 
+               index = c("country_code", "year"),
+               data = panel_data)
+
+# Assess multi-colinearity 
+vif(ols_sdg_spi_reg)
+
+# CENTERED POLS MODEL
+ols_sdg_spi_cen <- plm(formula = sdg_overall ~ cen_spi_comp + cen_di_score + cen_log_gdppc + factor(year),
+               model = "pooling", 
+               index = c("country_code", "year"),
+               data = panel_data)
+
+# Assess multi-colinearity 
+vif(ols_sdg_spi_cen)
+```
+
+
+
+
 # Partial Correlation Matrix: Disaggregated SDG ~ SCI Scores 
 
 ```{r cars}

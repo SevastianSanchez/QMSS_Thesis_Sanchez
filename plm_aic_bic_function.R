@@ -1,3 +1,7 @@
+# The `plm_aic_bic` function calculates the Akaike Information Criterion (AIC) and Bayesian Information Criterion (BIC) 
+# for the specified panel data models. The AIC and BIC values are used to compare models, with lower values 
+# indicating a better fit.
+
 plm_aic_bic <- function(model) {
   res <- residuals(model)
   n <- length(res)
