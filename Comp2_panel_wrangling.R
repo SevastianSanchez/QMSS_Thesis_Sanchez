@@ -9,7 +9,7 @@ all_data <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
 
 # selecting vars
 panel_data <- all_data %>% 
-  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, di_score, log_gdppc, income_level, aut_ep, dem_ep, regch_event, regime_type_2, regime_type_4, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free) %>% 
+  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, di_score, log_gdppc, income_level, aut_ep, dem_ep, regch_event, regime_type_2, regime_type_4, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra) %>% 
   arrange(country_code, year) %>%  # Critical for correct lagging
   filter(year >= 2016)
 
@@ -21,38 +21,54 @@ panel_data <- panel_data %>%
   mutate(has_dem_ep = any(dem_ep == 1, na.rm = TRUE)) %>% 
   ungroup() 
 
-# centralized variables for higher-order multicollinearity 
+# Transforming variables: Centering >> Lagging >> Squaring & Cubing Terms (for polynomial terms)
 panel_data <- panel_data %>%
-  mutate(
-    cen_spi_comp = spi_comp - mean(spi_comp, na.rm = TRUE),
-    cen_di_score = di_score - mean(di_score, na.rm = TRUE),
-    cen_log_gdppc = log_gdppc - mean(log_gdppc, na.rm = TRUE)
-  ) %>% 
-  # create quadratic and cubic terms for centered SPI, DI, and log GDP per capita
   group_by(country_code) %>%
+  arrange(year) %>%  # Ensure data is sorted by year within each country
   mutate(
-    cen_spi_comp_quad = I(cen_spi_comp^2),
-    cen_di_score_quad = I(cen_di_score^2),
-    cen_log_gdppc_quad = I(cen_log_gdppc^2),
-    cen_spi_comp_cubic = I(cen_spi_comp^3),
-    cen_di_score_cubic = I(cen_di_score^3),
-    cen_log_gdppc_cubic = I(cen_log_gdppc^3)
+    # Transforming SPI
+    cen_spi_comp = spi_comp - mean(spi_comp, na.rm = TRUE),
+    cen_spi_comp_lag1 = dplyr::lag(cen_spi_comp, n = 1),
+    cen_spi_comp_lag1_sq = cen_spi_comp_lag1^2,
+    cen_spi_comp_lag1_cub = cen_spi_comp_lag1^3,
+    cen_spi_comp_lag2 = dplyr::lag(cen_spi_comp, n = 2),
+    cen_spi_comp_lag2_sq = cen_spi_comp_lag2^2,
+    cen_spi_comp_lag2_cub = cen_spi_comp_lag2^3,
+    
+    # Transforming DI
+    cen_di_score = di_score - mean(di_score, na.rm = TRUE),
+    cen_di_score_lag1 = dplyr::lag(cen_di_score, n = 1),
+    cen_di_score_lag1_sq = cen_di_score_lag1^2,
+    cen_di_score_lag1_cub = cen_di_score_lag1^3,
+    cen_di_score_lag2 = dplyr::lag(cen_di_score, n = 2),
+    cen_di_score_lag2_sq = cen_di_score_lag2^2,
+    cen_di_score_lag2_cub = cen_di_score_lag2^3,
+    
+    # Transforming log GDP per capita
+    cen_log_gdppc = log_gdppc - mean(log_gdppc, na.rm = TRUE),
+    cen_log_gdppc_sq = cen_log_gdppc^2,
+    cen_log_gdppc_cub = cen_log_gdppc^3
   ) %>%
   ungroup()
 
-# Create 1st and second order lagged variables for SPI and DI
+# Creating first and second order lags for di_score, spi_comp, and log_gdppc
 panel_data <- panel_data %>%
   group_by(country_code) %>%
+  arrange(year) %>%  # Ensure data is sorted by year within each country
   mutate(
-    spi_comp_lag1 = dplyr::lag(spi_comp, n = 1),
     di_score_lag1 = dplyr::lag(di_score, n = 1),
+    di_score_lag2 = dplyr::lag(di_score, n = 2),
+    spi_comp_lag1 = dplyr::lag(spi_comp, n = 1),
     spi_comp_lag2 = dplyr::lag(spi_comp, n = 2),
-    di_score_lag2 = dplyr::lag(di_score, n = 2)
+    log_gdppc_lag1 = dplyr::lag(log_gdppc, n = 1),
+    log_gdppc_lag2 = dplyr::lag(log_gdppc, n = 2)
   ) %>%
   ungroup()
 
 panel_data <- panel_data %>% 
   # Recoding income_level, split income_level into dummy variables using case_when()
+  # Everything on the left of ~ is the condition, and everything on the right 
+  # is the value to return if the condition is true
   mutate(income_level_recoded = case_when(
     income_level == "L" ~ 0, # Low-Income
     income_level == "LM" ~ 1, # Lower-Middle-Income
@@ -85,16 +101,16 @@ panel_data <- panel_data %>%
 
 # year-year lags for FD Models - DF
 fd_data <- panel_data %>%
-  select(country_code, year, sdg_overall, di_score, spi_comp, log_gdppc, income_level, aut_ep, dem_ep, income_level_recoded, regch_event) %>%
+  select(country_code, year, sdg_overall, di_score, spi_comp, log_gdppc, income_level, aut_ep, dem_ep, income_level_recoded, regch_event, di_score_lag1, di_score_lag2, spi_comp_lag1, spi_comp_lag2, log_gdppc_lag1, log_gdppc_lag2) %>%
   filter(!is.na(di_score) & !is.na(spi_comp) | !is.na(spi_comp) & !is.na(sdg_overall)) %>% 
-  arrange(country_code, year) %>%
   group_by(country_code) %>%
+  arrange(year) %>%  # Ensure data is sorted by year within each country
   mutate(
     # first differences for selected variables
     sdg_diff = sdg_overall - dplyr::lag(sdg_overall, n=1),
-    di_diff = di_score - dplyr::lag(di_score, n=1),
-    spi_diff = spi_comp - dplyr::lag(spi_comp,n=1),
-    log_gdppc_diff = log_gdppc - dplyr::lag(log_gdppc, n=1),
+    di_diff = di_score - di_score_lag1,,
+    spi_diff = spi_comp - spi_comp_lag1,
+    log_gdppc_diff = log_gdppc - log_gdppc_lag1,
     # lagged first differences 
     di_diff_lag1 = dplyr::lag(di_diff, n=1),
     di_diff_lag2 = dplyr::lag(di_diff, n=2),

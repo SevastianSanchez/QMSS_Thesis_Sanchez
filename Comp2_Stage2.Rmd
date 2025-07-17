@@ -18,93 +18,177 @@ source("Comp2_panel_wrangling.R")
 
 # 2.1) POLS SDG ~ SPI [Stage 2]
 ```{r}
-ols_sdg_spi <- plm(formula = sdg_overall ~ dplyr::lag(spi_comp, 1) + dplyr::lag(di_score, 1) + log_gdppc + income_level_recoded + factor(year), 
+# Contemporaneous Effect: SDG ~ SPI + DI
+ols_sdg_spi <- plm(formula = sdg_overall ~ spi_comp + di_score + log_gdppc + income_level_recoded + factor(year), 
                model = "pooling", 
                index = c("country_code", "year"),
                data = panel_data)
 summary(ols_sdg_spi, vcov = vcovHC(ols_sdg_spi, cluster = "group", type = "HC1"))
 
-# plot relationship: Lagged SPI vs SDG
-sdg_spi_s2_scatter <- ggplot(panel_data, aes(x = dplyr::lag(spi_comp, 1), y = sdg_overall)) + 
-  geom_point(color = "steelblue4", size = 1, alpha = 0.65) +
-  geom_smooth(method = "lm", 
-              se = TRUE, color = "darkgreen", size = 1) +
-  labs(
-    title = "Effect of Statistical Capacity on SDG Performance",
-    x = "Lagged SPI Composite (0-100 Scale)",
-    y = "SDG Composite (0-100 Scale)"
-  ) +
-  theme_minimal()
+# Adding Lag1: SPI ~ DI
+ols_sdg_spi_L1 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + di_score + dplyr::lag(di_score, 1) + log_gdppc + income_level_recoded + factor(year), 
+               model = "pooling", 
+               index = c("country_code", "year"),
+               data = panel_data)
+summary(ols_sdg_spi_L1, vcov = vcovHC(ols_sdg_spi_L1, cluster = "group", type = "HC1"))
 
-# Save to specific folder
-ggsave("figures/stage_1_n_2_scatterplots/sdg_spi_s2_scatterplot.png", sdg_spi_s2_scatter, width = 8, height = 6)
+# Adding Lag2: SPI ~ DI
+ols_sdg_spi_L2 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + dplyr::lag(spi_comp, 2) + di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + income_level_recoded + factor(year), 
+               model = "pooling", 
+               index = c("country_code", "year"),
+               data = panel_data)
+summary(ols_sdg_spi_L2, vcov = vcovHC(ols_sdg_spi_L2, cluster = "group", type = "HC1"))
 ```
 
+## Stargazer Table for POLS Models
+```{r}
+# --- POLS MODELS TABLE ---
+# Extracting robust standard errors for the three POLS models
+rob_se_pols <- list(
+  sqrt(diag(vcovHC(ols_sdg_spi, cluster = "group", type = "HC1"))),
+  sqrt(diag(vcovHC(ols_sdg_spi_L1, cluster = "group", type = "HC1"))),
+  sqrt(diag(vcovHC(ols_sdg_spi_L2, cluster = "group", type = "HC1")))
+)
+# Generate the stargazer table for POLS models
+stargazer(ols_sdg_spi, ols_sdg_spi_L1, ols_sdg_spi_L2, 
+          se = rob_se_pols,
+          title = "Stage 2 Models: SDG ~ SPI",
+          align = TRUE,
+          dep.var.labels = "SDG Overall Score",
+          column.labels = c("Contemporaneous", "Lag 1", "Lag 2"),
+          covariate.labels = c("SPI Composite", "Lagged SPI (t-1)", "Lagged SPI (t-2)", "DI Composite", "Lagged DI (t-1)", "Lagged DI (t-2)",  "Log(GDPper-capita)", "Lower-Middle Income (LMIC)", "Upper-Middle Income (UMIC)", "High Income (HIC)", "Intercept"),
+          notes = "Robust standard errors clustered by country in parentheses",
+          type = "html", 
+          report = "vcs*", 
+          model.numbers = FALSE,
+          keep.stat = c("n", "rsq", "adj.rsq"),
+          omit = "factor\\(year\\)",  # Omits year FE from display
+          out = "figures/s2_pols_lags.html") 
+
+```
 
 # 2.2) First Difference [Stage 2]
 ```{r}
-# Outcome: SDG ~ SPI (Y ~ M)
-fd_sdg_spi <- plm(
-  formula = sdg_overall ~ dplyr::lag(spi_comp, 1) + dplyr::lag(di_score, 1) + log_gdppc + income_level_recoded,
-  index = c("country_code", "year"),
-  data = fd_data, 
-  model = "fd"
-)
-# Country-level custard Robust SEs
+# Contemporaneous Effect: SDG ~ SPI + DI
+fd_sdg_spi <- plm(formula = sdg_overall ~ spi_comp + di_score + log_gdppc + income_level_recoded + factor(year), 
+               model = "fd", 
+               index = c("country_code", "year"),
+               data = fd_data)
 summary(fd_sdg_spi, vcov = vcovHC(fd_sdg_spi, cluster = "group", type = "HC1"))
+
+# Adding Lag1: SPI ~ DI
+fd_sdg_spi_L1 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + di_score + dplyr::lag(di_score, 1) + log_gdppc + income_level_recoded + factor(year), 
+               model = "fd", 
+               index = c("country_code", "year"),
+               data = fd_data)
+summary(fd_sdg_spi_L1, vcov = vcovHC(fd_sdg_spi_L1, cluster = "group", type = "HC1"))
+
+# Adding Lag2: SPI ~ DI
+fd_sdg_spi_L2 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + dplyr::lag(spi_comp, 2) + di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + income_level_recoded + factor(year), 
+               model = "fd", 
+               index = c("country_code", "year"),
+               data = fd_data)
+summary(fd_sdg_spi_L2, vcov = vcovHC(fd_sdg_spi_L2, cluster = "group", type = "HC1"))
 ```
 
+## Stargazer Table for FD Models
+```{r}
+# Extracting robust standard errors for the three FD models
+rob_se_fd <- list(
+  sqrt(diag(vcovHC(fd_sdg_spi, cluster = "group", type = "HC1"))),
+  sqrt(diag(vcovHC(fd_sdg_spi_L1, cluster = "group", type = "HC1"))),
+  sqrt(diag(vcovHC(fd_sdg_spi_L2, cluster = "group", type = "HC1")))
+)
+# Generate the stargazer table for FD models
+stargazer(fd_sdg_spi, fd_sdg_spi_L1, fd_sdg_spi_L2, 
+          se = rob_se_fd,
+          title = "Stage 2 Models: SDG ~ SPI (First Difference)",
+          align = TRUE,
+          dep.var.labels = "SDG Overall Score",
+          column.labels = c("Contemporaneous", "Lag 1", "Lag 2"),
+          covariate.labels = c("SPI Composite", "Lagged SPI (t-1)", "Lagged SPI (t-2)", "DI Composite", "Lagged DI (t-1)", "Lagged DI (t-2)",  "Log(GDPper-capita)", "Lower-Middle Income (LMIC)", "Upper-Middle Income (UMIC)", "High Income (HIC)", "Intercept"),
+          notes = "Robust standard errors clustered by country in parentheses",
+          type = "html", 
+          report = "vcs*", 
+          keep.stat = c("n", "rsq", "adj.rsq"),
+          omit = "factor\\(year\\)",  # Omits year FE from display
+          out = "figures/s2_fd_lags.html")
+```
 
 # 2.3) Fixed Effects [Stage 2]
 ```{r}
-# Outcome: SDG ~ SPI (Y ~ M)
-fe_sdg_spi <- plm(
-  sdg_overall ~ dplyr::lag(spi_comp, 1) + dplyr::lag(di_score, 1) + log_gdppc + income_level_recoded,
+# Contemporaneous Effect: SDG ~ SPI + DI
+fe_sdg_spi <- plm(formula = sdg_overall ~ spi_comp + di_score + log_gdppc + income_level_recoded,
   index = c("country_code", "year"),
   data = panel_data,
   model = "within", #FE
   effect = "twoways"
 )
 summary(fe_sdg_spi, vcov = vcovHC(fe_sdg_spi, cluster = "group", type = "HC1")) # Robust SEs
+
+# Adding Lag1: SPI ~ DI
+fe_sdg_spi_L1 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + di_score + dplyr::lag(di_score, 1) + log_gdppc + income_level_recoded + factor(year), 
+               model = "within", 
+               index = c("country_code", "year"),
+               data = panel_data, 
+               effect = "twoways")
+summary(fe_sdg_spi_L1, vcov = vcovHC(fe_sdg_spi_L1, cluster = "group", type = "HC1"))
+
+# Adding Lag2: SPI ~ DI
+fe_sdg_spi_L2 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + dplyr::lag(spi_comp, 2) + di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + income_level_recoded + factor(year), 
+               model = "within", 
+               index = c("country_code", "year"),
+               data = panel_data, 
+               effect = "twoways")
+summary(fe_sdg_spi_L2, vcov = vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1"))
 ```
 
-# make a stargazer table of the above three models 
+# Stargazer Table for FE Models
 ```{r}
-# stargazer table for POLS, FD, and FE models
-stargazer(ols_sdg_spi, fd_sdg_spi, fe_sdg_spi, 
-          se = list(sqrt(diag(vcovHC(ols_sdg_spi, cluster = "group", type = "HC1"))),
-                    sqrt(diag(vcovHC(fd_sdg_spi, cluster = "group", type = "HC1"))),
-                    sqrt(diag(vcovHC(fe_sdg_spi, cluster = "group", type = "HC1")))),
-          title = "Stage 2 Models: SDG ~ SPI",
+# Extracting robust standard errors for the three FE models
+rob_se_fe <- list(
+  sqrt(diag(vcovHC(fe_sdg_spi, cluster = "group", type = "HC1"))),
+  sqrt(diag(vcovHC(fe_sdg_spi_L1, cluster = "group", type = "HC1"))),
+  sqrt(diag(vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1")))
+)
+# Generate the stargazer table for FE models
+stargazer(fe_sdg_spi, fe_sdg_spi_L1, fe_sdg_spi_L2, 
+          se = rob_se_fe,
+          title = "Stage 2 Models: SDG ~ SPI (Fixed Effects)",
+          align = TRUE,
+          dep.var.labels = "SDG Overall Score",
+          column.labels = c("Contemporaneous", "Lag 1", "Lag 2"),
+          covariate.labels = c("SPI Composite", "Lagged SPI (t-1)", "Lagged SPI (t-2)", "DI Composite", "Lagged DI (t-1)", "Lagged DI (t-2)",  "Log(GDPper-capita)", "Lower-Middle Income (LMIC)", "Upper-Middle Income (UMIC)", "High Income (HIC)", "Intercept"),
+          notes = "Robust standard errors clustered by country in parentheses",
+          type = "html", 
+          report = "vcs*", 
+          keep.stat = c("n", "rsq", "adj.rsq"),
+          omit = "factor\\(year\\)",  # Omits year FE from display
+          out = "figures/s2_fe_lags.html")
+```
+
+## make a stargazer table of all Lag2 models for POLS, FD and FE
+```{r}
+# Extracting robust standard errors for the three models
+rob_se_lag2 <- list(
+  sqrt(diag(vcovHC(ols_sdg_spi_L2, cluster = "group", type = "HC1"))),
+  sqrt(diag(vcovHC(fd_sdg_spi_L2, cluster = "group", type = "HC1"))),
+  sqrt(diag(vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1")))
+)
+# Generate the stargazer table for Lag2 models
+stargazer(ols_sdg_spi_L2, fd_sdg_spi_L2, fe_sdg_spi_L2, 
+          se = rob_se_lag2,
+          title = "Stage 2 Models: SDG ~ SPI (Lag2)",
           align = TRUE,
           dep.var.labels = "SDG Overall Score",
           column.labels = c("POLS", "FD", "FE"),
-          covariate.labels = c("Lagged SPI Composite", "Lagged DI Score", "Log GDP per Capita", 
-                               "Income Level (Recoded)", "Year Fixed Effects"),
+          covariate.labels = c("SPI Composite", "Lagged SPI (t-1)", "Lagged SPI (t-2)", "DI Composite", "Lagged DI (t-1)", "Lagged DI (t-2)",  "Log(GDPper-capita)", "Lower-Middle Income (LMIC)", "Upper-Middle Income (UMIC)", "High Income (HIC)", "Intercept"),
           notes = "Robust standard errors clustered by country in parentheses",
-          type = "html", # Change to "latex" for LaTeX output or "html" for Word
-          report = "vcs*", # Shows significance stars and standard errors
-          model.numbers = FALSE,
+          type = "html", 
+          report = "vcs*", 
           keep.stat = c("n", "rsq", "adj.rsq"),
-          omit = "factor\\(year\\)",  # Omits year fixed effects from display
-          out = "figures/s2_base_models.html") #saved as html
-
-```
-
-
-# Model Selection: Adj. R^2 & AIC/BIC [Stage 2]
-```{r}
-# AIC/BIC function
-source('plm_aic_bic_function.R')
-
-# POLS
-plm_aic_bic(ols_sdg_spi) 
-
-# First difference 
-plm_aic_bic(fd_sdg_spi)
-
-# Fixed Effects 
-plm_aic_bic(fe_sdg_spi) 
+          omit = "factor\\(year\\)",  # Omits year FE from display
+          out = "figures/s2_lag2_mods.html")
 ```
 
 # MODEL MISSPECIFICATION CHECKS [Stage 2]
@@ -208,6 +292,12 @@ stargazer(fe_sdg_spi_base, fe_quads_s2_m2, fe_quads_s2_m3, fe_cubics_s2_m4,
           model.numbers = FALSE,
           keep.stat = c("n", "rsq", "adj.rsq"),
           out = "figures/poly_s2_models.html") #saved as html
+```
+
+# Model Selection: Adj. R^2 & AIC/BIC [Stage 2]
+```{r}
+# AIC/BIC function
+source('plm_aic_bic_function.R')
 
 # AIC/BIC for both models (sourcing function for plm models)
 # [RERUN FULL CHUNK TO RESET NAMES FOR ACURATE RESULTS]
@@ -232,70 +322,22 @@ BIC: 2477.667
 AIC: 2324.069
 BIC: 2528.789
 
-# Interaction Effects [Stage 2]
-*H0:* NUll, the impact of SPI on SDG Performance does NOT vary depending on Z [income_level_recoded, regime_type_binary, regime_type_categ, di_score]
-*H1:* The impact of SPI on SDG Performance varies depending on Z [income_level_recoded, regime_type_binary, regime_type_categ, di_score]
-
-**Recoded Moderator Variables:**
-- income_level_recoded: 1 = Low; 2 = Lower-Middle; 3 = Upper-Middle; 4 = High
-- regime_type_binary: 0 = Autocracy; 1 = Democracy
-- di_score: 0-1, continuous (Democracy Index)
-- aut_ep: 0 = No Autocratization; 1 = Autocratization Event
-- dem_ep: 0 = No Democratization; 1 = Democratization Event
+## Check for Autocorrelation 
 ```{r}
-# Interaction 1: SPI x GNI Class 
-# HA: The impact of SPI on SDG performance varies depending on GNI Classification 
-spi_x_inc_lvl <- plm(formula = sdg_overall ~ cen_spi_comp*dplyr::lag(income_level_recoded, 1) + cen_di_score +
-                       cen_log_gdppc + I(cen_log_gdppc^2),
-                     model = "within", 
-                     index = c("country_code", "year"),
-                     data = panel_data,
-                     effect = "twoways")
-summary(spi_x_inc_lvl, vcov = vcovHC(spi_x_inc_lvl, cluster = "group", type = "HC1"))
-
-# Interaction 2: SPI x DI
-# HA: The impact of SPI on SDG performance varies depending on Democracy Score (cen_di_score: 0-1, continuous)
-spi_x_di_score <- plm(formula = sdg_overall ~ cen_spi_comp*cen_di_score + cen_log_gdppc + I(cen_log_gdppc^2) + factor(income_level_recoded),
-                      model = "within", 
-                      index = c("country_code", "year"),
-                      data = panel_data,
-                      effect = "twoways")
-summary(spi_x_di_score, vcov = vcovHC(spi_x_di_score, cluster = "group", type = "HC1"))
-
-# Interaction 3: SPI x Regime Type (binary)
-# HA: The impact of SPI on SDG performance varies depending on Regime Type (Binary: 0 = Autocracy; 1 = Democracy)
-spi_x_reg_binary <- plm(formula = sdg_overall ~ cen_spi_comp*factor(regime_type_binary) + cen_di_score +
-                          cen_log_gdppc + I(cen_log_gdppc^2) + factor(income_level_recoded),
-                        model = "within", 
-                        index = c("country_code", "year"),
-                        data = panel_data,
-                        effect = "twoways")
-summary(spi_x_reg_binary, vcov = vcovHC(spi_x_reg_binary, cluster = "group", type = "HC1"))
-
-# Interaction 4: SPI x Regime Change Event (Autocratization or Democratization)
-# HA: The impact of SPI on SDG performance varies depending on Regime Change Status/Direction
-spi_x_reg_eps <- plm(formula = sdg_overall ~ cen_spi_comp*aut_ep + cen_spi_comp*dem_ep +
-                     cen_log_gdppc + I(cen_log_gdppc^2) + factor(income_level_recoded),
-                   model = "within", 
-                   index = c("country_code", "year"),
-                   data = panel_data,
-                   effect = "twoways")
-summary(spi_x_reg_eps, vcov = vcovHC(spi_x_reg_eps, cluster = "group", type = "HC1"))
-
+# APPLY Wooldridge Test for AR(1) Errors in FE Panel Models: pwartest()
+# https://search.r-project.org/CRAN/refmans/plm/html/pwartest.html  
+# This is MUCH BETTER for panel data with small T AND unbalanced panels!!!
+pwartest(fe_sdg_spi_base) # [significant]
 
 ```
+Significant p-value indicates the presence of autocorrelation in the residuals of the fixed effects model. This suggests that the errors are correlated over time, which violates one of the key assumptions of linear regression models.
 
+This is corrected by using robust standard errors clustered by country, which accounts for the potential autocorrelation in the residuals.
 
+## Check for Heteroskedasticity
 ```{r}
-# Final Model [TO BE UPDATED BASED ON STAGE 2 RESULTS]
-final_model <- plm(formula = sdg_overall ~ cen_spi_comp*factor(income_level_recoded) + cen_spi_comp*cen_di_score + cen_log_gdppc + I(cen_log_gdppc^2), 
-                   model = "within", 
-                   index = c("country_code", "year"),
-                   data = panel_data,
-                   effect = "twoways")
-summary(final_model, vcov = vcovHC(final_model, cluster = "group", type = "HC1"))
+# Apply Breusch-Pagan test for heteroskedasticity
+bptest(fe_sdg_spi_base, studentize = TRUE) # Heteroskedasticity [significant]
 ```
-
-
-
+The Breusch-Pagan test indicates the presence of heteroskedasticity in the residuals of the fixed effects model. This suggests that the variance of the errors is not constant across observations, which violates another key assumption of linear regression models.
 

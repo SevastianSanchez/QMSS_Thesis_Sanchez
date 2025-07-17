@@ -133,8 +133,6 @@ summary(med_fe_results)
 sens_med_fe <- medsens(med_fe_results, rho.by = 0.1)
 plot(sens_med_fe)
 
-
-
 ```
 FE Results: Both the total effect and mediator models are not statistically significant. The outcome model, however, the effect of the independent variable (statistical capacity measured in SPI) on the dependent variable (SDG performance), with all time-invariant factors constant, indicate that a one unit increase in statistical capacity is associated with a 0.0439 point increase in SDG progress. This relationship is statistically significant (p < 0.05).
 

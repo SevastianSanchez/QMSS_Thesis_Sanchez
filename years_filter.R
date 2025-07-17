@@ -107,6 +107,7 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
   name8 <- df8 %>% 
     dplyr::mutate(income_level = na_if(income_level, "..")) %>% 
     dplyr::mutate(income_level_lab = factor(income_level, 
+      # H (higher income) as the reference category 
       levels = c("H", "UM", "LM", "L"),  # Desired order
       labels = c("High Income Countries", 
                  "Upper-Middle Income Countries", 

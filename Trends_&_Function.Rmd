@@ -12,75 +12,46 @@ knitr::opts_chunk$set(echo = TRUE)
 # load data 
 ```{r}
 #load libraries/packages
+# set working directory
+setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
+
+#load libraries/packages
 source("packages.R")
 
-#load function 
-#source("df_years()_Function.R")
-trends <- df_years2.0(2000, 2023) 
+# load data
+source("Comp2_panel_wrangling.R")
+
+trends <- all_data %>% filter(year >= 2015)
 ```
 
-# Countries, years 2000-present - Test Subjects
-```{r eval=FALSE, include=FALSE}
-# subset for Brazil 
-trends_bra_ts <- trends[trends$country_code=="BRA",]
-
-# Subset for Turkey 
-trends_tur_ts <- trends[trends$country_code=="TUR",]
-
-# Subset for Russia 
-trends_rus_ts <- trends[trends$country_code=="RUS",]
-
-# Subset for Hungary
-trends_hun_ts <- trends[trends$country_code=="HUN",]
-
-# Subset for Spain 
-trends_esp_ts <- trends[trends$country_code=="ESP",]
-
-# Subset for USA 
-trends_usa_ts <- trends[trends$country_code=="USA",]
-
-#exporting Spain time series AS: trends_esp_ts; will save to current working directory 
-#write.table(trends_esp_ts, file = "trends_esp_ts.csv", row.names=F, sep = ",")
-```
-
-#z-score standardization trend function 
+# Regular year-to-year trend function
 ```{r}
-plot_trend_z <- function(data, country_code, start_year = 2010, end_year = 2025) {
-  # Filter and preprocess
+# Function to plot trends for a given country
+plot_trend <- function(data, country_code) {
+  # Filter data for the specified country
   country_data <- data %>%
-    dplyr::filter(country_code == !!country_code,
-                  year >= start_year, year <= end_year)  %>% 
-    dplyr::select(
-      year, 
-      spi_comp, p1_use, p2_services, p3_products, p4_sources, p5_infra,
-      sdg_overall, 
-      di_score
-    ) %>%
-    # Remove columns with ALL NA values (except year)
-    dplyr::select(year, where(~ !all(is.na(.x)))) %>%
-    
-    # Z-score with NA tolerance
-    dplyr::mutate(dplyr::across(-year, ~ {
-      if (all(is.na(.x))) NA_real_  # Keep explicit NA for tracking
-      else as.numeric(scale(.x))
-    }))
+    filter(country_code == !!country_code) %>%
+    select(year, spi_comp, p1_use, p2_services, p3_products, p4_sources, p5_infra, sdg_overall, di_score)
   
-  # Identify plottable metrics (non-NA columns)
-  valid_metrics <- setdiff(names(country_data), "year")
-  
-  # Early return if no data
-  if (length(valid_metrics) == 0) {
-    message("No plottable data for ", country_code)
-    return(ggplot() + theme_void())
+  # Check if the country has data
+  if (nrow(country_data) == 0) {
+    stop(paste("No data available for country code:", country_code))
   }
   
-  # Reshape and plot
+  # Get the country name for the title
+  country_name <- unique(data$country_name[data$country_code == country_code])
+  
+  # Check if the country name is available
+  if (length(country_name) == 0) {
+    stop(paste("No country name found for code:", country_code))
+  }
+  
+  # Reshape data for plotting
   country_long <- country_data %>%
-    tidyr::pivot_longer(
+    pivot_longer(
       cols = -year,
       names_to = "metric",
-      values_to = "value",
-      values_drop_na = TRUE  # Remove NA values before plotting
+      values_to = "value"
     )
   
   # Ensure metric labels match pivoted names
@@ -96,7 +67,6 @@ plot_trend_z <- function(data, country_code, start_year = 2010, end_year = 2025)
   )
   
   # Dynamic color scheme
-  existing_metrics <- unique(country_long$metric)
   custom_colors <- c(
     "spi_comp" = "blue",
     "p1_use" = "#c6dbef", 
@@ -104,60 +74,114 @@ plot_trend_z <- function(data, country_code, start_year = 2010, end_year = 2025)
     "p3_products" = "#2171b5", 
     "p4_sources" = "#08306b",
     "p5_infra" = "#08519c", 
-    "sdg_overall" = "#fc8d59", 
-    "di_score" = "#31a354"
-  )[existing_metrics]
+    "sdg_overall" = "#31a354", 
+    "di_score" = "#fc8d59"
+  )
   
-  ggplot(country_long, aes(x = year, y = value, color = metric, group = metric)) +
-    geom_line(linewidth = 1.2, na.rm = TRUE) +
+  # Plot
+  ggplot(country_long, aes(x = year, y = value, color = metric)) +
+    geom_line(linewidth = 0.75, na.rm = TRUE) +
+    geom_vline(xintercept = 2020, linetype = "dashed", color = "red") +
+    scale_color_manual(values = custom_colors, 
+                       labels = metric_labels) +
+    labs(
+      title = paste("Trends for", country_name),
+      x = "Year",
+      y = "Score"
+    ) +
+    theme_minimal() +
+    theme(legend.position = "bottom")
+}
+
+# Replace with the desired country code
+country_code <- "TUR"
+# Plot trend for country
+interactive_trend <- plot_trend(panel_data, country_code)
+print(interactive_trend) #static
+ggplotly(interactive_trend) # interactive
+# Save the plot
+ggsave(paste0("figures/country_trends/trend_", country_code, ".png"), plot = interactive_trend, width = 10, height = 6, dpi = 300)
+```
+
+# Z-Score Trends
+```{r}
+# Function to plot trends and z-scores for a given country
+plot_trend_z <- function(data, country_code) {
+  # Filter data for the specified country
+  country_data <- data %>%
+    filter(country_code == !!country_code) %>%
+    select(year, spi_comp, p1_use, p2_services, p3_products, p4_sources, p5_infra, sdg_overall, di_score)
+  
+  # Check if the country has data
+  if (nrow(country_data) == 0) {
+    stop(paste("No data available for country code:", country_code))
+  }
+  
+  # Calculate z-scores for each metric
+  country_data <- country_data %>%
+    mutate(across(-year, ~ scale(.) %>% as.vector(), .names = "{.col}_z")) %>%
+    select(year, ends_with("_z"))
+  
+  # Get the country name for the title
+  country_name <- unique(data$country_name[data$country_code == country_code])
+  
+  # Check if the country name is available
+  if (length(country_name) == 0) {
+    stop(paste("No country name found for code:", country_code))
+  }
+  # Reshape data for plotting
+  country_long <- country_data %>%
+    pivot_longer(
+      cols = -year,
+      names_to = "metric",
+      values_to = "value"
+    )
+  # Ensure metric labels match pivoted names
+  metric_labels <- c(
+    "spi_comp_z" = "SPI: Composite Score (Z-Score)",
+    "p1_use_z" = "SPI: Data Use (Z-Score)",
+    "p2_services_z" = "SPI: Services (Z-Score)",
+    "p3_products_z" = "SPI: Products (Z-Score)",
+    "p4_sources_z" = "SPI: Sources (Z-Score)",
+    "p5_infra_z" = "SPI: Infrastructure (Z-Score)",
+    "sdg_overall_z" = "SDG Overall (Z-Score)",
+    "di_score_z" = "EUI: Democracy Index Score (Z-Score)"
+  )
+  # Dynamic color scheme
+  custom_colors <- c(
+    "spi_comp_z" = "blue",
+    "p1_use_z" = "#c6dbef", 
+    "p2_services_z" = "#6baed6", 
+    "p3_products_z" = "#2171b5", 
+    "p4_sources_z" = "#08306b",
+    "p5_infra_z" = "#08519c", 
+    "sdg_overall_z" = "#31a354", 
+    "di_score_z" = "#fc8d59"
+  )
+  # Plot
+  ggplot(country_long, aes(x = year, y = value, color = metric)) +
+    geom_line(linewidth = 0.75, na.rm = TRUE) +
     geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
     geom_vline(xintercept = 2020, linetype = "dashed", color = "red") +
     scale_color_manual(values = custom_colors, 
-                       labels = metric_labels[existing_metrics]) +
-    labs(title = paste0(country_name, ": SPI Pillars, SDG, and Democracy Trends (Z-Scores)"),
+                       labels = metric_labels) +
+        labs(
+      title = paste("Z-Score Trends for", country_name),
       x = "Year",
-      y = "Z-Score (Mean = 0, SD = 1)",
-      color = "Metric",
-      caption = "Z-scores computed within each metric's time series") +
-    theme_minimal()
+      y = "Z-Score N(0, 1)"
+    ) +
+    theme_minimal() +
+    theme(legend.position = "bottom")
 }
 
+# Replace with the desired country code
+country_code <- "TUR"  
+# Plot interactive trend for country
+interactive_trend <- plot_trend_z(panel_data, country_code)
+print(interactive_trend) #static 
+ggplotly(interactive_trend) # interactive 
 
-```
-
-#select countries
-```{r}
-brazil_plot <- plot_trend_z(trends, "BRA")
-brazil_plot
-
-ggplotly(brazil_plot)
-
-turkey_plot <- plot_trend_z(trends, "TUR")
-turkey_plot
-
-russia_plot <- plot_trend_z(trends, "RUS")
-russia_plot
-
-hungary_plot <- plot_trend_z(trends, "HUN")
-hungary_plot
-
-cuba_plot <- plot_trend_z(trends, "CUB")
-cuba_plot
-
-usa_plot <- plot_trend_z(trends, "USA")
-usa_plot
-
-spain_plot <- plot_trend_z(trends, "ESP")
-spain_plot
-
-swiss_plot <- plot_trend_z(trends, "CHE")
-swiss_plot
-
-swiss_plot <- plot_trend_z(trends, "CHE")
-swiss_plot
-
-denmark_plot <- plot_trend_z(trends, "DNK")
-denmark_plot
-
+# Save the plot
+ggsave(paste0("figures/country_trends/z_trend_", country_code, ".png"), plot = interactive_trend, width = 10, height = 6, dpi = 300)
 ```
 

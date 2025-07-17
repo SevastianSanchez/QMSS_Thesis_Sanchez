@@ -28,16 +28,53 @@ source("packages.R")
 # load data
 source("Comp2_panel_wrangling.R")
 
-panel_data <- panel_data %>%
-  dplyr::select(sdg_overall, spi_comp, di_score, log_gdppc, country_code, year)
-# Impute missing data: log_gdppc
-panel_data <- panel_data %>%
+# Extract the data 
+corr_data <- all_data %>%
+  dplyr::select(sdg_overall, spi_comp, sci_overall, di_score, log_gdppc, income_level, population, country_name, country_code, year, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra)
+
+```
+
+# VIF Test: Stage 1 & 2 predictors
+```{r}
+# Libraries
+library(plm)
+library(car)  
+
+# Calculate VIF for the predictors in the panel data
+vif_data <- corr_data %>%
+  dplyr::filter(year >= 2016) %>%
+  dplyr::select(sdg_overall, spi_comp, di_score, log_gdppc, year, income_level, population)
+
+# Stage 1 Models 
+# Fit a linear model to assess multicollinearity
+vif_model_s1 <- lm(spi_comp ~ di_score + log_gdppc + factor(year), data = vif_data)
+# Calculate VIF
+vif_values_s1 <- vif(vif_model_s1)
+# Print VIF values
+vif_values_s1
+
+# Stage 2 Models 
+# Fit a linear model to assess multicollinearity
+vif_model_s2 <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc + factor(year) + factor(income_level), data = vif_data)
+# Calculate VIF
+vif_values_s2 <- vif(vif_model_s2)
+# Print VIF values
+vif_values_s2
+```
+
+
+# Main Variables Matrix
+```{r}
+  # Impute missing data: log_gdppc
+corr_data_impute <- corr_data %>%
+  dplyr::filter(year >= 2016) %>%
   mutate(
-    log_gdppc = ifelse(is.na(log_gdppc), median(log_gdppc, na.rm = TRUE), log_gdppc)
+    log_gdppc = ifelse(is.na(log_gdppc), median(log_gdppc, na.rm = TRUE), log_gdppc), 
+    population = ifelse(is.na(population), median(population, na.rm = TRUE), population)
   )
 
 # Calculate the correlation matrix
-correlation_matrix <- cor(panel_data[, c("sdg_overall", "spi_comp", "di_score", "log_gdppc")], use = "pairwise.complete.obs")
+correlation_matrix <- cor(corr_data_impute[, c("sdg_overall", "spi_comp", "sci_overall", "di_score", "log_gdppc", "population")], use = "pairwise.complete.obs")
 
 # Convert the correlation matrix to a data frame for ggplot
 melted_correlation <- melt(correlation_matrix)
@@ -46,12 +83,12 @@ melted_correlation <- melt(correlation_matrix)
 correlation_plot <- ggplot(data = melted_correlation, aes(x = Var2, y = Var1, fill = value)) +
   geom_tile(color = "black") +
   scale_fill_gradient2(
-    low = "red", mid = "white", high = "darkgreen", midpoint = 0,
+    low = "orange", mid = "white", high = "steelblue", midpoint = 0,
     limits = c(-1, 1), name = "Correlation"
   ) +
   geom_text(aes(label = round(value, 2)), color = "black", size = 3) +
   theme_minimal() +
-  labs(title = "Correlation Matrix: Main Variables",
+  labs(title = "Main Variables (2016-2023)", subtitle = "Correlation Matrix",
        x = "", y = "") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
@@ -61,84 +98,49 @@ correlation_plot
 # save the plot
 ggsave("figures/correlation_matrix_main_vars.png", plot = correlation_plot, width = 5, height = 4, dpi = 300)
 
-# VIF Test: Stage 1 & 2 predictors
-# Load necessary libraries
-library(plm)
-library(car)  # For VIF calculation
-# Calculate VIF for the predictors in the panel data
-vif_data <- panel_data %>%
-  dplyr::select(sdg_overall, spi_comp, di_score, log_gdppc)
-# Fit a linear model to assess multicollinearity
-vif_model <- lm(sdg_overall ~ spi_comp + di_score + log_gdppc, data = vif_data)
-# Calculate VIF
-vif_values <- vif(vif_model)
-# Print VIF values
-vif_values
-
 ```
 
-
-# VIF Test: Stage 1 POLS Model 
+# Correlation Matrix: SDG Disaggregated scores (2005-2023)
 ```{r}
-# BASELINE POLS MODEL
-ols_spi_di_reg <- plm(formula = sdg_overall ~ spi_comp + di_score + log_gdppc + factor(year),
-               model = "pooling", 
-               index = c("country_code", "year"),
-               data = panel_data)
+# Extract the data for SDG disaggregated scores
+sdg_data <- corr_data %>%
+  dplyr::filter(year >= 2005) %>%
+  dplyr::select(country_name, country_code, year, goal1:goal17)
 
-# Assess multi-colinearity 
-vif(ols_spi_di_reg)
+# Calculate the correlation matrix for SDG disaggregated scores
+correlation_matrix_sdg <- cor(sdg_data[, -c(1, 2, 3)], use = "pairwise.complete.obs")
 
-# CENTERED POLS MODEL
-ols_spi_di_cen <- plm(formula = sdg_overall ~ cen_spi_comp + cen_di_score + cen_log_gdppc + factor(year),
-               model = "pooling", 
-               index = c("country_code", "year"),
-               data = panel_data)
+# Convert matrix to df
+melted_cor_sdg <- melt(correlation_matrix_sdg)
 
-# Assess multi-colinearity 
-vif(ols_spi_di_cen)
+# build matrix using ggplot and change names from goal1, goal2, ... to goal 1, goal 2, ...
+correlation_plot_sdg <- ggplot(data = melted_cor_sdg, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile(color = "black") +
+  scale_fill_gradient2(
+    low = "orange", mid = "white", high = "steelblue", midpoint = 0,
+    limits = c(-1, 1), name = "Correlation"
+  ) +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 2.5) +
+  theme_minimal() +
+  labs(title = "SDG Disaggregated Scores (2005-2023)",
+       x = "", y = "", subtitle = "Correlation Matrix") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# Show the correlation plot for SDG disaggregated scores
+correlation_plot_sdg
+
+# save
+ggsave("figures/correlation_matrix_sdg_disaggregated.png", plot = correlation_plot_sdg, width = 6, height = 5, dpi = 300)
 ```
-
-# VIF Test: Stage 2 POLS Model
-```{r}
-# BASELINE POLS MODEL
-ols_sdg_spi_reg <- plm(formula = sdg_overall ~ spi_comp + di_score + log_gdppc + factor(year),
-               model = "pooling", 
-               index = c("country_code", "year"),
-               data = panel_data)
-
-# Assess multi-colinearity 
-vif(ols_sdg_spi_reg)
-
-# CENTERED POLS MODEL
-ols_sdg_spi_cen <- plm(formula = sdg_overall ~ cen_spi_comp + cen_di_score + cen_log_gdppc + factor(year),
-               model = "pooling", 
-               index = c("country_code", "year"),
-               data = panel_data)
-
-# Assess multi-colinearity 
-vif(ols_sdg_spi_cen)
-```
-
-
 
 
 # Partial Correlation Matrix: Disaggregated SDG ~ SCI Scores 
-
 ```{r cars}
-# set working directory 
-setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
+matrix_data <- corr_data %>%
+  dplyr::filter(year >= 2016) %>% 
+  dplyr::select(country_name, country_code, year, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra)
 
-#load libraries/packages
-source("packages.R")
-
-#load function 
-source("df_years2.0_Function.R")
-matrix_data <- df_years2.0(2015, 2023) %>% 
-   dplyr::select(p1_use, p2_services, p3_products, p4_sources, p5_infra, spi_comp,
-                goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8,
-                goal9, goal10, goal11, goal12, goal13, goal14, goal15,
-                goal16, goal17, sdg_overall, log_gdppc, population)
+# Calculate the correlation matrix for SDG disaggregated scores
+correlation_matrix_sdg <- cor(sdg_data[, -c(1, 2, 3)], use = "pairwise.complete.obs")
 
 #Impute missing data: log_gdppc & population 
 matrix_data <- matrix_data %>%

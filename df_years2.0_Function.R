@@ -29,7 +29,11 @@ custom_match_forward <- c(
   "Congo (Kinshasa)" = "COD",
   "Myanmar (Burma)" = "MMR",
   "Iran, Islamic Rep." = "IRN",
-  "Kyrgyz Republic" = "KGZ"
+  "Kyrgyz Republic" = "KGZ",
+  "Bahamas" = "BHS",
+  "Belize" = "BLZ",
+  "Brunei" = "BRN",
+  "South Sudan" = "SSD"
 )
 
 # Define reverse mapping (ISO3 codes to country names)
@@ -44,7 +48,11 @@ custom_match_reverse <- c(
   "COD" = "Congo (Kinshasa)",
   "MMR" = "Myanmar (Burma)",
   "IRN" = "Iran, Islamic Rep.",
-  "KGZ" = "Kyrgyz Republic"
+  "KGZ" = "Kyrgyz Republic", 
+  "BHS" = "Bahamas",
+  "BLZ" = "Belize",
+  "BRN" = "Brunei",
+  "SSD" = "South Sudan"
 )
 
 standardize_country_codes <- function(df) {
@@ -190,4 +198,5 @@ df_years2.0 <- function(x, y) {
   return(data)
 }
 
-#testing2.0 <- df_years2.0(2015, 2023)
+testing2.0 <- df_years2.0(2016, 2023)
+
