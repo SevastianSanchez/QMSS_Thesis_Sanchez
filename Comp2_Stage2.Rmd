@@ -70,21 +70,21 @@ stargazer(ols_sdg_spi, ols_sdg_spi_L1, ols_sdg_spi_L2,
 # 2.2) First Difference [Stage 2]
 ```{r}
 # Contemporaneous Effect: SDG ~ SPI + DI
-fd_sdg_spi <- plm(formula = sdg_overall ~ spi_comp + di_score + log_gdppc + income_level_recoded + factor(year), 
+fd_sdg_spi <- plm(formula = sdg_overall ~ spi_comp + di_score + log_gdppc + income_level_recoded, 
                model = "fd", 
                index = c("country_code", "year"),
                data = fd_data)
 summary(fd_sdg_spi, vcov = vcovHC(fd_sdg_spi, cluster = "group", type = "HC1"))
 
 # Adding Lag1: SPI ~ DI
-fd_sdg_spi_L1 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + di_score + dplyr::lag(di_score, 1) + log_gdppc + income_level_recoded + factor(year), 
+fd_sdg_spi_L1 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + di_score + dplyr::lag(di_score, 1) + log_gdppc + income_level_recoded, 
                model = "fd", 
                index = c("country_code", "year"),
                data = fd_data)
 summary(fd_sdg_spi_L1, vcov = vcovHC(fd_sdg_spi_L1, cluster = "group", type = "HC1"))
 
 # Adding Lag2: SPI ~ DI
-fd_sdg_spi_L2 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + dplyr::lag(spi_comp, 2) + di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + income_level_recoded + factor(year), 
+fd_sdg_spi_L2 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + dplyr::lag(spi_comp, 2) + di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + income_level_recoded, 
                model = "fd", 
                index = c("country_code", "year"),
                data = fd_data)
@@ -127,7 +127,7 @@ fe_sdg_spi <- plm(formula = sdg_overall ~ spi_comp + di_score + log_gdppc + inco
 summary(fe_sdg_spi, vcov = vcovHC(fe_sdg_spi, cluster = "group", type = "HC1")) # Robust SEs
 
 # Adding Lag1: SPI ~ DI
-fe_sdg_spi_L1 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + di_score + dplyr::lag(di_score, 1) + log_gdppc + income_level_recoded + factor(year), 
+fe_sdg_spi_L1 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + di_score + dplyr::lag(di_score, 1) + log_gdppc + income_level_recoded, 
                model = "within", 
                index = c("country_code", "year"),
                data = panel_data, 
@@ -135,7 +135,7 @@ fe_sdg_spi_L1 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) 
 summary(fe_sdg_spi_L1, vcov = vcovHC(fe_sdg_spi_L1, cluster = "group", type = "HC1"))
 
 # Adding Lag2: SPI ~ DI
-fe_sdg_spi_L2 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + dplyr::lag(spi_comp, 2) + di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + income_level_recoded + factor(year), 
+fe_sdg_spi_L2 <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + dplyr::lag(spi_comp, 2) + di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + income_level_recoded, 
                model = "within", 
                index = c("country_code", "year"),
                data = panel_data, 
@@ -189,6 +189,55 @@ stargazer(ols_sdg_spi_L2, fd_sdg_spi_L2, fe_sdg_spi_L2,
           keep.stat = c("n", "rsq", "adj.rsq"),
           omit = "factor\\(year\\)",  # Omits year FE from display
           out = "figures/s2_lag2_mods.html")
+```
+
+
+# visualize the results using error bar charts that show the coefficient and robust standard error of every lagged effect in the fe_sdg_spi_L2 FE model
+```{r}
+# Extract coefficients and robust standard errors from the FE model
+coefs <- summary(fe_sdg_spi_L2, vcov = vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1"))$coefficients
+# Create a data frame for visualization
+coef_df <- data.frame(
+  term = rownames(coefs),
+  estimate = coefs[, "Estimate"],
+  std.error = coefs[, "Std. Error"]
+)
+# Create a ggplot error bar chart
+ggplot(coef_df, aes(x = term, y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error), width = 0.2) +
+  labs(title = "Lagged Effects in FE Model (sdg_overall ~ spi_comp + di_score + log_gdppc + income_level_recoded)",
+       x = "Predictors",
+       y = "Coefficient Estimate") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Save the plot
+#ggsave("figures/error_bar_fe_sdg_spi_L2.png", width = 10, height = 6)
+```
+
+# visualize the results using error bar charts that show the coefficient and robust standard error of every lagged effect in the fd_sdg_spi_L2 FD model
+```{r}
+# Extract coefficients and robust standard errors from the FD model
+coefs_fd <- summary(fd_sdg_spi_L2, vcov = vcovHC(fd_sdg_spi_L2, cluster = "group", type = "HC1"))$coefficients
+# Create a data frame for visualization
+coef_df_fd <- data.frame(
+  term = rownames(coefs_fd),
+  estimate = coefs_fd[, "Estimate"],
+  std.error = coefs_fd[, "Std. Error"]
+)
+# Create a ggplot error bar chart for the FD model
+ggplot(coef_df_fd, aes(x = term, y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error), width = 0.2) +
+  labs(title = "Lagged Effects in FD Model (sdg_overall ~ spi_comp + di_score + log_gdppc + income_level_recoded)",
+       x = "Predictors",
+       y = "Coefficient Estimate") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Save the plot
+#ggsave("figures/error_bar_fd_sdg_spi_L2.png", width = 10, height = 6)
 ```
 
 # MODEL MISSPECIFICATION CHECKS [Stage 2]
@@ -297,7 +346,7 @@ stargazer(fe_sdg_spi_base, fe_quads_s2_m2, fe_quads_s2_m3, fe_cubics_s2_m4,
 # Model Selection: Adj. R^2 & AIC/BIC [Stage 2]
 ```{r}
 # AIC/BIC function
-source('plm_aic_bic_function.R')
+source('function/plm_aic_bic_function.R')
 
 # AIC/BIC for both models (sourcing function for plm models)
 # [RERUN FULL CHUNK TO RESET NAMES FOR ACURATE RESULTS]

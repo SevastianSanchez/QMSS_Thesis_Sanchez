@@ -356,17 +356,6 @@ summary(eq_testing_dummies)
 # CONCLUSION: EVERY VARIATION OF THE QUALITATIVE VARIABLE FORMAT (WHETHER factor(var) OR Cat1 + Cat2 +...) IS THE SAME! ALL STATISTICS, MODEL OR VARIABLE WISE, ARE EXACTLY IDENTICAL!
 ```
 
-```{r}
-eq_testing <- plm(sdg_overall ~ spi_comp + income_level_recoded, 
-                  model = "pooling", 
-                  index = c("country_code", "year"),
-                  data = merged_2015)
-summary(eq_testing)
-
-
-```
-
-
 # Non-Linear Functional Form Testing 
 ```{r}
 merged_2015 <- merged_2015 %>% mutate(regime_type_2 = as.factor(regime_type_2), 
@@ -392,8 +381,6 @@ vif(testing_centered)
 vif(testing_inter_spi_x_income)
 ```
 - As a control, income level takes on the same slope as that of the overall model
-- 
-
 
 but the interaction term shows that the slope is __steeper__ for low-income countries and __less steep__ for high-income countries. This suggests that the relationship between SPI and SDG is stronger in low-income countries, which aligns with the findings from the subgroup analysis.
 

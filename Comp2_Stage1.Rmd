@@ -228,6 +228,53 @@ stargazer(
 
 ```
 
+
+# visualize the results using error bar charts that show the coefficient and robust standard error of every lagged effect in the fe_spi_di_L2 FE model
+```{r}
+# Extract coefficients and robust standard errors from the FE model
+fe_spi_di_L2_results <- summary(fe_spi_di_L2, vcov = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"))
+# Create a data frame for visualization
+coef_df <- data.frame(
+  term = rownames(fe_spi_di_L2_results$coefficients),
+  estimate = fe_spi_di_L2_results$coefficients[, "Estimate"],
+  std.error = fe_spi_di_L2_results$coefficients[, "Std. Error"]
+)
+# Create a ggplot error bar chart
+ggplot(coef_df, aes(x = term, y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error), width = 0.2) +
+  labs(title = "Lagged Effects in FE Model (SPI ~ DI)", x = "Terms", y = "Coefficient Estimate") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Save the plot
+#ggsave("figures/error_bar_fe_spi_di_L2.png", width = 10, height = 6)
+
+```
+
+# visualize the results using error bar charts that show the coefficient and robust standard error of every lagged effect in the fd_spi_di_L2 FD model
+```{r}
+# Extract coefficients and robust standard errors from the FD model
+fd_spi_di_L2_results <- summary(fd_spi_di_L2, vcov = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"))
+# Create a data frame for visualization
+coef_fd_df <- data.frame(
+  term = rownames(fd_spi_di_L2_results$coefficients),
+  estimate = fd_spi_di_L2_results$coefficients[, "Estimate"],
+  std.error = fd_spi_di_L2_results$coefficients[, "Std. Error"]
+)
+# Create a ggplot error bar chart
+ggplot(coef_fd_df, aes(x = term, y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error), width = 0.2) +
+  labs(title = "Lagged Effects in FD Model (SPI ~ DI)", x = "Terms", y = "Coefficient Estimate") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# Save the plot
+
+#ggsave("figures/error_bar_fd_spi_di_L2", width = 10, height = 6)
+
+```
+
 # MODEL MISSPECIFICATION CHECKS [Stage 1]
 Following standard econometric practice, I first establish the appropriate functional form for main effects, using RESET tests and residual diagnostics, before testing for theoretically motivated interaction effects.
 
@@ -335,7 +382,7 @@ stargazer(fe_spi_di_base, fe_quads_s1_m2, fe_quads_s1_m3, fe_cubics_s1_m4,
           out = "figures/poly_s1_models.html") #saved as html
 
 # AIC/BIC function
-source('plm_aic_bic_function.R')
+source('function/plm_aic_bic_function.R')
 plm_aic_bic(rob_sum_base) # regular FE
 plm_aic_bic(rob_sum_m2) # quadratic FE
 plm_aic_bic(rob_sum_m3) # quadratic FE

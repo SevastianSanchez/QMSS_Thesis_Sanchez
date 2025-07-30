@@ -62,7 +62,6 @@ vif_values_s2 <- vif(vif_model_s2)
 vif_values_s2
 ```
 
-
 # Main Variables Matrix
 ```{r}
   # Impute missing data: log_gdppc
