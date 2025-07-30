@@ -10,6 +10,8 @@ library(vdemdata) # call vdem package
 library(ERT) # call ERT package
 library(stargazer)
 library(scales)
+library(knitr)
+library(kableExtra)
 library(mice)
 library(ppcor)  # For partial correlation calculations
 library(corpcor)  # For pseudoinverse-based partial correlation
