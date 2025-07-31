@@ -11,8 +11,46 @@ panel_model_automation <- function(
     effect = "twoways",
     robust = FALSE,
     cluster = "group",
-    vcov_type = "HC1"
+    vcov_type = "HC1",
+    filter_var = NULL,
+    filter_values = NULL,
+    filter_condition = c("in", "equal", "greater", "less", "greater_equal", "less_equal")
 ) {
+  # Apply data filtering if specified
+  if (!is.null(filter_var) && !is.null(filter_values)) {
+    filter_condition <- match.arg(filter_condition)
+    
+    # Create filtered dataset based on condition
+    if (filter_condition == "in") {
+      # For categorical variables: keep only specified values
+      data <- data[data[[filter_var]] %in% filter_values, ]
+    } else if (filter_condition == "equal") {
+      # For exact matching
+      data <- data[data[[filter_var]] == filter_values, ]
+    } else if (filter_condition == "greater") {
+      # For numeric filtering: greater than
+      data <- data[data[[filter_var]] > filter_values, ]
+    } else if (filter_condition == "less") {
+      # For numeric filtering: less than
+      data <- data[data[[filter_var]] < filter_values, ]
+    } else if (filter_condition == "greater_equal") {
+      # For numeric filtering: greater than or equal
+      data <- data[data[[filter_var]] >= filter_values, ]
+    } else if (filter_condition == "less_equal") {
+      # For numeric filtering: less than or equal
+      data <- data[data[[filter_var]] <= filter_values, ]
+    }
+    
+    # Check if filtering resulted in empty dataset
+    if (nrow(data) == 0) {
+      stop("Filtering resulted in an empty dataset. Please check your filter criteria.")
+    }
+    
+    # Print information about filtered data
+    message(sprintf("Data filtered on %s: %d observations remaining", 
+                    filter_var, nrow(data)))
+  }
+  
   # Helper to add lag terms
   add_lags <- function(vars, n_lags) {
     out <- vars
@@ -119,27 +157,25 @@ panel_model_automation <- function(
   
   mod <- do.call(plm::plm, plm_args)
   
+  # Store model metadata including filter info
+  attr(mod, "filter_info") <- list(
+    filter_var = filter_var,
+    filter_values = filter_values,
+    filter_condition = filter_condition,
+    n_observations = nrow(data)
+  )
+  
   # Return results
   if (robust) {
     # Return model with robust standard errors
     return(list(
       model = mod,
       robust_summary = summary(mod, vcov = vcovHC(mod, cluster = cluster, type = vcov_type)),
-      robust_coefs = coeftest(mod, vcov = vcovHC(mod, cluster = cluster, type = vcov_type))
+      robust_coefs = coeftest(mod, vcov = vcovHC(mod, cluster = cluster, type = vcov_type)),
+      filter_info = attr(mod, "filter_info")
     ))
   } else {
     # Return just the model
     return(mod)
   }
 }
-
-# Example: Combined lags AND polynomials
-#lag_poly_model <- panel_model_automation(
-#  dep_var = "spi_comp",
-#  indep_vars = c("di_score", "log_gdppc", "income_level_recoded"),
-#  lag_vars = "di_score",   # Lag di_score
-#  n_lags = 2,              # Two lags
-#  poly_vars = "di_score",  # Also apply polynomial to di_score
-#  poly_degree = 2,         # Quadratic
-#  model_type = "within"
-#)

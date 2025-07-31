@@ -116,7 +116,7 @@ country_events_table <- stargazer(country_events_summary,
                                     #style = "ajps",
                                     label = "tab:country_events_summary", 
                                   
-                                    out = "figures/country_events_summary.txt"
+                                    out = "figures/country_events_summary.html"
                                   )
 # print table 
 print(country_events_table)

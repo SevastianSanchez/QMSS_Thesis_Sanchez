@@ -1,0 +1,609 @@
+---
+title: "Descriptive Statistics: Variables and Datasets"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: paper
+    highlight: tango
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE,
+                     fig.width = 10, fig.height = 6)
+```
+
+# 1. Load Data and Packages
+
+```{r}
+# set working directory 
+setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
+
+# Load all packages from the packages.R file
+source("packages.R")
+
+# Load the merged (filtered, final) and merged_full (unfiltered, full) datasets
+merged_full <- read_csv("data/Main CSV Outputs/merged_full_df.csv") # full unfiltered dataset
+merged <- read_csv("data/Main CSV Outputs/merged_final_df.csv") # filtered dataset
+
+# Define key variables for analysis
+key_vars <- c("sdg_overall", "spi_comp", "sci_overall", "di_score", 
+              "log_gdppc", "gdp_pc")
+group_vars <- c("income_level", "regime_type_2", "regime_type_4")
+```
+
+# 2. Dataset Coverage
+
+## 2.1 Overall Dataset Size
+
+```{r}
+# Basic dimensions of the dataset
+cat("Total number of observations (rows):", nrow(merged_full), "\n")
+cat("Total number of variables (columns):", ncol(merged_full), "\n")
+cat("Year range:", min(merged_full$year, na.rm=TRUE), "to", max(merged_full$year, na.rm=TRUE), "\n")
+cat("Total number of countries:", length(unique(merged_full$country_code)), "\n")
+```
+
+## 2.2 Coverage by Variable (full dataset)
+
+```{r}
+# Function to get coverage statistics for a variable
+get_coverage <- function(data, var_name) {
+  total_obs <- sum(!is.na(data[[var_name]]))
+  total_countries <- length(unique(data$country_code[!is.na(data[[var_name]])]))
+  total_years <- length(unique(data$year[!is.na(data[[var_name]])]))
+  missing_obs <- sum(is.na(data[[var_name]]))
+  missing_percent <- round(missing_obs / nrow(data) * 100, 2)
+  
+  return(data.frame(
+    Variable = var_name,
+    Observations = total_obs,
+    Countries = total_countries,
+    Years = total_years,
+    Missing = missing_obs,
+    Missing_Percent = missing_percent
+  ))
+}
+
+# Get coverage for all key variables
+coverage_stats <- bind_rows(lapply(key_vars, function(var) get_coverage(merged_full, var)))
+
+# Create the table with APA styling and no caption number
+coverage_table <- kable(coverage_stats, 
+      caption = "Coverage Statistics for Key Variables",
+      col.names = c("Variable", "Observations", "Countries", "Years", "Missing Values", "Missing (%)"),
+      align = c('l', rep('c', 5)),
+      booktabs = TRUE) %>%
+  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
+  row_spec(0, bold = FALSE, align = "c") %>%
+  column_spec(1, bold = FALSE)
+
+# Save the table as HTML
+#save_kable(coverage_table, file = "figures/descriptive_stats/full_coverage_stats_table.html")
+
+# Display the table in the document
+coverage_table
+```
+
+## 2.3 Coverage by Year (full dataset)
+
+```{r}
+# Create a table showing variable coverage by year
+year_coverage <- merged_full %>%
+  group_by(year) %>%
+  summarise(across(all_of(key_vars), ~sum(!is.na(.)), .names = "{.col}_count")) %>%
+  arrange(year)
+
+# Create the table with APA styling and no caption number
+year_coverage_table <- kable(year_coverage, 
+      caption = "Number of Non-Missing Observations by Year for Key Variables",
+      booktabs = TRUE,
+      align = c('l', rep('c', length(key_vars)))) %>%
+  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
+  row_spec(0, bold = FALSE, align = "c") %>%
+  column_spec(1, bold = FALSE)
+
+# Save the table as HTML
+save_kable(year_coverage_table, file = "figures/descriptive_stats/full_year_coverage_table.html")
+
+# Display the table in the document
+year_coverage_table
+```
+
+## 2.4 Coverage by Variable (final dataset)
+
+```{r}
+# Function to get coverage statistics for a variable
+get_coverage <- function(data, var_name) {
+  total_obs <- sum(!is.na(data[[var_name]]))
+  total_countries <- length(unique(data$country_code[!is.na(data[[var_name]])]))
+  total_years <- length(unique(data$year[!is.na(data[[var_name]])]))
+  missing_obs <- sum(is.na(data[[var_name]]))
+  missing_percent <- round(missing_obs / nrow(data) * 100, 2)
+  
+  return(data.frame(
+    Variable = var_name,
+    Observations = total_obs,
+    Countries = total_countries,
+    Years = total_years,
+    Missing = missing_obs,
+    Missing_Percent = missing_percent
+  ))
+}
+
+# Get coverage for all key variables
+coverage_stats <- bind_rows(lapply(key_vars, function(var) get_coverage(merged, var)))
+
+# Create the table with APA styling and no caption number
+coverage_table <- kable(coverage_stats, 
+      caption = "Coverage Statistics for Key Variables",
+      col.names = c("Variable", "Observations", "Countries", "Years", "Missing Values", "Missing (%)"),
+      align = c('l', rep('c', 5)),
+      booktabs = TRUE) %>%
+  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
+  row_spec(0, bold = FALSE, align = "c") %>%
+  column_spec(1, bold = FALSE)
+
+# Save the table as HTML
+save_kable(coverage_table, file = "figures/descriptive_stats/final_coverage_stats_table.html")
+
+# Display the table in the document
+coverage_table
+```
+
+## 2.5 Coverage by Year (final dataset)
+
+```{r}
+# Create a table showing variable coverage by year
+year_coverage <- merged %>%
+  group_by(year) %>%
+  summarise(across(all_of(key_vars), ~sum(!is.na(.)), .names = "{.col}_count")) %>%
+  arrange(year)
+
+# Create the table with APA styling and no caption number
+year_coverage_table <- kable(year_coverage, 
+      caption = "Number of Non-Missing Observations by Year for Key Variables",
+      booktabs = TRUE,
+      align = c('l', rep('c', length(key_vars)))) %>%
+  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
+  row_spec(0, bold = FALSE, align = "c") %>%
+  column_spec(1, bold = FALSE)
+
+# Save the table as HTML
+save_kable(year_coverage_table, file = "figures/descriptive_stats/final_year_coverage_table.html")
+
+# Display the table in the document
+year_coverage_table
+```
+
+# 3. Descriptive Statistics
+
+## 3.1 Summary Statistics for Key Variables
+
+```{r}
+# Generate summary statistics for key variables
+merged_stats <- merged %>%
+  select(all_of(key_vars)) %>%
+  summarize(across(everything(), 
+                   list(
+                     mean = ~mean(., na.rm = TRUE),
+                     sd = ~sd(., na.rm = TRUE),
+                     min = ~min(., na.rm = TRUE),
+                     max = ~max(., na.rm = TRUE)
+                   )))
+
+# Reshape the data for better presentation
+merged_stats_long <- merged_stats %>%
+  pivot_longer(cols = everything(),
+               names_to = c("variable", "stat"),
+               names_pattern = "(.*)_(.*)",
+               values_to = "value") %>%
+  pivot_wider(names_from = stat, values_from = value) %>%
+  arrange(variable)
+
+# Create the table with APA styling and no caption number
+summary_stats_table <- kable(merged_stats_long, 
+      caption = "Descriptive Statistics for Key Variables",
+      col.names = c("Variable", "Mean", "SD", "Minimum", "Maximum"),
+      booktabs = TRUE,
+      digits = 2,
+      align = c('l', rep('c', 4))) %>%
+  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
+  row_spec(0, bold = FALSE, align = "c") %>%
+  column_spec(1, bold = FALSE)
+
+# Save the table as HTML
+save_kable(summary_stats_table, file = "figures/descriptive_stats/summary_stats_table.html")
+
+# Display the table in the document
+summary_stats_table
+```
+
+## 3.2 Summary Statistics by Income Level
+
+```{r}
+# Calculate mean values by income level
+income_level_stats <- merged %>%
+  group_by(income_level) %>%
+  summarise(across(all_of(key_vars), 
+                  ~mean(.x, na.rm = TRUE), 
+                  .names = "mean_{.col}"),
+            n = n()) %>%
+  arrange(factor(income_level, levels = c("L", "LM", "UM", "H")))
+
+# Add income level labels for better readability
+income_level_stats <- income_level_stats %>%
+  mutate(income_level_name = case_when(
+    income_level == "L" ~ "Low Income",
+    income_level == "LM" ~ "Lower-Middle Income",
+    income_level == "UM" ~ "Upper-Middle Income",
+    income_level == "H" ~ "High Income",
+    TRUE ~ income_level
+  ))
+
+# Create the table with APA styling and no caption number
+income_level_table <- kable(income_level_stats %>% 
+        select(income_level_name, n, starts_with("mean_")), 
+      caption = "Mean Values by Income Level",
+      col.names = c("Income Level", "N", "SDG Overall", "SPI Composite", 
+                   "SCI Overall", "Democracy Index", "Log GDP PC", "GDP PC"),
+      booktabs = TRUE,
+      digits = 2,
+      align = c('l', rep('c', 7))) %>%
+  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
+  row_spec(0, bold = FALSE, align = "c") %>%
+  column_spec(1, bold = FALSE)
+
+# Save the table as HTML
+save_kable(income_level_table, file = "figures/descriptive_stats/income_level_table.html")
+
+# Display the table in the document
+income_level_table
+```
+
+## 3.3 Summary Statistics by Regime Type
+
+```{r}
+# Calculate mean values by regime type
+regime_type_stats <- merged %>%
+  group_by(regime_type_2) %>%
+  summarise(across(all_of(key_vars), 
+                  ~mean(.x, na.rm = TRUE), 
+                  .names = "mean_{.col}"),
+            across(all_of(key_vars), 
+                  ~sd(.x, na.rm = TRUE), 
+                  .names = "sd_{.col}"),
+            n = n()) %>%
+  mutate(regime_type_name = ifelse(regime_type_2 == 1, "Democracy", "Autocracy"))
+
+# Create the table with APA styling and no caption number
+regime_type_table <- kable(regime_type_stats %>% 
+        select(regime_type_name, n, starts_with("mean_")), 
+      caption = "Mean Values by Regime Type",
+      col.names = c("Regime Type", "N", "SDG Overall", "SPI Composite", 
+                   "SCI Overall", "Democracy Index", "Log GDP PC", "GDP PC"),
+      booktabs = TRUE,
+      digits = 2,
+      align = c('l', rep('c', 7))) %>%
+  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
+  row_spec(0, bold = FALSE, align = "c") %>%
+  column_spec(1, bold = FALSE) %>%
+  add_footnote("Note: Values represent the mean score for each variable by regime type.", notation = "none") %>%
+  footnote(general_title = "", 
+           general = "Source: Author's calculations using merged dataset.")
+
+# Save the table as HTML
+save_kable(regime_type_table, file = "figures/descriptive_stats/regime_type_table.html")
+
+# Display the table in the document
+regime_type_table
+```
+
+# 4. Visualizations
+
+## 4.1 Distributions of Key Variables
+
+```{r fig.height=8}
+# Create histograms for key index variables using ggplot2
+p1 <- ggplot(merged, aes(x = sdg_overall)) +
+  geom_histogram(bins = 20, fill = "lightblue", color = "black", alpha = 0.7) +
+  geom_vline(xintercept = median(merged$sdg_overall, na.rm = TRUE), 
+             color = "red", linewidth = 1, linetype = "dashed") +
+  labs(title = "Sustainable Development Goals Index (2004-2023)",
+       x = "Composite Score (0-100)",
+       y = "Frequency (country-years)") +
+  theme_minimal()
+
+p2 <- ggplot(merged, aes(x = spi_comp)) +
+  geom_histogram(bins = 20, fill = "lightgreen", color = "black", alpha = 0.7) +
+  geom_vline(xintercept = median(merged$spi_comp, na.rm = TRUE), 
+             color = "red", linewidth = 1, linetype = "dashed") +
+  labs(title = "Statistical Performance Index (2016-2023)",
+       x = "Composite Score (0-100)",
+       y = "Frequency (country-years)") +
+  theme_minimal()
+
+p3 <- ggplot(merged, aes(x = sci_overall)) +
+  geom_histogram(bins = 20, fill = "lightyellow", color = "black", alpha = 0.7) +
+  geom_vline(xintercept = median(merged$sci_overall, na.rm = TRUE), 
+             color = "red", linewidth = 1, linetype = "dashed") +
+  labs(title = "Statistical Capacity Index (2004-2020)",
+       x = "Composite Score (0-100)",
+       y = "Frequency (country-years)") +
+  theme_minimal()
+
+p4 <- ggplot(merged, aes(x = di_score)) +
+  geom_histogram(bins = 20, fill = "lightpink", color = "black", alpha = 0.7) +
+  geom_vline(xintercept = median(merged$di_score, na.rm = TRUE), 
+             color = "red", linewidth = 1, linetype = "dashed") +
+  labs(title = "Democracy Index",
+       x = "Score (0-10)",
+       y = "Frequency (country-years)") +
+  theme_minimal()
+
+# Combine plots using patchwork
+(p1 + p2) / (p3 + p4)
+
+# Save combined plot
+ggsave("figures/descriptive_stats/histograms_combined.png", (p1 + p2) / (p3 + p4), width = 10, height = 8, dpi = 300)
+```
+
+## 4.2 Boxplots by Regime Type
+
+```{r fig.height=8}
+# Create boxplots for variables split by regime type using ggplot2
+# Add factor for regime type with proper labels
+merged <- merged %>%
+  mutate(regime_type_factor = factor(regime_type_2, 
+                                    levels = c(0, 1),
+                                    labels = c("Autocracy", "Democracy")))
+
+b1 <- ggplot(merged, aes(x = regime_type_factor, y = sdg_overall, fill = regime_type_factor)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("salmon", "skyblue")) +
+  labs(title = "SDG Index by Regime Type",
+       x = "Regime Type",
+       y = "Composite Score (0-100)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+b2 <- ggplot(merged, aes(x = regime_type_factor, y = spi_comp, fill = regime_type_factor)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("salmon", "skyblue")) +
+  labs(title = "SPI Distribution by Regime Type",
+       x = "Regime Type",
+       y = "Composite Score (0-100)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+b3 <- ggplot(merged, aes(x = regime_type_factor, y = sci_overall, fill = regime_type_factor)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("salmon", "skyblue")) +
+  labs(title = "SCI Distribution by Regime Type",
+       x = "Regime Type",
+       y = "Composite Score (0-100)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+b4 <- ggplot(merged, aes(x = regime_type_factor, y = di_score, fill = regime_type_factor)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("salmon", "skyblue")) +
+  labs(title = "Democracy Index by Regime Type",
+       x = "Regime Type",
+       y = "Score (0-10)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Combine plots using patchwork
+boxplot_combined <- (b1 + b2) / (b3 + b4)
+boxplot_combined
+
+# Save combined plot
+ggsave("figures/descriptive_stats/boxplots_combined.png", boxplot_combined, width = 10, height = 8, dpi = 300)
+```
+
+# 5. Quantile Analysis
+
+## 5.1 Quartile Breaks
+
+```{r}
+# Calculate quartile breaks for main indices
+quant_breaks_sdg <- quantile(merged$sdg_overall, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+quant_breaks_spi <- quantile(merged$spi_comp, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+quant_breaks_sci <- quantile(merged$sci_overall, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+quant_breaks_di <- quantile(merged$di_score, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+
+# Display the quartile breaks
+quartiles_df <- data.frame(
+  Quartile = c("Minimum (0%)", "Q1 (25%)", "Median (50%)", "Q3 (75%)", "Maximum (100%)"),
+  SDG_Index = quant_breaks_sdg,
+  SPI = quant_breaks_spi,
+  SCI = quant_breaks_sci,
+  Democracy_Index = quant_breaks_di
+)
+
+# Create the table with APA styling and no caption number
+quartiles_table <- kable(quartiles_df, 
+      caption = "Quartile Breaks for Key Indices",
+      booktabs = TRUE,
+      digits = 2,
+      align = c('l', rep('c', 4))) %>%
+  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
+  row_spec(0, bold = FALSE, align = "c") %>%
+  column_spec(1, bold = FALSE)
+
+# Save the table as HTML
+save_kable(quartiles_table, file = "figures/descriptive_stats/quartiles_table.html")
+
+# Display the table in the document
+quartiles_table
+```
+
+## 5.2 Quantile Frequency Tables
+
+```{r}
+# Create quartile bins for each index
+merged <- merged %>%
+  mutate(
+    sdg_quant_bins = cut(sdg_overall, 
+                      breaks = quant_breaks_sdg, 
+                      include.lowest = TRUE, 
+                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)")),
+    spi_quant_bins = cut(spi_comp, 
+                      breaks = quant_breaks_spi, 
+                      include.lowest = TRUE, 
+                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)")),
+    sci_quant_bins = cut(sci_overall, 
+                      breaks = quant_breaks_sci, 
+                      include.lowest = TRUE, 
+                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)")),
+    di_quant_bins = cut(di_score, 
+                      breaks = quant_breaks_di, 
+                      include.lowest = TRUE, 
+                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
+  )
+
+# Create frequency tables by regime type for each index
+# SDG Index
+sdg_summary <- merged %>%
+  filter(!is.na(sdg_quant_bins) & !is.na(regime_type_2)) %>%
+  group_by(regime_type_2, sdg_quant_bins) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(regime_type_name = ifelse(regime_type_2 == 1, "Democracy", "Autocracy"))
+
+# Pivot to wide format
+sdg_wide_table <- sdg_summary %>%
+  select(-regime_type_2) %>%
+  pivot_wider(names_from = sdg_quant_bins, values_from = count, values_fill = 0)
+
+# Create the table with APA styling and no caption number
+sdg_quartile_table <- kable(sdg_wide_table, 
+      caption = "SDG Index Quartile Distribution by Regime Type",
+      booktabs = TRUE,
+      align = c('l', rep('c', 4))) %>%
+  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
+  row_spec(0, bold = FALSE, align = "c") %>%
+  column_spec(1, bold = FALSE)
+
+# Save the table as HTML
+save_kable(sdg_quartile_table, file = "figures/descriptive_stats/sdg_quartile_table.html")
+
+# Display the table in the document
+sdg_quartile_table
+
+# SPI Index
+spi_summary <- merged %>%
+  filter(!is.na(spi_quant_bins) & !is.na(regime_type_2)) %>%
+  group_by(regime_type_2, spi_quant_bins) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(regime_type_name = ifelse(regime_type_2 == 1, "Democracy", "Autocracy"))
+
+# Pivot to wide format
+spi_wide_table <- spi_summary %>%
+  select(-regime_type_2) %>%
+  pivot_wider(names_from = spi_quant_bins, values_from = count, values_fill = 0)
+
+# Create the table with APA styling and no caption number
+spi_quartile_table <- kable(spi_wide_table, 
+      caption = "SPI Quartile Distribution by Regime Type",
+      booktabs = TRUE,
+      align = c('l', rep('c', 4))) %>%
+  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
+  row_spec(0, bold = FALSE, align = "c") %>%
+  column_spec(1, bold = FALSE)
+
+# Save the table as HTML
+save_kable(spi_quartile_table, file = "figures/descriptive_stats/spi_quartile_table.html")
+
+# Display the table in the document
+spi_quartile_table
+
+# SCI Index
+sci_summary <- merged %>%
+  filter(!is.na(sci_quant_bins) & !is.na(regime_type_2)) %>%
+  group_by(regime_type_2, sci_quant_bins) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(regime_type_name = ifelse(regime_type_2 == 1, "Democracy", "Autocracy"))
+
+# Pivot to wide format
+sci_wide_table <- sci_summary %>%
+  select(-regime_type_2) %>%
+  pivot_wider(names_from = sci_quant_bins, values_from = count, values_fill = 0)
+
+# Create the table with APA styling and no caption number
+sci_quartile_table <- kable(sci_wide_table, 
+      caption = "SCI Quartile Distribution by Regime Type",
+      booktabs = TRUE,
+      align = c('l', rep('c', 4))) %>%
+  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
+  row_spec(0, bold = FALSE, align = "c") %>%
+  column_spec(1, bold = FALSE)
+
+# Save the table as HTML
+save_kable(sci_quartile_table, file = "figures/descriptive_stats/sci_quartile_table.html")
+
+# Display the table in the document
+sci_quartile_table
+```
+
+# 6. Summary Table of Findings
+
+```{r}
+# Create a summary table of key findings
+summary_findings <- data.frame(
+  Variable = c("SDG Overall", "SPI Composite", "SCI Overall", "Democracy Index"),
+  Democracy_Mean = c(
+    mean(merged$sdg_overall[merged$regime_type_2 == 1], na.rm = TRUE),
+    mean(merged$spi_comp[merged$regime_type_2 == 1], na.rm = TRUE),
+    mean(merged$sci_overall[merged$regime_type_2 == 1], na.rm = TRUE),
+    mean(merged$di_score[merged$regime_type_2 == 1], na.rm = TRUE)
+  ),
+  Autocracy_Mean = c(
+    mean(merged$sdg_overall[merged$regime_type_2 == 0], na.rm = TRUE),
+    mean(merged$spi_comp[merged$regime_type_2 == 0], na.rm = TRUE),
+    mean(merged$sci_overall[merged$regime_type_2 == 0], na.rm = TRUE),
+    mean(merged$di_score[merged$regime_type_2 == 0], na.rm = TRUE)
+  ),
+  Difference = c(
+    mean(merged$sdg_overall[merged$regime_type_2 == 1], na.rm = TRUE) - 
+      mean(merged$sdg_overall[merged$regime_type_2 == 0], na.rm = TRUE),
+    mean(merged$spi_comp[merged$regime_type_2 == 1], na.rm = TRUE) - 
+      mean(merged$spi_comp[merged$regime_type_2 == 0], na.rm = TRUE),
+    mean(merged$sci_overall[merged$regime_type_2 == 1], na.rm = TRUE) - 
+      mean(merged$sci_overall[merged$regime_type_2 == 0], na.rm = TRUE),
+    mean(merged$di_score[merged$regime_type_2 == 1], na.rm = TRUE) - 
+      mean(merged$di_score[merged$regime_type_2 == 0], na.rm = TRUE)
+  ),
+  Percent_Difference = c(
+    (mean(merged$sdg_overall[merged$regime_type_2 == 1], na.rm = TRUE) / 
+      mean(merged$sdg_overall[merged$regime_type_2 == 0], na.rm = TRUE) - 1) * 100,
+    (mean(merged$spi_comp[merged$regime_type_2 == 1], na.rm = TRUE) / 
+      mean(merged$spi_comp[merged$regime_type_2 == 0], na.rm = TRUE) - 1) * 100,
+    (mean(merged$sci_overall[merged$regime_type_2 == 1], na.rm = TRUE) / 
+      mean(merged$sci_overall[merged$regime_type_2 == 0], na.rm = TRUE) - 1) * 100,
+    (mean(merged$di_score[merged$regime_type_2 == 1], na.rm = TRUE) / 
+      mean(merged$di_score[merged$regime_type_2 == 0], na.rm = TRUE) - 1) * 100
+  )
+)
+
+# Format and display the summary table with APA styling and no caption number
+summary_findings_table <- kable(summary_findings, 
+      caption = "Summary of Differences Between Democracies and Autocracies",
+      col.names = c("Variable", "Democracy Mean", "Autocracy Mean", "Absolute Difference", "% Difference"),
+      booktabs = TRUE,
+      digits = 2,
+      align = c('l', rep('c', 4))) %>%
+  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
+  row_spec(0, bold = FALSE, align = "c") %>%
+  column_spec(1, bold = FALSE) %>%
+  add_footnote("Note: Positive differences indicate higher values in democracies compared to autocracies.", notation = "none") %>%
+  footnote(general_title = "", 
+           general = "Source: Author's calculations using merged dataset.")
+
+# Save the table as HTML
+save_kable(summary_findings_table, file = "figures/descriptive_stats/summary_findings_table.html")
+
+# Display the table in the document
+summary_findings_table
+```

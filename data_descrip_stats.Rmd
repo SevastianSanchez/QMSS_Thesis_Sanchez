@@ -13,7 +13,15 @@ source("packages.R")
 merged <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
 ```
 
-# NEW DF: counting the number of NAs (across all years) per country, by variables: SPI, SCI, SDG
+## Frequency distribution table of selected variables: SPI, SCI, DI, SDG, GDP per capita and Log GDP per capita
+```{r}
+
+
+
+```
+
+
+## NEW DF: counting the number of NAs (across all years) per country, by variables: SPI, SCI, SDG
 ```{r eval=FALSE, include=FALSE}
 # List of columns to count NAs in
 target_cols <- c("spi_comp", "sdg_overall", "sci_overall", "p1_use", "p2_services", 
@@ -36,7 +44,7 @@ merged_na_counts <- merged %>%
 merged_na_counts <- read_csv("data/Main CSV Outputs/merged_na_counts.csv")
 ```
 
-# Descriptive stats & Missing Data: Full Dataset 
+## Descriptive stats & Missing Data: Full Dataset 
 ```{r}
 # x & y variables 
 df_sdg_statcap <- data.frame(merged$sdg_overall, merged$spi_comp, merged$sci_overall, merged$di_score, merged$log_gdppc, merged$population, merged$gini)
