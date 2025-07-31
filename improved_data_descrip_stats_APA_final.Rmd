@@ -80,7 +80,7 @@ coverage_table <- kable(coverage_stats,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-#save_kable(coverage_table, file = "figures/descriptive_stats/full_coverage_stats_table.html")
+save_kable(coverage_table, file = "figures/descriptive_stats/full_coverage_stats_table.html")
 
 # Display the table in the document
 coverage_table
