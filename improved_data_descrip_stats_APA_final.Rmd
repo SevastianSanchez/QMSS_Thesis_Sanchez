@@ -71,7 +71,7 @@ coverage_stats <- bind_rows(lapply(key_vars, function(var) get_coverage(merged_f
 
 # Create the table with APA styling and no caption number
 coverage_table <- kable(coverage_stats, 
-      caption = "Coverage Statistics for Key Variables",
+      caption = "Coverage Statistics for Key Variables (unfiltered)",
       col.names = c("Variable", "Observations", "Countries", "Years", "Missing Values", "Missing (%)"),
       align = c('l', rep('c', 5)),
       booktabs = TRUE) %>%
@@ -79,9 +79,8 @@ coverage_table <- kable(coverage_stats,
   row_spec(0, bold = FALSE, align = "c") %>%
   column_spec(1, bold = FALSE)
 
-g
 # Save the table as HTML
-save_kable(coverage_table, file = "figures/descriptive_stats/full_coverage_stats_table.html")
+save_kable(coverage_table, file = "figures/data coverage & summary stats/full_coverage_stats_table.html")
 
 # Display the table in the document
 coverage_table
@@ -93,12 +92,12 @@ coverage_table
 # Create a table showing variable coverage by year
 year_coverage <- merged_full %>%
   group_by(year) %>%
-  summarise(across(all_of(key_vars), ~sum(!is.na(.)), .names = "{.col}_count")) %>%
+  summarise(across(all_of(key_vars), ~sum(!is.na(.)), .names = "{.col}")) %>%
   arrange(year)
 
 # Create the table with APA styling and no caption number
 year_coverage_table <- kable(year_coverage, 
-      caption = "Number of Non-Missing Observations by Year for Key Variables",
+      caption = "Number of Countries Covered by Year for Key Variables (unfiltered)",
       booktabs = TRUE,
       align = c('l', rep('c', length(key_vars)))) %>%
   kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
@@ -106,7 +105,7 @@ year_coverage_table <- kable(year_coverage,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(year_coverage_table, file = "figures/descriptive_stats/full_year_coverage_table.html")
+save_kable(year_coverage_table, file = "figures/data coverage & summary stats/full_year_coverage_table.html")
 
 # Display the table in the document
 year_coverage_table
@@ -115,30 +114,12 @@ year_coverage_table
 ## 2.4 Coverage by Variable (final dataset)
 
 ```{r}
-# Function to get coverage statistics for a variable
-get_coverage <- function(data, var_name) {
-  total_obs <- sum(!is.na(data[[var_name]]))
-  total_countries <- length(unique(data$country_code[!is.na(data[[var_name]])]))
-  total_years <- length(unique(data$year[!is.na(data[[var_name]])]))
-  missing_obs <- sum(is.na(data[[var_name]]))
-  missing_percent <- round(missing_obs / nrow(data) * 100, 2)
-  
-  return(data.frame(
-    Variable = var_name,
-    Observations = total_obs,
-    Countries = total_countries,
-    Years = total_years,
-    Missing = missing_obs,
-    Missing_Percent = missing_percent
-  ))
-}
-
 # Get coverage for all key variables
 coverage_stats <- bind_rows(lapply(key_vars, function(var) get_coverage(merged, var)))
 
 # Create the table with APA styling and no caption number
 coverage_table <- kable(coverage_stats, 
-      caption = "Coverage Statistics for Key Variables",
+      caption = "Coverage Statistics for Key Variables (filtered)",
       col.names = c("Variable", "Observations", "Countries", "Years", "Missing Values", "Missing (%)"),
       align = c('l', rep('c', 5)),
       booktabs = TRUE) %>%
@@ -147,7 +128,7 @@ coverage_table <- kable(coverage_stats,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(coverage_table, file = "figures/descriptive_stats/final_coverage_stats_table.html")
+save_kable(coverage_table, file = "figures/data coverage & summary stats/final_coverage_stats_table.html")
 
 # Display the table in the document
 coverage_table
@@ -159,12 +140,12 @@ coverage_table
 # Create a table showing variable coverage by year
 year_coverage <- merged %>%
   group_by(year) %>%
-  summarise(across(all_of(key_vars), ~sum(!is.na(.)), .names = "{.col}_count")) %>%
+  summarise(across(all_of(key_vars), ~sum(!is.na(.)), .names = "{.col}")) %>%
   arrange(year)
 
 # Create the table with APA styling and no caption number
 year_coverage_table <- kable(year_coverage, 
-      caption = "Number of Non-Missing Observations by Year for Key Variables",
+      caption = "Number of Countries Covered by Year for Key Variables (filtered)",
       booktabs = TRUE,
       align = c('l', rep('c', length(key_vars)))) %>%
   kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
@@ -172,13 +153,13 @@ year_coverage_table <- kable(year_coverage,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(year_coverage_table, file = "figures/descriptive_stats/final_year_coverage_table.html")
+save_kable(year_coverage_table, file = "figures/data coverage & summary stats/final_year_coverage_table.html")
 
 # Display the table in the document
 year_coverage_table
 ```
 
-# 3. Descriptive Statistics
+# 3. Descriptive Statistics (Filtered Data)
 
 ## 3.1 Summary Statistics for Key Variables
 
@@ -188,11 +169,16 @@ merged_stats <- merged %>%
   select(all_of(key_vars)) %>%
   summarize(across(everything(), 
                    list(
+                     variable = ~cur_column(),
+                     min = ~min(., na.rm = TRUE),
+                     '1st_Qu' = ~quantile(., 0.25, na.rm = TRUE),
+                     median = ~median(., na.rm = TRUE),
                      mean = ~mean(., na.rm = TRUE),
                      sd = ~sd(., na.rm = TRUE),
-                     min = ~min(., na.rm = TRUE),
-                     max = ~max(., na.rm = TRUE)
-                   )))
+                     '3rd_Qu' = ~quantile(., 0.75, na.rm = TRUE),
+                     max = ~max(., na.rm = TRUE),
+                     n = ~sum(!is.na(.))
+                     )))
 
 # Reshape the data for better presentation
 merged_stats_long <- merged_stats %>%
@@ -206,7 +192,7 @@ merged_stats_long <- merged_stats %>%
 # Create the table with APA styling and no caption number
 summary_stats_table <- kable(merged_stats_long, 
       caption = "Descriptive Statistics for Key Variables",
-      col.names = c("Variable", "Mean", "SD", "Minimum", "Maximum"),
+      col.names = c("Variable", "Min", "1st Qu", "Median", "Mean", "SD", "3rd Qu", "Max", "N"),
       booktabs = TRUE,
       digits = 2,
       align = c('l', rep('c', 4))) %>%
@@ -214,8 +200,10 @@ summary_stats_table <- kable(merged_stats_long,
   row_spec(0, bold = FALSE, align = "c") %>%
   column_spec(1, bold = FALSE)
 
+# NOT WORKINGGGG^^^^^
+
 # Save the table as HTML
-save_kable(summary_stats_table, file = "figures/descriptive_stats/summary_stats_table.html")
+save_kable(summary_stats_table, file = "figures/data coverage & summary stats/summary_stats_table.html")
 
 # Display the table in the document
 summary_stats_table
@@ -257,7 +245,7 @@ income_level_table <- kable(income_level_stats %>%
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(income_level_table, file = "figures/descriptive_stats/income_level_table.html")
+save_kable(income_level_table, file = "figures/data coverage & summary stats/income_level_table.html")
 
 # Display the table in the document
 income_level_table
@@ -295,7 +283,7 @@ regime_type_table <- kable(regime_type_stats %>%
            general = "Source: Author's calculations using merged dataset.")
 
 # Save the table as HTML
-save_kable(regime_type_table, file = "figures/descriptive_stats/regime_type_table.html")
+save_kable(regime_type_table, file = "figures/data coverage & summary stats/regime_type_table.html")
 
 # Display the table in the document
 regime_type_table
@@ -347,7 +335,7 @@ p4 <- ggplot(merged, aes(x = di_score)) +
 (p1 + p2) / (p3 + p4)
 
 # Save combined plot
-ggsave("figures/descriptive_stats/histograms_combined.png", (p1 + p2) / (p3 + p4), width = 10, height = 8, dpi = 300)
+ggsave("figures/data coverage & summary stats/histograms_combined.png", (p1 + p2) / (p3 + p4), width = 10, height = 8, dpi = 300)
 ```
 
 ## 4.2 Boxplots by Regime Type
@@ -401,7 +389,7 @@ boxplot_combined <- (b1 + b2) / (b3 + b4)
 boxplot_combined
 
 # Save combined plot
-ggsave("figures/descriptive_stats/boxplots_combined.png", boxplot_combined, width = 10, height = 8, dpi = 300)
+ggsave("figures/data coverage & summary stats/boxplots_combined.png", boxplot_combined, width = 10, height = 8, dpi = 300)
 ```
 
 # 5. Quantile Analysis
@@ -435,7 +423,7 @@ quartiles_table <- kable(quartiles_df,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(quartiles_table, file = "figures/descriptive_stats/quartiles_table.html")
+save_kable(quartiles_table, file = "figures/data coverage & summary stats/quartiles_table.html")
 
 # Display the table in the document
 quartiles_table
@@ -488,7 +476,7 @@ sdg_quartile_table <- kable(sdg_wide_table,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(sdg_quartile_table, file = "figures/descriptive_stats/sdg_quartile_table.html")
+save_kable(sdg_quartile_table, file = "figures/data coverage & summary stats/sdg_quartile_table.html")
 
 # Display the table in the document
 sdg_quartile_table
@@ -515,7 +503,7 @@ spi_quartile_table <- kable(spi_wide_table,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(spi_quartile_table, file = "figures/descriptive_stats/spi_quartile_table.html")
+save_kable(spi_quartile_table, file = "figures/data coverage & summary stats/spi_quartile_table.html")
 
 # Display the table in the document
 spi_quartile_table
@@ -542,7 +530,7 @@ sci_quartile_table <- kable(sci_wide_table,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(sci_quartile_table, file = "figures/descriptive_stats/sci_quartile_table.html")
+save_kable(sci_quartile_table, file = "figures/data coverage & summary stats/sci_quartile_table.html")
 
 # Display the table in the document
 sci_quartile_table
@@ -603,7 +591,7 @@ summary_findings_table <- kable(summary_findings,
            general = "Source: Author's calculations using merged dataset.")
 
 # Save the table as HTML
-save_kable(summary_findings_table, file = "figures/descriptive_stats/summary_findings_table.html")
+save_kable(summary_findings_table, file = "figures/data coverage & summary stats/summary_findings_table.html")
 
 # Display the table in the document
 summary_findings_table
