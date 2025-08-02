@@ -33,6 +33,14 @@ key_vars <- c("sdg_overall", "spi_comp", "sci_overall", "di_score",
 group_vars <- c("income_level", "regime_type_2", "regime_type_4")
 ```
 
+*SDG VARIABLE NOTE: While all member states have a country profile, only those with less than 20% missing data are ranked in the SDG Index, resulting in 167 countries being ranked in the 2024 report.*
+
+**Reason to remove GINI from study:**
+This study uses country-years as my primary unit of analysis, at least in the cross-sectional segment of component 1. While inequalities in the distribution of wealth for a given country is an important consideration that may affect statistical capacity and sustainable development (source), not data points are available for every country, let alone every year, to produce a reliable estimate. I suspect that this missingness is non-random, as a significant share of countries, predominantly of emerging markets in the global south, face greater challenges in developing and consolidating the statistical infrastructure necessary for producing quality statistics (SOURCE). With almost 2000 missing country-year values, including the GINI coefficient as a control would dramatically decrease the sample size and yield unreliable results. To reiterate, this analysis refrains from using list-wise imputation, especially for variables like the GINI coefficient that are not available for all countries and years. Instead, the analysis focused on the available data, which is sufficient to draw meaningful conclusions about the relationship between statistical capacity and sustainable development.
+
+**Reason to remove Population from models**
+The models will not be including total national population although is theoretically important for my research as it likely contributes the nations ability to capture high quality statistics on the population as surly this can challenge current structures in place that are not equipped to track a growing population (source). The reason is because doing so would introduce colinearity with national (logged) Gross Domestic Product per capita (population), which would bias results.
+
 # 2. Dataset Coverage
 
 ## 2.1 Overall Dataset Size
@@ -387,7 +395,7 @@ ggsave("figures/data coverage & summary stats/boxplots_combined.png", boxplot_co
 # 5. Quantile Analysis # PICK UP HERE AND DOWN 
 
 ## 5.1 Quartile Breaks
-
+*Just Quantiles, on-hand if needed*
 ```{r}
 # Calculate quartile breaks for main indices
 quant_breaks_sdg <- quantile(merged$sdg_overall, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
@@ -415,7 +423,7 @@ quartiles_table <- kable(quartiles_df,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(quartiles_table, file = "figures/data coverage & summary stats/quartiles_table.html")
+#save_kable(quartiles_table, file = "figures/data coverage & summary stats/quartiles_table.html")
 
 # Display the table in the document
 quartiles_table
@@ -468,7 +476,7 @@ sdg_quartile_table <- kable(sdg_wide_table,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(sdg_quartile_table, file = "figures/data coverage & summary stats/sdg_quartile_table.html")
+#save_kable(sdg_quartile_table, file = "figures/data coverage & summary stats/sdg_quartile_table.html")
 
 # Display the table in the document
 sdg_quartile_table
@@ -495,7 +503,7 @@ spi_quartile_table <- kable(spi_wide_table,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(spi_quartile_table, file = "figures/data coverage & summary stats/spi_quartile_table.html")
+#save_kable(spi_quartile_table, file = "figures/data coverage & summary stats/spi_quartile_table.html")
 
 # Display the table in the document
 spi_quartile_table
@@ -522,7 +530,7 @@ sci_quartile_table <- kable(sci_wide_table,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(sci_quartile_table, file = "figures/data coverage & summary stats/sci_quartile_table.html")
+#save_kable(sci_quartile_table, file = "figures/data coverage & summary stats/sci_quartile_table.html")
 
 # Display the table in the document
 sci_quartile_table

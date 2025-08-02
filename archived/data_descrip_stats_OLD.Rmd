@@ -109,13 +109,6 @@ sdg_hist <- hist(merged$sdg_overall, main = "Sustainable Development Goals (2004
 dev.off()
 ```
 
-*SDG VARIABLE NOTE: While all member states have a country profile, only those with less than 20% missing data are ranked in the SDG Index, resulting in 167 countries being ranked in the 2024 report.*
-
-**Reason to remove GINI from study:**
-This study uses country-years as my primary unit of analysis, at least in the cross-sectional segment of component 1. While inequalities in the distribution of wealth for a given country is an important consideration that may affect statistical capacity and sustainable development (source), not data points are available for every country, let alone every year, to produce a reliable estimate. I suspect that this missingness is non-random, as a significant share of countries, predominantly of emerging markets in the global south, face greater challenges in developing and consolidating the statistical infrastructure necessary for producing quality statistics (SOURCE). With almost 2000 missing country-year values, including the GINI coefficient as a control would dramatically decrease the sample size and yield unreliable results. To reiterate, this analysis refrains from using list-wise imputation, especially for variables like the GINI coefficient that are not available for all countries and years. Instead, the analysis focused on the available data, which is sufficient to draw meaningful conclusions about the relationship between statistical capacity and sustainable development.
-
-**Reason to remove Population from models**
-The models will not be including total national population although is theoretically important for my research as it likely contributes the nations ability to capture high quality statistics on the population as surly this can challenge current structures in place that are not equipped to track a growing population (source). The reason is because doing so would introduce colinearity with national (logged) Gross Domestic Product per capita (population), which would bias results.
 
 ## Box plots
 ```{r}
@@ -247,14 +240,3 @@ summary(merged$sci_overall)
 summary(merged$di_score)
    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
   0.260   3.520   5.780   5.509   7.280   9.930     800 
-  
-```{r}
-library(jsonlite)
-
-# Fetch the data
-df <- read.csv("https://ourworldindata.org/grapher/democracy-index-by-source.csv?v=1&csvType=full&useColumnShortNames=true")
-
-# Fetch the metadata
-metadata <- fromJSON("https://ourworldindata.org/grapher/democracy-index-by-source.metadata.json?v=1&csvType=full&useColumnShortNames=true")
-```
-  
