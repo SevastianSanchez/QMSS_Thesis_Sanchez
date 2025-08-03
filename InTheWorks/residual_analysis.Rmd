@@ -16,53 +16,8 @@ setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 #load libraries 
 source("packages.R")
 
-#load function 
-#source("df_years2.0_Function.R")
-
-#load df_years() function: 2015-present
-#all_data <- df_years2.0(2004, 2023)
-
-#read merged_df csv
-all_data <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
-
-# Adding has_aut_ep and has_dem_ep for regressing regimes (experienced atleast 1 aut_ep/dem_ep)
-panel_data <- all_data %>%
-  # Group by country to check for any event
-  group_by(country_code) %>%
-  mutate(has_aut_ep = any(aut_ep == 1, na.rm = TRUE)) %>%
-  mutate(has_dem_ep = any(dem_ep == 1, na.rm = TRUE)) %>% 
-  ungroup() 
-
-# centralized variables for higher-order multicollinearity 
-panel_data <- panel_data %>%
-  mutate(
-    cen_sdg_overall = sdg_overall - mean(sdg_overall, na.rm = TRUE),
-    cen_spi_comp = spi_comp - mean(spi_comp, na.rm = TRUE),
-    cen_di_score = di_score - mean(di_score, na.rm = TRUE),
-    cen_log_gdppc = log_gdppc - mean(log_gdppc, na.rm = TRUE)
-  )
-
-# year-year lags for FD Models - DF
-fd_data <- panel_data %>%
-  select(country_code, year, sdg_overall, di_score, spi_comp, log_gdppc, income_level, aut_ep, dem_ep, regch_event) %>%
-  filter(!is.na(di_score) & !is.na(spi_comp) | !is.na(spi_comp) & !is.na(sdg_overall)) %>% 
-  arrange(country_code, year) %>%
-  group_by(country_code) %>%
-  mutate(
-    # first differences for selected variables
-    sdg_diff = sdg_overall - dplyr::lag(sdg_overall, n=1),
-    di_diff = di_score - dplyr::lag(di_score, n=1),
-    spi_diff = spi_comp - dplyr::lag(spi_comp,n=1),
-    log_gdppc_diff = log_gdppc - dplyr::lag(log_gdppc, n=1),
-    # lagged first differences 
-    di_diff_lag1 = dplyr::lag(di_diff, n=1),
-    di_diff_lag2 = dplyr::lag(di_diff, n=2),
-    spi_diff_lag1 = dplyr::lag(spi_diff, n=1),
-    spi_diff_lag2 = dplyr::lag(spi_diff, n=2),
-    log_gdppc_diff_lag1 = dplyr::lag(log_gdppc_diff, n=1),
-    log_gdppc_diff_lag1 = dplyr::lag(log_gdppc_diff, n=2)
-  ) %>%
-  ungroup()
+# load data
+source("Comp2_panel_wrangling.R")
 ```
 
 # STAGE 1 MODELS RESIGUAL DIAGNOSTICS

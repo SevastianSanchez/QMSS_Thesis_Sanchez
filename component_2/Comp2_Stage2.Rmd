@@ -275,7 +275,7 @@ s2_reset_results <- data.frame(
 print(s2_reset_results)
 
 # Save the results to a CSV file
-write.csv(s2_reset_results, file = "output_CSVs/s2_reset_results.csv", row.names = FALSE)
+write.csv(s2_reset_results, file = "results_csv/s2_reset_results.csv", row.names = FALSE)
 ```
 Results from the reset test indicate that the null hypothesis of  is rejected for all models, suggesting potential non-linearity or omitted variable bias in the models.
 

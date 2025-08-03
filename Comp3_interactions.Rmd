@@ -91,7 +91,7 @@ all_models_tidy <- bind_rows(tidy_di_x_inc_lvl,
   arrange(model, term)
 
 # Save the tidy data frame to a CSV file
-write_csv(all_models_tidy, "output_CSVs/fe_s1_interactions.csv")
+write_csv(all_models_tidy, "results_csv/fe_s1_interactions.csv")
 
 
 # extracting robust standard errors for each interaction model

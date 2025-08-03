@@ -4,6 +4,12 @@ setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 #load libraries/packages
 source("packages.R")
 
+#load function 
+#source("df_years2.0_Function.R")
+
+#load df_years() function: 2015-present
+#all_data <- df_years2.0(2004, 2023)
+
 #load data 
 all_data <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
 

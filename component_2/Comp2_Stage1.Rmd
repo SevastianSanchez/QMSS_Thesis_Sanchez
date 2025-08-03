@@ -314,7 +314,7 @@ s1_reset_results <- data.frame(
 )
 print(s1_reset_results)
 # Save the results to a CSV file
-write.csv(s1_reset_results, file = "output_CSVs/s1_reset_results.csv", row.names = FALSE)
+write.csv(s1_reset_results, file = "results_csv/s1_reset_results.csv", row.names = FALSE)
 ```
 We reject the Null Hypothesis of no misspecification in the relationship between DI and SPI performance, as the p-value is greater than 0.05 in in the FE model. This suggests that non-linear terms may make a significant contribution to the model.
 
@@ -395,7 +395,8 @@ DI: We fail to reject the null hypothesis of linearity in the relationship betwe
 
 # MODEL DIAGNOSTICS [Stage 1]
 
-## Multicollinearity Assessment and Correction [Stage 2] [CHECK BACK W GREG - NEED TO FIGURE OUT WHAT TO DO WITH THIS]
+## Multicollinearity Assessment and Correction [Stage 2] 
+### [CHECK BACK W GREG - NEED TO FIGURE OUT WHAT TO DO WITH THIS]
 The only model worth looking for multicollinearity is the base model, as the other models have no polynomial or interaction terms.
 ```{r}
 # converting to base R lm() for VIF calculation
@@ -415,7 +416,7 @@ vif_df <- data.frame(
 )
 print(vif_df)
 # Save VIF results to a CSV file
-write.csv(vif_df, file = "output_CSVs/s1_vif_results.csv", row.names = FALSE)
+write.csv(vif_df, file = "results_csv/s1_vif_results.csv", row.names = FALSE)
 # The VIF values are all below 5, indicating no significant multicollinearity issues.
 ```
 

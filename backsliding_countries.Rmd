@@ -101,7 +101,7 @@ country_events_summary <- data.frame(
 ))
 
 # write to csv
-write_csv(country_events_summary, "output_CSVs/country_events_summary.csv")
+write_csv(country_events_summary, "results_csv/country_events_summary.csv")
 
 # creating stargazer table object
 country_events_table <- stargazer(country_events_summary, 

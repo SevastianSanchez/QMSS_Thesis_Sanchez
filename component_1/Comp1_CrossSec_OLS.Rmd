@@ -22,69 +22,13 @@ knitr::opts_chunk$set(
 )
 ```
 
-### FIRST: Libraries, Directory & Data 
-
-```{r include=FALSE}
-# set working directory 
-setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
-
-#load libraries 
-source("packages.R")
-```
-
-### SECOND: Run function in r-script: df_years_function.R   
-*[ADJUST TIME OR SKIP AND LOADING DATA FROM DIRECTORY]*
-
-```{r eval=FALSE, include=FALSE}
-#df_years2.0():[Updated Version] used for extracting all available country data (based on country_codes) from specified range of years
-
-#load function: all available data within year range 
-#source("df_years2.0_Function.R")
-#specify start & end year
-#merged_full <- df_years2.0(2004, 2023) 
-
-#saving full version as CSV output 
-#write.table(merged_full, file = 'data/Main CSV Outputs/merged_full_df.csv', row.names=F, sep = ",")
-```
-
-### THIRD: Load and Refine Data   
-*[SKIP IF LOADING FROM DIRECTORY]*
-```{r eval=FALSE, include=FALSE}
-# load merged_full csv [SKIP IF YOU CHANGED YEARS ABOVE]
-#merged_full <- read_csv('data/Main CSV Outputs/merged_full_df.csv')
-
-# FILTERING FOR ALL COUNTRIES WITH ATLEAST 1 SDG VALUE 
-sdg_cols <- paste0("goal", 1:17)
-
-# Identify & remove countries where all SDG columns are NA across all years
-countries_all_sdg_missing <- merged_full %>%
-  group_by(country_code) %>%
-  summarise(all_missing = all(if_all(all_of(sdg_cols), is.na))) %>%
-  filter(all_missing) %>%
-  pull(country_code)
-merged_cleaned <- merged_full %>% # Removing all rows for those countries
-  filter(!country_code %in% countries_all_sdg_missing) %>% 
-  filter(!is.na(country_code) & !is.na(year)) # missigness is non-random (only 1 country missing all 20 years)
-
-#saving merged CSV output 
-write.table(merged_cleaned, file = 'data/Main CSV Outputs/merged_cleaned.csv', row.names=F, sep = ",")
-```
-
-### FOURTH: Load cleaned 'merged' Dataset  
-*[ADJUST VARIABLES OR SKIP IF LOADING FROM CSV]*
-```{r eval=FALSE, include=FALSE}
-#Load final cleaned 'merged' Dataset & selecting variables 
-merged_final <- read_csv("data/Main CSV Outputs/merged_cleaned.csv") %>% 
-  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, income_level, income_level_lab, gdp_pc, log_gdppc, gini, population, p1_use, p2_services, p3_products, p4_sources, p5_infra, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17)
-
-#writing final merged csv 
-write.table(merged_final, file = 'data/Main CSV Outputs/merged_final_df.csv', row.names=F, sep = ",")
-```
 
 ### LOAD FINAL MERGED CSV 
 ```{r}
 #load final merged df 
 merged <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
+
+# refer to 'wrangled/adjust_output.Rmd' to make necessary adjustments 
 ```
 
 # COMPONENT 1: COMPARING SPI & SCI X VARIABLES
@@ -169,7 +113,7 @@ stargazer(
   column.labels = c("SPI Only", "SCI Only", "SPI + SCI"),  # <-- Model labels at the top
   omit.stat = c("f", "ser"), 
   digits = 4,
-  out = "output_CSVs/naive_ols_models_sdgs_spi_sci.html"  # Save as HTML file
+  out = "results_csv/naive_ols_models_sdgs_spi_sci.html"  # Save as HTML file
 )
 
 ```
@@ -203,7 +147,7 @@ stargazer(
   #column.labels = c("SPI Only", "SCI Only", "SPI + SCI"),  # <-- Model labels at the top
   omit.stat = c("f", "ser"), 
   digits = 4,
-  out = "output_CSVs/naive_ols_models_sdgs&spi_di.html"  # Save as HTML file
+  out = "results_csv/naive_ols_models_sdgs&spi_di.html"  # Save as HTML file
 )
 
 ```
@@ -284,7 +228,7 @@ stargazer(ols_spi, ols_sci, ols_multiple,
           column.labels = c("M1: ols_spi", "M2: ols_sci", "M3: ols_multiple"),
           keep.stat = c("n", "rsq", "adj.rsq"),
           type = "html", 
-          out = "output_CSVs/pooled_ols_models_spi_sci_both.html") #saved as html
+          out = "results_csv/pooled_ols_models_spi_sci_both.html") #saved as html
 
 # CREATING CSV OF MODEL'S STATISTICS TO SAVE 
 #SPI Statistics DF
@@ -337,8 +281,8 @@ attr(robust_mods_df$std.error, "label") <- "Robust Std. Errors Adjusted"
 attr(robust_mods_df$t.statistic, "label") <- "Robust Std. Errors Adjusted"
 attr(robust_mods_df$p.value, "label") <- "Robust Std. Errors Adjusted"
 
-#save to output_CSVs folder
-write.csv(robust_mods_df, file = "output_CSVs/ols_mods_results.csv")
+#save to results_csv folder
+write.csv(robust_mods_df, file = "results_csv/ols_mods_results.csv")
 
 # View the result
 print(robust_mods_df)
@@ -417,7 +361,7 @@ df_bptests <- bp_tests %>%
 
 df_bptests
 
-write.table(df_bptests, file = 'output_CSVs/df_bptests_heterosked.csv', row.names=F, sep = ",")
+write.table(df_bptests, file = 'results_csv/df_bptests_heterosked.csv', row.names=F, sep = ",")
 ```
 Model:         BP statistic      p-value
 ols_spi           207.         = 7.05e-39       
@@ -489,8 +433,8 @@ aic_bic_c1_results <- data.frame(
 
 print(aic_bic_c1_results)
 
-# saving to output_CSVs
-write.csv(aic_bic_c1_results, file = "output_CSVs/aic_bic_c1_results.csv")
+# saving to results_csv
+write.csv(aic_bic_c1_results, file = "results_csv/aic_bic_c1_results.csv")
 ```
 **AIC/BIC Results**
      model          AIC       BIC
@@ -729,7 +673,7 @@ all_models_tidy <- bind_rows(tidy_spi_x_inc_lvl,
   arrange(model, term)
 
 # Save the tidy data frame to a CSV file
-write_csv(all_models_tidy, "output_CSVs/interaction_models.csv")
+write_csv(all_models_tidy, "results_csv/interaction_models.csv")
 
 
 # extracting robust standard errors for each interaction model
@@ -886,7 +830,7 @@ gni_classes_ols
 #datatable(gni_classes_ols, caption = "Regression Results, by GNI Country Classifications")
 
 # write to directory 
-write.csv(gni_classes_ols, "output_CSVs/gni_classes_ols.csv")
+write.csv(gni_classes_ols, "results_csv/gni_classes_ols.csv")
 ```
 
 
