@@ -46,7 +46,7 @@ info_cap <- read_csv("data/information_capacity.csv") %>%
 #write.csv(info_cap, "data/misc/perp_info.csv")
 
 #WB GNI Classifications 
-gni_class <- read_csv("Output_CSVs/world_bank_income_classifications.csv") %>% 
+gni_class <- read_csv("data/world_bank_income_classifications.csv") %>% 
   filter(year >= 2000)
 #write.csv(gni_class, "data/misc/perp_gni_cl.csv")
 

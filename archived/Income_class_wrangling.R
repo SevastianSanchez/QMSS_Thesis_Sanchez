@@ -2,7 +2,7 @@ library(tidyverse)
 library(readxl)
 
 # Read WDI classification sheet
-income_data <- read_excel("~/Desktop/OneDrive/OneDrive/QMSS Thesis/Datasets/WDI_IncomeClass_Hist.xlsx", 
+income_data <- read_excel("data/WDI_IncomeClass_Hist.xlsx", 
                           sheet = "Country Analytical History", 
                           skip = 5) # Skip the header rows
 
@@ -36,4 +36,4 @@ income_data_long <- income_data_clean %>%
 head(income_data_long)
 
 # Save to CSV if needed
-#write.csv(income_data_long, "world_bank_income_classifications.csv", row.names = FALSE)
+write.csv(income_data_long, "data/world_bank_income_classifications.csv", row.names = FALSE)
