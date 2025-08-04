@@ -192,11 +192,11 @@ df_years2.0 <- function(x, y) {
     dplyr::mutate(across(c(income_level, regime_type_2, regime_type_4, regime_type_10, income_spi, region_spi), as.factor),
                   across(c(sci_overall, sci_method, sci_periodicity, sci_source), as.numeric)) %>% 
     dplyr::select(orig_country_name_ds1, iso3_standardized, year, year_fct, income_level, sdg_overall,
-                  spi_comp, sci_overall, di_score, log_gdppc, population, gini, everything()) %>% 
+                  spi_comp, sci_overall, di_score, di_reg_type_2, log_gdppc, population, gini_score, everything()) %>% 
     rename(country_name = orig_country_name_ds1,
            country_code = iso3_standardized)
   return(data)
 }
 
-#testing2.0 <- df_years2.0(2016, 2023)
+#testing2.0 <- df_years2.0(2004, 2023)
 

@@ -15,6 +15,105 @@ source("packages.R")
 source("Comp2_panel_wrangling.R")
 ```
 
+**Quick Counts**
+```{r}
+# EIU DI binary regime type 
+table(panel_data$di_reg_type_2)
+
+# RoW V-Dem binary regime type
+table(panel_data$regime_type_binary)
+
+# income_level_recoded 
+table(panel_data$income_level_recoded)
+```
+
+
+## Stepwise Check: Moderator/Interaction Terms [Stage 1]
+
+## EIU DI binary regime type, Subgrouping 
+```{r}
+panel_sub <- panel_data %>%
+  filter(di_reg_type_2 == 1) # Democracies only
+
+# Load the panel data
+FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + factor(income_level_recoded),
+                  model = "within", 
+                  index = c("country_code", "year"),
+                  data = panel_data, 
+                  #subset = di_reg_type_2 == 1, # modifying based on regime type
+                  effect = "twoways")
+summary(FE_testing)
+summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
+```
+
+## WB GNI Class, Subgrouping 
+```{r}
+# GNI Class 
+FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
+                  model = "within", 
+                  index = c("country_code", "year"),
+                  data = panel_data, 
+                  #subset = income_level_recoded == 3, # modifying based on income level
+                  effect = "twoways")
+summary(FE_testing)
+summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
+```
+
+## Regime Change Episodes (has_aut_ep), Subgrouping
+```{r}
+FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
+                  model = "within", 
+                  index = c("country_code", "year"),
+                  data = panel_data, 
+                  subset = has_aut_ep == TRUE, # modifying based regime stability
+                  effect = "twoways")
+summary(FE_testing)
+summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
+```
+
+## Regime Change Episodes (has_dem_ep), Subgrouping
+```{r}
+FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
+                  model = "within", 
+                  index = c("country_code", "year"),
+                  data = panel_data, 
+                  subset = has_dem_ep == TRUE, # modifying based regime stability
+                  effect = "twoways")
+summary(FE_testing)
+summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
+```
+
+
+## Complete Regime Change (autocratized), Subgrouping [FOUND SOMETHING!!!]
+Of countries (15 countries) that experienced complete change from democracy to autocracy, how did the decrease in DI score impact their SPI performance? Was the impact lagged or immediate?
+```{r}
+# autocratized variable 
+FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
+                  model = "within", 
+                  index = c("country_code", "year"),
+                  data = panel_data, 
+                  subset = autocratized == TRUE, # modifying based regime stability
+                  effect = "twoways")
+summary(FE_testing)
+summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
+```
+
+## Complete Regime Change (democratized), Subgrouping [FOUND SOMETHING!!!]
+Of countries (15 countries) that experienced complete change from autocracy to democracy, how did the decrease in DI score impact their SPI performance? Was the impact lagged or immediate?
+```{r}
+# autocratized variable 
+FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
+                  model = "within", 
+                  index = c("country_code", "year"),
+                  data = panel_data, 
+                  subset = democratized == TRUE, # modifying based on regime stability
+                  effect = "twoways")
+summary(FE_testing)
+summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
+```
+
+
+
 ## Stepwise Check: Moderator/Interaction Terms [Stage 1]
 *H0:* NUll, the impact of DI on SPI Performance does NOT vary depending on Z [income_level_recoded, regime_type_binary, di_score]
 *H1:* The impact of DI on SPI Performance varies depending on Z [income_level_recoded, regime_type_binary,  di_score]

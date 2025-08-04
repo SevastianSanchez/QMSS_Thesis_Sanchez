@@ -63,7 +63,7 @@ for (country in backsliding_countries) {
   print(plot_backsliding_trends(backsliding_data, country))
 }
 # Save the plots
-ggsave("figures/backsliding_trends.png", width = 10, height = 6, dpi = 300)
+#ggsave("figures/backsliding_trends.png", width = 10, height = 6, dpi = 300)
 ```
 
 ```{r}

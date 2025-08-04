@@ -13,18 +13,31 @@ source("packages.R")
 #load data 
 all_data <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
 
+# make binary variable for regime type from di_score: 0-4.99 = Autocracy; 5-10 = Democracy
+all_data <- all_data %>%
+  mutate(di_reg_type_2 = case_when(
+    di_score < 5 ~ 0,  # Autocracy
+    di_score >= 5 ~ 1  # Democracy
+  ))
+
 # selecting vars
 panel_data <- all_data %>% 
-  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, di_score, log_gdppc, income_level, aut_ep, dem_ep, regch_event, regime_type_2, regime_type_4, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra) %>% 
+  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, di_score, di_reg_type_2, log_gdppc, income_level, aut_ep, dem_ep, regch_event, regime_type_2, regime_type_4, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra) %>% 
   arrange(country_code, year) %>%  # Critical for correct lagging
   filter(year >= 2016)
 
-# Adding has_aut_ep and has_dem_ep for regressing regimes (experienced atleast 1 aut_ep/dem_ep)
+# Regime Change Variables 
 panel_data <- panel_data %>%
   # Group by country to check for any event
   group_by(country_code) %>%
+  # Adding has_aut_ep and has_dem_ep for regressing regimes (experienced atleast 1 aut_ep/dem_ep)
   mutate(has_aut_ep = any(aut_ep == 1, na.rm = TRUE)) %>%
   mutate(has_dem_ep = any(dem_ep == 1, na.rm = TRUE)) %>% 
+  mutate(has_neither = any(aut_ep == 0 & dem_ep == 0, na.rm = TRUE)) %>%
+  # Adding autocratized, democratized, and stable for actual regime changes
+  mutate(autocratized = any(regch_event == 1, na.rm = TRUE)) %>%
+  mutate(democratized = any(regch_event == -1, na.rm = TRUE)) %>%
+  mutate(stable = any(regch_event == 0, na.rm = TRUE)) %>% 
   ungroup() 
 
 # Transforming variables: Centering >> Lagging >> Squaring & Cubing Terms (for polynomial terms)

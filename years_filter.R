@@ -118,13 +118,19 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
   
   #EIU Democracy Index  
   name9 <- df9 %>% 
+    dplyr::mutate(di_reg_type_2 = case_when(
+      di_score < 5 ~ 0,  # Autocracy
+      di_score >= 5 ~ 1  # Democracy
+    )) %>% 
     filter(year >= start_yr, year <= end_yr)
   
   #GINI Coefficient 
   name10 <- df10 %>% 
-    dplyr::select(Entity, Code, Year, gini) %>% 
-    dplyr::mutate(year = as.numeric(Year)) %>% 
-    dplyr::select(-Year) %>%
+    dplyr::select(country, iso3c, year, SI.POV.GINI) %>% 
+    dplyr::rename(country_name = country, 
+                  country_code = iso3c, 
+                  gini_score = SI.POV.GINI) %>%
+    dplyr::mutate(year = as.numeric(year)) %>% 
     dplyr::filter(year >= start_yr, year <= end_yr)
   
   return(list(vdem = name1, spi = name2, sdg = name3, 
@@ -133,4 +139,3 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
               gini = name10))
   
 } 
-
