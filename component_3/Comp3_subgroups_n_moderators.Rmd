@@ -40,7 +40,7 @@ FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dply
                   model = "within", 
                   index = c("country_code", "year"),
                   data = panel_data, 
-                  #subset = di_reg_type_2 == 1, # modifying based on regime type
+                  subset = di_reg_type_2 == 0, # modifying based on regime type
                   effect = "twoways")
 summary(FE_testing)
 summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
@@ -65,7 +65,7 @@ FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dply
                   model = "within", 
                   index = c("country_code", "year"),
                   data = panel_data, 
-                  subset = has_aut_ep == TRUE, # modifying based regime stability
+                  subset = has_aut_ep == 1, # modifying based regime stability
                   effect = "twoways")
 summary(FE_testing)
 summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
@@ -77,7 +77,7 @@ FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dply
                   model = "within", 
                   index = c("country_code", "year"),
                   data = panel_data, 
-                  subset = has_dem_ep == TRUE, # modifying based regime stability
+                  subset = has_dem_ep == 1, # modifying based regime stability
                   effect = "twoways")
 summary(FE_testing)
 summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
@@ -92,7 +92,7 @@ FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dply
                   model = "within", 
                   index = c("country_code", "year"),
                   data = panel_data, 
-                  subset = autocratized == TRUE, # modifying based regime stability
+                  subset = autocratized == 1, # modifying based regime stability
                   effect = "twoways")
 summary(FE_testing)
 summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
@@ -106,7 +106,7 @@ FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dply
                   model = "within", 
                   index = c("country_code", "year"),
                   data = panel_data, 
-                  subset = democratized == TRUE, # modifying based on regime stability
+                  subset = democratized == 1, # modifying based on regime stability
                   effect = "twoways")
 summary(FE_testing)
 summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
