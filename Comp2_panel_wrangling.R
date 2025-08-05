@@ -15,10 +15,10 @@ all_data <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
 
 # make binary variable for regime type from di_score: 0-4.99 = Autocracy; 5-10 = Democracy
 all_data <- all_data %>%
-  mutate(di_reg_type_2 = case_when(
+  mutate(di_reg_type_2 = factor(case_when(
     di_score < 5 ~ 0,  # Autocracy
     di_score >= 5 ~ 1  # Democracy
-  ))
+  )))
 
 # selecting vars
 panel_data <- all_data %>% 
