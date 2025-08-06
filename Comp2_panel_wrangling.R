@@ -127,7 +127,7 @@ fd_data <- panel_data %>%
   mutate(
     # first differences for selected variables
     sdg_diff = sdg_overall - dplyr::lag(sdg_overall, n=1),
-    di_diff = di_score - di_score_lag1,,
+    di_diff = di_score - di_score_lag1,
     spi_diff = spi_comp - spi_comp_lag1,
     log_gdppc_diff = log_gdppc - log_gdppc_lag1,
     # lagged first differences 
@@ -136,7 +136,7 @@ fd_data <- panel_data %>%
     spi_diff_lag1 = dplyr::lag(spi_diff, n=1),
     spi_diff_lag2 = dplyr::lag(spi_diff, n=2),
     log_gdppc_diff_lag1 = dplyr::lag(log_gdppc_diff, n=1),
-    log_gdppc_diff_lag1 = dplyr::lag(log_gdppc_diff, n=2)
+    log_gdppc_diff_lag2 = dplyr::lag(log_gdppc_diff, n=2)
   ) %>%
   ungroup()
 
