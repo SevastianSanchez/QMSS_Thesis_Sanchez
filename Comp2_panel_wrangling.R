@@ -22,7 +22,7 @@ all_data <- all_data %>%
 
 # selecting vars
 panel_data <- all_data %>% 
-  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, di_score, di_reg_type_2, log_gdppc, income_level, aut_ep, dem_ep, regch_event, regime_type_2, regime_type_4, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra) %>% 
+  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, di_reg_type_2, log_gdppc, income_level, aut_ep, dem_ep, regch_event, regime_type_2, regime_type_4, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra) %>% 
   arrange(country_code, year) %>%  # Critical for correct lagging
   filter(year >= 2016)
 
@@ -31,14 +31,14 @@ panel_data <- panel_data %>%
   # Group by country to check for any event
   group_by(country_code) %>%
   # Adding has_aut_ep and has_dem_ep for regressing regimes (experienced atleast 1 aut_ep/dem_ep)
-  mutate(has_aut_ep = any(aut_ep == 1, na.rm = TRUE)) %>%
-  mutate(has_dem_ep = any(dem_ep == 1, na.rm = TRUE)) %>% 
-  mutate(has_neither = any(aut_ep == 0 & dem_ep == 0, na.rm = TRUE)) %>%
+  mutate(has_aut_ep = case_when(any(aut_ep == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
+  mutate(has_dem_ep = case_when(any(dem_ep == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>% 
+  mutate(has_neither = case_when(any(aut_ep == 0 & dem_ep == 0, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
   # Adding autocratized, democratized, and stable for actual regime changes
-  mutate(autocratized = any(regch_event == 1, na.rm = TRUE)) %>%
-  mutate(democratized = any(regch_event == -1, na.rm = TRUE)) %>%
-  mutate(stable = any(regch_event == 0, na.rm = TRUE)) %>% 
-  ungroup() 
+  mutate(autocratized = case_when(any(regch_event == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
+  mutate(democratized = case_when(any(regch_event == -1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
+  mutate(stable = case_when(!any(regch_event == 1 | regch_event == -1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>% 
+  ungroup()
 
 # Transforming variables: Centering >> Lagging >> Squaring & Cubing Terms (for polynomial terms)
 panel_data <- panel_data %>%

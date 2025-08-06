@@ -1,0 +1,61 @@
+---
+title: "H2_SPI~DI"
+output: html_document
+---
+
+
+# Set up and Wrangling 
+```{r}
+# set working directory
+setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
+
+#load libraries/packages
+source("packages.R")
+
+# load data
+source("Comp2_panel_wrangling.R")
+```
+
+# SPI and DI Relationship
+## Baseline Model [FOUND SOMETHING!!!]
+Using fixed effects regression, how does a change in DI score impact SPI performance? Is the impact lagged or immediate?
+```{r}
+# baseline model
+FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
+                  model = "within", 
+                  index = c("country_code", "year"),
+                  data = panel_data, 
+                  effect = "twoways")
+summary(FE_testing)
+summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
+```
+
+
+## Complete Regime Change (autocratized), Subgrouping [FOUND SOMETHING!!!]
+Of countries (15 countries) that experienced complete change from democracy to autocracy, how did the decrease in DI score impact their SPI performance? Was the impact lagged or immediate?
+```{r}
+# autocratized variable 
+FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
+                  model = "within", 
+                  index = c("country_code", "year"),
+                  data = panel_data, 
+                  subset = autocratized == 1, # modifying based regime stability
+                  effect = "twoways")
+summary(FE_testing)
+summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
+```
+
+
+## Complete Regime Change (democratized), Subgrouping [FOUND SOMETHING!!!]
+Of countries (15 countries) that experienced complete change from autocracy to democracy, how did the decrease in DI score impact their SPI performance? Was the impact lagged or immediate?
+```{r}
+# autocratized variable 
+FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
+                  model = "within", 
+                  index = c("country_code", "year"),
+                  data = panel_data, 
+                  subset = democratized == 1, # modifying based on regime stability
+                  effect = "twoways")
+summary(FE_testing)
+summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
+```

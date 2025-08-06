@@ -249,6 +249,37 @@ file = paste("figures/data coverage & summary stats/summary", if(gni_filter == "
 summary_stats_table
 ```
 
+
+## 3.2 Frequency Table of Country Regime Change Status 
+```{r}
+# Load panel data with regime change indicators
+source("Comp2_panel_wrangling.R")
+
+# Table of regime change status for each country
+country_list <- panel_data %>%
+  select(country_code, country_name, autocratized, democratized, stable, has_aut_ep, aut_ep, has_dem_ep, dem_ep, has_neither) %>%
+  distinct() %>%
+  arrange(country_code)
+
+# View the country list
+print(country_list)
+
+# Frequency table of regime change stats 
+country_freq <- country_list %>%
+  summarise(
+    autocratized_count = sum(autocratized, na.rm = TRUE),
+    democratized_count = sum(democratized, na.rm = TRUE),
+    stable_count = sum(stable, na.rm = TRUE),
+    has_aut_ep_count = sum(has_aut_ep, na.rm = TRUE),
+    has_dem_ep_count = sum(has_dem_ep, na.rm = TRUE),
+    has_neither_count = sum(has_neither, na.rm = TRUE)
+  ) %>%
+  pivot_longer(everything(), names_to = "category", values_to = "count")
+
+# View the frequency table
+print(country_freq)
+```
+
 # 4. Visualizations
 
 ## 4.1 Distributions of Key Variables

@@ -27,20 +27,16 @@ table(panel_data$regime_type_binary)
 table(panel_data$income_level_recoded)
 ```
 
-
 ## Stepwise Check: Moderator/Interaction Terms [Stage 1]
 
 ## EIU DI binary regime type, Subgrouping 
 ```{r}
-panel_sub <- panel_data %>%
-  filter(di_reg_type_2 == 1) # Democracies only
-
 # Load the panel data
 FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + factor(income_level_recoded),
                   model = "within", 
                   index = c("country_code", "year"),
                   data = panel_data, 
-                  subset = di_reg_type_2 == 0, # modifying based on regime type
+                  #subset = di_reg_type_2 == 0, # modifying based on regime type
                   effect = "twoways")
 summary(FE_testing)
 summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
@@ -245,8 +241,6 @@ restricted_model <- plm(formula = spi_comp ~ cen_di_score + cen_log_gdppc + fact
 ## This is the right approach according to the lecture!!!
 partial_f_test <- pFtest(restricted_model, di_x_inc_lvl)
 partial_f_test
-
-
 ```
 
 
