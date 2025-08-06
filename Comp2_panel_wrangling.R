@@ -22,7 +22,10 @@ all_data <- all_data %>%
 
 # selecting vars
 panel_data <- all_data %>% 
-  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, di_reg_type_2, log_gdppc, income_level, aut_ep, dem_ep, regch_event, regime_type_2, regime_type_4, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra) %>% 
+  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, 
+                di_score, di_reg_type_2, log_gdppc, income_level, aut_ep, dem_ep, regch_event, 
+                regime_type_2, regime_type_4, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, 
+                academ_free, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra) %>% 
   arrange(country_code, year) %>%  # Critical for correct lagging
   filter(year >= 2016)
 
@@ -120,7 +123,9 @@ panel_data <- panel_data %>%
 
 # year-year lags for FD Models - DF
 fd_data <- panel_data %>%
-  select(country_code, year, sdg_overall, di_score, spi_comp, log_gdppc, income_level, aut_ep, dem_ep, income_level_recoded, regch_event, di_score_lag1, di_score_lag2, spi_comp_lag1, spi_comp_lag2, log_gdppc_lag1, log_gdppc_lag2) %>%
+  select(country_code, year, sdg_overall, di_score, spi_comp, log_gdppc, income_level, aut_ep, 
+         dem_ep, income_level_recoded, regch_event, di_score_lag1, di_score_lag2, spi_comp_lag1, 
+         spi_comp_lag2, log_gdppc_lag1, log_gdppc_lag2) %>%
   filter(!is.na(di_score) & !is.na(spi_comp) | !is.na(spi_comp) & !is.na(sdg_overall)) %>% 
   group_by(country_code) %>%
   arrange(year) %>%  # Ensure data is sorted by year within each country
