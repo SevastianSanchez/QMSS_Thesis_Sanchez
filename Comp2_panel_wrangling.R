@@ -13,35 +13,14 @@ source("packages.R")
 #load data 
 all_data <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
 
-# make binary variable for regime type from di_score: 0-4.99 = Autocracy; 5-10 = Democracy
-all_data <- all_data %>%
-  mutate(di_reg_type_2 = factor(case_when(
-    di_score < 5 ~ 0,  # Autocracy
-    di_score >= 5 ~ 1  # Democracy
-  )))
-
 # selecting vars
 panel_data <- all_data %>% 
   dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, 
-                di_score, di_reg_type_2, log_gdppc, income_level, aut_ep, dem_ep, regch_event, 
+                di_score, log_gdppc, income_level, aut_ep, dem_ep, regch_event, 
                 regime_type_2, regime_type_4, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, 
                 academ_free, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra) %>% 
   arrange(country_code, year) %>%  # Critical for correct lagging
   filter(year >= 2016)
-
-# Regime Change Variables 
-panel_data <- panel_data %>%
-  # Group by country to check for any event
-  group_by(country_code) %>%
-  # Adding has_aut_ep and has_dem_ep for regressing regimes (experienced atleast 1 aut_ep/dem_ep)
-  mutate(has_aut_ep = case_when(any(aut_ep == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
-  mutate(has_dem_ep = case_when(any(dem_ep == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>% 
-  mutate(has_neither = case_when(any(aut_ep == 0 & dem_ep == 0, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
-  # Adding autocratized, democratized, and stable for actual regime changes
-  mutate(autocratized = case_when(any(regch_event == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
-  mutate(democratized = case_when(any(regch_event == -1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
-  mutate(stable = case_when(!any(regch_event == 1 | regch_event == -1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>% 
-  ungroup()
 
 # Transforming variables: Centering >> Lagging >> Squaring & Cubing Terms (for polynomial terms)
 panel_data <- panel_data %>%
@@ -87,41 +66,74 @@ panel_data <- panel_data %>%
   ) %>%
   ungroup()
 
+##### GNI INCOME LEVEL VARIABLES #####
+# Recoding income_level, split income_level into dummy variables using case_when()
+# Everything on the left of ~ is the condition, and everything on the right 
+# Is the value to return if the condition is true
 panel_data <- panel_data %>% 
-  # Recoding income_level, split income_level into dummy variables using case_when()
-  # Everything on the left of ~ is the condition, and everything on the right 
-  # is the value to return if the condition is true
   mutate(income_level_recoded = case_when(
     income_level == "L" ~ 0, # Low-Income
     income_level == "LM" ~ 1, # Lower-Middle-Income
     income_level == "UM" ~ 2, # Upper-Middle-Income
     income_level == "H" ~ 3, # High-Income
-    TRUE ~ NA_real_  # Handle any other cases
+    TRUE ~ NA_integer_  # Handle any other cases
   )) %>% 
   mutate(income_level_recoded = as.factor(income_level_recoded)) %>% 
-  # recoding/factorizing regime_type_2: 0 = Autocracy; 1 = Democracy 
+  
+  #### REGIME TYPE VARIABLES ####
+  # factorizing regime_type_2 (RoW based): 0 = Autocracy; 1 = Democracy 
   mutate(regime_type_binary = as.factor(regime_type_2)) %>% 
-  # Recoding regime_type_2, split regime_type_2 into two dummy variables using case_when()
+  # creating two variables for autocracy and democracy dummies (RoW based)
   mutate(
     autocracy = case_when(
       regime_type_2 == 0 ~ 1, # Autocracy
       regime_type_2 == 1 ~ 0, # Democracy
-      TRUE ~ NA_real_ # Handle any other cases
+      TRUE ~ NA_integer_ # Handle any other cases
     ),
     democracy = case_when(
       regime_type_2 == 0 ~ 0, # Autocracy
       regime_type_2 == 1 ~ 1, # Democracy
-      TRUE ~ NA_real_ # Handle any other cases
+      TRUE ~ NA_integer_ # Handle any other cases
     )
-  ) %>%
+  ) %>% 
+  # Creating a new regime type var based on di_score
+  mutate(
+    di_reg_type_2 = case_when(
+      di_score < 5 ~ 0,  # Autocracy
+      di_score >= 5 ~ 1,  # Democracy
+      TRUE ~ NA_integer_
+  )) %>% 
+  # Convert to factors
   mutate(autocracy = as.factor(autocracy), # autocracy dummy
-         democracy = as.factor(democracy)) %>% # democracy dummy
-  # recoding regime_type_4: 0 = Closed Autocracy; 1 = Electoral Autocracy; 2 = Electoral Democracy; 3 = Full Democracy
-  mutate(regime_type_categ = as.factor(regime_type_4)) %>% 
-  mutate(aut_ep = as.factor(aut_ep), # autocratization episode
-         dem_ep = as.factor(dem_ep)) # democratization episode
+         democracy = as.factor(democracy), # democracy dummy
+         di_reg_type_2 = as.factor(di_reg_type_2)) # regime type dummy (di based)
 
-# year-year lags for FD Models - DF
+#### REGIME CHANGE VARIABLES ####
+panel_data <- panel_data %>%
+  # factorize variables first 
+  mutate(
+    aut_ep = as.factor(aut_ep), # autocratization episode
+    dem_ep = as.factor(dem_ep),  # democratization episode
+    regch_event = as.factor(regch_event) # regime change event
+  ) %>%
+  # Group by country to check for any event
+  group_by(country_code) %>%
+  # has atleast 1 autocratization episode
+  mutate(has_aut_ep = case_when(any(aut_ep == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
+  # has atleast 1 democratization episode
+  mutate(has_dem_ep = case_when(any(dem_ep == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>% 
+  # has neither autocratization nor democratization episodes
+  mutate(has_neither = case_when(!any(aut_ep == 1 | dem_ep == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
+  ## Complete Change Variables ##
+  # change from autocracy >> democracy
+  mutate(democratized = case_when(any(regch_event == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
+  # change from democracy >> autocracy
+  mutate(autocratized = case_when(any(regch_event == -1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
+  # stable regime (no change)
+  mutate(stable = case_when(!any(regch_event == 1 | regch_event == -1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>% 
+  ungroup()
+
+#### YEAR TO YEAR LAGS FOR FD MODELS (NEW DF) ####
 fd_data <- panel_data %>%
   select(country_code, year, sdg_overall, di_score, spi_comp, log_gdppc, income_level, aut_ep, 
          dem_ep, income_level_recoded, regch_event, di_score_lag1, di_score_lag2, spi_comp_lag1, 
