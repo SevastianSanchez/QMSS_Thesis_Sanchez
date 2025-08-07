@@ -61,7 +61,7 @@ stargazer(ols_sdg_spi, ols_sdg_spi_L1, ols_sdg_spi_L2,
           type = "html", 
           report = "vcs*", 
           model.numbers = FALSE,
-          keep.stat = c("n", "rsq", "adj.rsq"),
+          #keep.stat = c("n", "rsq", "adj.rsq"),
           omit = "factor\\(year\\)",  # Omits year FE from display
           out = "figures/s2_pols_lags.html") 
 
@@ -110,7 +110,7 @@ stargazer(fd_sdg_spi, fd_sdg_spi_L1, fd_sdg_spi_L2,
           notes = "Robust standard errors clustered by country in parentheses",
           type = "html", 
           report = "vcs*", 
-          keep.stat = c("n", "rsq", "adj.rsq"),
+          #keep.stat = c("n", "rsq", "adj.rsq"),
           omit = "factor\\(year\\)",  # Omits year FE from display
           out = "figures/s2_fd_lags.html")
 ```
@@ -162,7 +162,7 @@ stargazer(fe_sdg_spi, fe_sdg_spi_L1, fe_sdg_spi_L2,
           notes = "Robust standard errors clustered by country in parentheses",
           type = "html", 
           report = "vcs*", 
-          keep.stat = c("n", "rsq", "adj.rsq"),
+          #keep.stat = c("n", "rsq", "adj.rsq"),
           omit = "factor\\(year\\)",  # Omits year FE from display
           out = "figures/s2_fe_lags.html")
 ```
@@ -186,7 +186,7 @@ stargazer(ols_sdg_spi_L2, fd_sdg_spi_L2, fe_sdg_spi_L2,
           notes = "Robust standard errors clustered by country in parentheses",
           type = "html", 
           report = "vcs*", 
-          keep.stat = c("n", "rsq", "adj.rsq"),
+          #keep.stat = c("n", "rsq", "adj.rsq"),
           omit = "factor\\(year\\)",  # Omits year FE from display
           out = "figures/s2_lag2_mods.html")
 ```

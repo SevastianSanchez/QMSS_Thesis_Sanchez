@@ -82,7 +82,7 @@ panel_data <- panel_data %>%
   
   #### REGIME TYPE VARIABLES ####
   # factorizing regime_type_2 (RoW based): 0 = Autocracy; 1 = Democracy 
-  mutate(regime_type_binary = as.factor(regime_type_2)) %>% 
+  mutate(regime_type_2 = as.factor(regime_type_2)) %>% 
   # creating two variables for autocracy and democracy dummies (RoW based)
   mutate(
     autocracy = case_when(
