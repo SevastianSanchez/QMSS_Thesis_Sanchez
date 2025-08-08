@@ -13,6 +13,24 @@ output:
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE,
                      fig.width = 10, fig.height = 6)
 ```
+# Descriptive Statistics and Visualizations
+This R Markdown document provides descriptive statistics and visualizations for the main variables in the thesis dataset. It includes coverage statistics, summary statistics, and visualizations of key variables, grouped by regime type and Gross National Income (GNI) level. The analysis focuses on the relationship between statistical capacity, regime type, and sustainable development indicators.
+
+# Table of Contents
+- [1. Load Data and Packages](#1-load-data-and-packages)
+- [2. Dataset Coverage](#2-dataset-coverage)
+  - [2.1 Overall Dataset Size](#21-overall-dataset-size)
+  - [2.2 Coverage by Variable (full dataset)](#22-coverage-by-variable-full-dataset)
+  - [2.3 Coverage by Year (full dataset)](#23-coverage-by-year-full-dataset)
+  - [2.4 Coverage by Variable (final dataset)](#24-coverage-by-variable-final-dataset)
+  - [2.5 Coverage by Year (final dataset)](#25-coverage-by-year-final-dataset)
+- [3. Descriptive Statistics (Filtered Data)](#3-descriptive-statistics-filtered-data)
+  - [3.1 Summary Statistics for Key Variables (All and subgrouped)](#31-summary-statistics-for-key-variables-all-and-subgrouped)
+  - [3.2 Frequency Table of Country Regime Change Status](#32-frequency-table-of-country-regime-change-status)
+- [4. Visualizations](#4-visualizations)
+  - [4.1 Distributions of Key Variables](#41-distributions-of-key-variables)
+  - [4.2 Boxplots by Regime Type](#42-boxplots-by-regime-type)
+- [5. Summary Table of Findings](#5-summary-table-of-findings)
 
 # 1. Load Data and Packages
 
@@ -31,13 +49,14 @@ merged <- read_csv("data/Main CSV Outputs/merged_final_df.csv") # filtered datas
 merged <- merged %>%
   mutate(di_reg_type_2 = factor(case_when(
     di_score < 5 ~ 0,  # Autocracy
-    di_score >= 5 ~ 1  # Democracy
+    di_score >= 5 ~ 1,  # Democracy
+    TRUE ~ NA_integer_
   )))
 
 # Define key variables for analysis
 key_vars <- c("sdg_overall", "spi_comp", "sci_overall", "di_score", 
               "log_gdppc", "gdp_pc")
-group_vars <- c("income_level", "regime_type_2", "regime_type_4")
+#group_vars <- c("income_level", "regime_type_2", "regime_type_4")
 ```
 
 *SDG VARIABLE NOTE: While all member states have a country profile, only those with less than 20% missing data are ranked in the SDG Index, resulting in 167 countries being ranked in the 2024 report.*
@@ -249,37 +268,6 @@ file = paste("figures/data coverage & summary stats/summary", if(gni_filter == "
 summary_stats_table
 ```
 
-
-## 3.2 Frequency Table of Country Regime Change Status 
-```{r}
-# Load panel data with regime change indicators
-source("Comp2_panel_wrangling.R")
-
-# Table of regime change status for each country
-country_list <- panel_data %>%
-  select(country_code, country_name, autocratized, democratized, stable, has_aut_ep, aut_ep, has_dem_ep, dem_ep, has_neither) %>%
-  distinct() %>%
-  arrange(country_code)
-
-# View the country list
-print(country_list)
-
-# Frequency table of regime change stats 
-country_freq <- country_list %>%
-  summarise(
-    autocratized_count = sum(autocratized, na.rm = TRUE),
-    democratized_count = sum(democratized, na.rm = TRUE),
-    stable_count = sum(stable, na.rm = TRUE),
-    has_aut_ep_count = sum(has_aut_ep, na.rm = TRUE),
-    has_dem_ep_count = sum(has_dem_ep, na.rm = TRUE),
-    has_neither_count = sum(has_neither, na.rm = TRUE)
-  ) %>%
-  pivot_longer(everything(), names_to = "category", values_to = "count")
-
-# View the frequency table
-print(country_freq)
-```
-
 # 4. Visualizations
 
 ## 4.1 Distributions of Key Variables
@@ -430,156 +418,14 @@ boxplot_combined
 ggsave("figures/data coverage & summary stats/boxplots_combined.png", boxplot_combined, width = 10, height = 8, dpi = 300)
 ```
 
-# 5. Quantile Analysis # PICK UP HERE AND DOWN 
 
-## 5.1 Quartile Breaks
-*Just Quantiles, on-hand if needed*
-```{r}
-# Calculate quartile breaks for main indices
-quant_breaks_sdg <- quantile(merged$sdg_overall, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
-quant_breaks_spi <- quantile(merged$spi_comp, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
-quant_breaks_sci <- quantile(merged$sci_overall, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
-quant_breaks_di <- quantile(merged$di_score, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
-
-# Display the quartile breaks
-quartiles_df <- data.frame(
-  Quartile = c("Minimum (0%)", "Q1 (25%)", "Median (50%)", "Q3 (75%)", "Maximum (100%)"),
-  SDG_Index = quant_breaks_sdg,
-  SPI = quant_breaks_spi,
-  SCI = quant_breaks_sci,
-  Democracy_Index = quant_breaks_di
-)
-
-# Create the table with APA styling and no caption number
-quartiles_table <- kable(quartiles_df, 
-      caption = "Quartile Breaks for Key Indices",
-      booktabs = TRUE,
-      digits = 2,
-      align = c('l', rep('c', 4))) %>%
-  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
-  row_spec(0, bold = FALSE, align = "c") %>%
-  column_spec(1, bold = FALSE)
-
-# Save the table as HTML
-#save_kable(quartiles_table, file = "figures/data coverage & summary stats/quartiles_table.html")
-
-# Display the table in the document
-quartiles_table
-```
-
-## 5.2 Quantile Frequency Tables
-
-```{r}
-# Create quartile bins for each index
-merged <- merged %>%
-  mutate(
-    sdg_quant_bins = cut(sdg_overall, 
-                      breaks = quant_breaks_sdg, 
-                      include.lowest = TRUE, 
-                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)")),
-    spi_quant_bins = cut(spi_comp, 
-                      breaks = quant_breaks_spi, 
-                      include.lowest = TRUE, 
-                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)")),
-    sci_quant_bins = cut(sci_overall, 
-                      breaks = quant_breaks_sci, 
-                      include.lowest = TRUE, 
-                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)")),
-    di_quant_bins = cut(di_score, 
-                      breaks = quant_breaks_di, 
-                      include.lowest = TRUE, 
-                      labels = c("Q1 (Lowest)", "Q2", "Q3", "Q4 (Highest)"))
-  )
-
-# Create frequency tables by regime type for each index
-# SDG Index
-sdg_summary <- merged %>%
-  filter(!is.na(sdg_quant_bins) & !is.na(regime_type_2)) %>%
-  group_by(regime_type_2, sdg_quant_bins) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  mutate(regime_type_name = ifelse(regime_type_2 == 1, "Democracy", "Autocracy"))
-
-# Pivot to wide format
-sdg_wide_table <- sdg_summary %>%
-  select(-regime_type_2) %>%
-  pivot_wider(names_from = sdg_quant_bins, values_from = count, values_fill = 0)
-
-# Create the table with APA styling and no caption number
-sdg_quartile_table <- kable(sdg_wide_table, 
-      caption = "SDG Index Quartile Distribution by Regime Type",
-      booktabs = TRUE,
-      align = c('l', rep('c', 4))) %>%
-  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
-  row_spec(0, bold = FALSE, align = "c") %>%
-  column_spec(1, bold = FALSE)
-
-# Save the table as HTML
-#save_kable(sdg_quartile_table, file = "figures/data coverage & summary stats/sdg_quartile_table.html")
-
-# Display the table in the document
-sdg_quartile_table
-
-# SPI Index
-spi_summary <- merged %>%
-  filter(!is.na(spi_quant_bins) & !is.na(regime_type_2)) %>%
-  group_by(regime_type_2, spi_quant_bins) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  mutate(regime_type_name = ifelse(regime_type_2 == 1, "Democracy", "Autocracy"))
-
-# Pivot to wide format
-spi_wide_table <- spi_summary %>%
-  select(-regime_type_2) %>%
-  pivot_wider(names_from = spi_quant_bins, values_from = count, values_fill = 0)
-
-# Create the table with APA styling and no caption number
-spi_quartile_table <- kable(spi_wide_table, 
-      caption = "SPI Quartile Distribution by Regime Type",
-      booktabs = TRUE,
-      align = c('l', rep('c', 4))) %>%
-  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
-  row_spec(0, bold = FALSE, align = "c") %>%
-  column_spec(1, bold = FALSE)
-
-# Save the table as HTML
-#save_kable(spi_quartile_table, file = "figures/data coverage & summary stats/spi_quartile_table.html")
-
-# Display the table in the document
-spi_quartile_table
-
-# SCI Index
-sci_summary <- merged %>%
-  filter(!is.na(sci_quant_bins) & !is.na(regime_type_2)) %>%
-  group_by(regime_type_2, sci_quant_bins) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  mutate(regime_type_name = ifelse(regime_type_2 == 1, "Democracy", "Autocracy"))
-
-# Pivot to wide format
-sci_wide_table <- sci_summary %>%
-  select(-regime_type_2) %>%
-  pivot_wider(names_from = sci_quant_bins, values_from = count, values_fill = 0)
-
-# Create the table with APA styling and no caption number
-sci_quartile_table <- kable(sci_wide_table, 
-      caption = "SCI Quartile Distribution by Regime Type",
-      booktabs = TRUE,
-      align = c('l', rep('c', 4))) %>%
-  kable_classic(full_width = FALSE, html_font = "Times New Roman", font_size = 12, "basic") %>%
-  row_spec(0, bold = FALSE, align = "c") %>%
-  column_spec(1, bold = FALSE)
-
-# Save the table as HTML
-#save_kable(sci_quartile_table, file = "figures/data coverage & summary stats/sci_quartile_table.html")
-
-# Display the table in the document
-sci_quartile_table
-```
-
-# 6. Summary Table of Findings
-
+# 5. Summary Table of Findings
+- remove di_score from summary table as it is not a key variable in the analysis
+- include counts of democracies and autocracies in the summary table
 ```{r}
 # Create a summary table of key findings
 summary_findings <- data.frame(
-  Variable = c("SDG Overall", "SPI Composite", "SCI Overall", "Democracy Index"),
+  Variable = c("SDG Composite", "SPI Composite", "SCI Composite", "Democracy Index"),
   Democracy_Mean = c(
     mean(merged$sdg_overall[merged$regime_type_2 == 1], na.rm = TRUE),
     mean(merged$spi_comp[merged$regime_type_2 == 1], na.rm = TRUE),
@@ -626,10 +472,10 @@ summary_findings_table <- kable(summary_findings,
   column_spec(1, bold = FALSE) %>%
   add_footnote("Note: Positive differences indicate higher values in democracies compared to autocracies.", notation = "none") %>%
   footnote(general_title = "", 
-           general = "Source: Author's calculations using merged dataset.")
+           general = "Source: Author's calculations using filtered dataset.")
 
 # Save the table as HTML
-save_kable(summary_findings_table, file = "figures/data coverage & summary stats/summary_findings_table.html")
+#save_kable(summary_findings_table, file = "figures/data coverage & summary stats/summary_findings_table.html")
 
 # Display the table in the document
 summary_findings_table
