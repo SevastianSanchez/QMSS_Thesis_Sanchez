@@ -21,8 +21,7 @@ source("Comp2_panel_wrangling.R")
 # Table of regime change status for each country
 country_list <- panel_data %>%
   select(country_code, country_name, year, 
-         regch_event, regime_change_status,
-         autocratized, democratized, stable, 
+         regch_event, autocratized, democratized, stable, 
          has_aut_ep, aut_ep, 
          has_dem_ep, dem_ep, 
          has_neither) %>%
