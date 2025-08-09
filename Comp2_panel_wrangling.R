@@ -16,9 +16,9 @@ all_data <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
 # selecting vars
 panel_data <- all_data %>% 
   dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, 
-                di_score, log_gdppc, income_level, aut_ep, dem_ep, regch_event, 
-                regime_type_2, regime_type_4, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, 
-                academ_free, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra) %>% 
+                di_score, elect_dem, regime_type_2, regime_type_4, log_gdppc, income_level, 
+                aut_ep, dem_ep, regch_event, lib_dem, part_dem, delib_dem, egal_dem, academ_free, 
+                goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra) %>% 
   arrange(country_code, year) %>%  # Critical for correct lagging
   filter(year >= 2016)
 
@@ -96,7 +96,7 @@ panel_data <- panel_data %>%
       TRUE ~ NA_integer_ # Handle any other cases
     )
   ) %>% 
-  # Creating a new regime type var based on di_score
+  # Creating a new regime type var (di_score)
   mutate(
     di_reg_type_2 = case_when(
       di_score < 5 ~ 0,  # Autocracy
