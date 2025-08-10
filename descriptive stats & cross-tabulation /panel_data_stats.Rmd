@@ -14,38 +14,31 @@ source("packages.R")
 source("Comp2_panel_wrangling.R")
 ```
 
-# 1. 
-
-## 1.1 Frequency Table of Country Regime Change Status 
+## 1.1 Frequency Table of Country Regime Change Status [DONE!!]
 ```{r}
-# Table of regime change status for each country
-country_list <- panel_data %>%
-  select(country_code, country_name, year, 
-         regch_event, autocratized, democratized, stable, 
-         has_aut_ep, aut_ep, 
-         has_dem_ep, dem_ep, 
-         has_neither) %>%
-  #distinct() %>%
+# Table of all countries and select regime change variables: has_aut_ep, has_dem_ep, has_neither, autocratized, democratized, and stable, and total counts of autocratization and democratization episodes [DONE!!]
+regime_change_table <- panel_data %>%
+  select(country_name, country_code, has_aut_ep, total_aut_ep, has_dem_ep, total_dem_ep, has_neither, autocratized, democratized, stable) %>%
+  distinct() %>% # Ensure unique rows for each country (these are unique because they're 0/1 for all rows of a given country) [rows = 167]
   arrange(country_code)
 
-# View the country list
-print(country_list)
+# Display the table
+print(regime_change_table)
 
-# Frequency table of regime change stats 
-country_freq <- country_list %>%
+# Frequency table of countries based on has_aut_ep, has_dem_ep, has_neither, autocratized, democratized, and stable variables [DONE!!]
+freq_table <- regime_change_table %>%
   summarise(
-    autocratized_count = sum(autocratized, na.rm = TRUE),
-    democratized_count = sum(democratized, na.rm = TRUE),
-    stable_count = sum(stable, na.rm = TRUE),
-    has_aut_ep_count = sum(has_aut_ep, na.rm = TRUE),
-    has_dem_ep_count = sum(has_dem_ep, na.rm = TRUE),
-    has_neither_count = sum(has_neither, na.rm = TRUE), 
-    total_countries = n()
-  ) %>%
-  pivot_longer(everything(), names_to = "category", values_to = "count")
+    Total_Countries = n(),
+    Countries_with_Autocratization_Episodes = sum(as.numeric(as.character(has_aut_ep)), na.rm = TRUE),
+    Countries_with_Democratization_Episodes = sum(as.numeric(as.character(has_dem_ep)), na.rm = TRUE),
+    Countries_with_Neither = sum(as.numeric(as.character(has_neither)), na.rm = TRUE),
+    Countries_that_Autocratized = sum(as.numeric(as.character(autocratized)), na.rm = TRUE),
+    Countries_that_Democratized = sum(as.numeric(as.character(democratized)), na.rm = TRUE),
+    Stable_Countries = sum(as.numeric(as.character(stable)), na.rm = TRUE)
+  ) %>% 
 
-# View the frequency table
-print(country_freq)
+# pivot the freq_table to long format for better visualization
+  pivot_longer(cols = everything(), names_to = "Category", values_to = "Count")
 ```
 
 

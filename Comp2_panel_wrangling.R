@@ -16,8 +16,7 @@ all_data <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
 # selecting vars
 panel_data <- all_data %>% 
   dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, 
-                di_score, elect_dem, regime_type_2, regime_type_4, log_gdppc, income_level, 
-                aut_ep, dem_ep, regch_event, lib_dem, part_dem, delib_dem, egal_dem, academ_free, 
+                di_score, elect_dem, aut_ep, dem_ep, regime_type_4, regch_event, log_gdppc, income_level, 
                 goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra) %>% 
   arrange(country_code, year) %>%  # Critical for correct lagging
   filter(year >= 2016)
@@ -81,18 +80,22 @@ panel_data <- panel_data %>%
   mutate(income_level_recoded = as.factor(income_level_recoded)) %>% 
   
   #### REGIME TYPE VARIABLES ####
-  # factorizing regime_type_2 (RoW based): 0 = Autocracy; 1 = Democracy 
-  mutate(regime_type_2 = as.factor(regime_type_2)) %>% 
+  # factorizing regime_type_4 (RoW based): 0 = Autocracy; 1 = Democracy 
+  mutate(regime_type_4 = as.factor(regime_type_4)) %>% 
   # creating two variables for autocracy and democracy dummies (RoW based)
   mutate(
     autocracy = case_when(
-      regime_type_2 == 0 ~ 1, # Autocracy
-      regime_type_2 == 1 ~ 0, # Democracy
+      regime_type_4 == 0 ~ 1, # Autocracy
+      regime_type_4 == 1 ~ 1, # Autocracy 
+      regime_type_4 == 2 ~ 0, # Democracy
+      regime_type_4 == 3 ~ 0, # Democracy
       TRUE ~ NA_integer_ # Handle any other cases
     ),
     democracy = case_when(
-      regime_type_2 == 0 ~ 0, # Autocracy
-      regime_type_2 == 1 ~ 1, # Democracy
+      regime_type_4 == 0 ~ 0, # Autocracy
+      regime_type_4 == 1 ~ 0, # Autocracy 
+      regime_type_4 == 2 ~ 1, # Democracy
+      regime_type_4 == 3 ~ 1, # Democracy
       TRUE ~ NA_integer_ # Handle any other cases
     )
   ) %>% 
@@ -124,6 +127,10 @@ panel_data <- panel_data %>%
   mutate(has_dem_ep = case_when(any(dem_ep == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>% 
   # has neither autocratization nor democratization episodes
   mutate(has_neither = case_when(!any(aut_ep == 1 | dem_ep == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
+  # two new variable for the sum of aut_ep and dem_ep episodes 
+  mutate(total_aut_ep = sum(as.numeric(as.character(aut_ep)), na.rm = TRUE)) %>%
+  mutate(total_dem_ep = sum(as.numeric(as.character(dem_ep)), na.rm = TRUE)) %>%
+  
   ## Complete Change Variables ##
   # change from autocracy >> democracy
   mutate(democratized = case_when(any(regch_event == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
@@ -131,7 +138,26 @@ panel_data <- panel_data %>%
   mutate(autocratized = case_when(any(regch_event == -1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
   # stable regime (no change)
   mutate(stable = case_when(!any(regch_event == 1 | regch_event == -1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>% 
-  ungroup()
+  ungroup() %>% 
+  # Convert to factors
+  mutate(
+    aut_ep = as.factor(aut_ep), # autocratization episode
+    dem_ep = as.factor(dem_ep), # democratization episode
+    has_aut_ep = as.factor(has_aut_ep), # has autocratization episode
+    has_dem_ep = as.factor(has_dem_ep), # has democratization episode
+    has_neither = as.factor(has_neither), # has neither autocratization nor democratization episodes
+    democratized = as.factor(democratized), # democratized
+    autocratized = as.factor(autocratized), # autocratized
+    stable = as.factor(stable) # stable regime
+  )
+
+# reorder columns
+panel_data <- panel_data %>%
+  select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, di_reg_type_2, elect_dem, 
+         aut_ep, dem_ep, has_aut_ep, has_dem_ep, total_aut_ep, total_dem_ep, has_neither, regime_type_4, regch_event, autocracy, democracy, autocratized, democratized, stable, 
+         log_gdppc, income_level, income_level_recoded,
+         goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra, everything())
+         
 
 #### YEAR TO YEAR LAGS FOR FD MODELS (NEW DF) ####
 fd_data <- panel_data %>%

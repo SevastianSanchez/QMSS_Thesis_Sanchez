@@ -27,7 +27,7 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
                   v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, v2x_freexp_altinf, 
                   e_wb_pop) %>%
     rename(#country_code = country_text_id, #renaming country code (new_name = old_name)
-           regime_type_4 = v2x_regime, 
+           regime_type_4 = v2x_regime, # MAIN RoW Regime Type Variable 
            regime_type_10 = v2x_regime_amb,
            elect_dem = v2x_polyarchy,
            lib_dem = v2x_libdem,
