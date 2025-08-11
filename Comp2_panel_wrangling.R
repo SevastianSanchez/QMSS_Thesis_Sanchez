@@ -183,30 +183,5 @@ fd_data <- panel_data %>%
   ) %>%
   ungroup()
 
-# Create a table showing the number of years with data for each key variable by country
-country_variable_coverage <- panel_data %>%
-  group_by(country_code) %>%
-  summarize(
-    country_name = first(country_name),  # Keep the country name for reference
-    total_years = n(),  # Total years in dataset for this country
-    spi_comp_years = sum(!is.na(spi_comp)),
-    sci_overall_years = sum(!is.na(sci_overall)),
-    sdg_overall_years = sum(!is.na(sdg_overall)),
-    di_score_years = sum(!is.na(di_score)),
-    log_gdppc_years = sum(!is.na(log_gdppc))
-  ) %>%
-  ungroup() %>%
-  # Calculate coverage percentages
-  mutate(across(
-    c(spi_comp_years, sci_overall_years, sdg_overall_years, di_score_years, log_gdppc_years),
-    list(pct = ~round(. / total_years * 100, 1)),
-    .names = "{.col}_pct"
-  )) %>%
-  # Arrange by country name for easier reading
-  arrange(country_name)
-
-# View the combined summary
-#print(country_variable_coverage)
-
 # View(panel_data)
 # View(fd_data)

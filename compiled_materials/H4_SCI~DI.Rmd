@@ -21,7 +21,7 @@ source("Comp2_panel_wrangling.R")
 Using fixed effects regression, how does a change in DI score impact SCI performance? Is the impact lagged or immediate?
 ```{r}
 # baseline model
-FE_all <- plm(formula = sci_overall ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
+FE_all <- plm(formula = sci_overall ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + income_level_recoded,
                   model = "within", 
                   index = c("country_code", "year"),
                   data = panel_data, 
@@ -34,7 +34,7 @@ summary(FE_all, vcov = vcovHC(FE_all, cluster = "group", type = "HC1"))
 Of countries that experienced complete change from democracy to autocracy (XX countries), how did the decrease in DI score impact their SCI performance? Was the impact lagged or immediate?
 ```{r}
 # autocratized variable 
-FE_aut <- plm(formula = sci_overall ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
+FE_aut <- plm(formula = sci_overall ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + income_level_recoded,
                   model = "within", 
                   index = c("country_code", "year"),
                   data = panel_data, 
@@ -48,7 +48,7 @@ summary(FE_aut, vcov = vcovHC(FE_aut, cluster = "group", type = "HC1"))
 Of countries that experienced complete change from autocracy to democracy (XX countries), how did the decrease in DI score impact their SCI performance? Was the impact lagged or immediate?
 ```{r}
 # autocratized variable 
-FE_dem <- plm(formula = sci_overall ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
+FE_dem <- plm(formula = sci_overall ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + income_level_recoded,
                   model = "within", 
                   index = c("country_code", "year"),
                   data = panel_data, 
@@ -83,3 +83,5 @@ stargazer(
   out = "compiled_materials/results/h4_sci_di_FE_models.html"
 )
 ```
+
+

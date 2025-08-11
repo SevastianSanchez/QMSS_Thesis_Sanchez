@@ -243,8 +243,6 @@ partial_f_test <- pFtest(restricted_model, di_x_inc_lvl)
 partial_f_test
 ```
 
-
-
 # Interaction Effects [Stage 2]
 *H0:* NUll, the impact of SPI on SDG Performance does NOT vary depending on Z [income_level_recoded, regime_type_binary, regime_type_categ, di_score]
 *H1:* The impact of SPI on SDG Performance varies depending on Z [income_level_recoded, regime_type_binary, regime_type_categ, di_score]
@@ -297,16 +295,3 @@ summary(spi_x_reg_eps, vcov = vcovHC(spi_x_reg_eps, cluster = "group", type = "H
 
 
 ```
-
-
-```{r}
-# Final Model [TO BE UPDATED BASED ON STAGE 2 RESULTS]
-final_model <- plm(formula = sdg_overall ~ cen_spi_comp*factor(income_level_recoded) + cen_spi_comp*cen_di_score + cen_log_gdppc + I(cen_log_gdppc^2), 
-                   model = "within", 
-                   index = c("country_code", "year"),
-                   data = panel_data,
-                   effect = "twoways")
-summary(final_model, vcov = vcovHC(final_model, cluster = "group", type = "HC1"))
-```
-
-

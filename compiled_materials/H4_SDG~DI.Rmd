@@ -15,7 +15,7 @@ source("packages.R")
 source("Comp2_panel_wrangling.R")
 ```
 
-# SPI and DI Relationship
+# SDG and DI Relationship
 ## Baseline Model [FOUND SOMETHING!!!]
 Using fixed effects regression, how does a change in DI score impact SDG performance? Is the impact lagged or immediate?
 ```{r}
@@ -57,7 +57,7 @@ summary(FE_dem)
 summary(FE_dem, vcov = vcovHC(FE_dem, cluster = "group", type = "HC1"))
 ```
 
-## Complete Regime Change (autocratized), Subgrouping
+## Complete Regime Change (autocratized), Subgrouping by **SDG GOAL**
 Of countries that experienced complete change from democracy to autocracy (XX countries), how did the decrease in DI score impact their SDG *Goal X* performance? Was the impact lagged or immediate?
 ```{r eval=FALSE, include=FALSE}
 goal <- "goal1" # Change this to the specific goal you want to analyze
