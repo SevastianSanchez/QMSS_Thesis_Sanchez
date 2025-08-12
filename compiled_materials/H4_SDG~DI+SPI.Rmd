@@ -1,6 +1,8 @@
 ---
 title: "H4_SDG~DI+SPI"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r}
@@ -21,7 +23,7 @@ group <-
   # panel_data$has_aut_ep == 1
   # panel_data$has_dem_ep == 1 
   # panel_data$has_neither == 1
-  # panel_data$autocratized == 1 
+   panel_data$autocratized == 1 
   # panel_data$democratized == 1 
   # panel_data$stable == 1
 ```
@@ -29,25 +31,40 @@ group <-
 # Baseline SDG and DI Relationship
 ```{r}
 # baseline model
-FE_all <- plm(formula = sdg_overall ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
+FE_no_spi <- plm(formula = sdg_overall ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + income_level_recoded,
               model = "within", 
               index = c("country_code", "year"),
               data = panel_data, 
               subset = group, # modifying based on regime stability
               effect = "twoways")
-summary(FE_all)
-summary(FE_all, vcov = vcovHC(FE_all, cluster = "group", type = "HC1"))
+summary(FE_no_spi)
+summary(FE_no_spi, vcov = vcovHC(FE_no_spi, cluster = "group", type = "HC1"))
 ```
 
 # SDG and DI Relationship + Adding SPI
 ```{r}
 # baseline model
-FE_all <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + dplyr::lag(spi_comp, 2) + di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
+FE_with_SPI <- plm(formula = sdg_overall ~ spi_comp + dplyr::lag(spi_comp, 1) + dplyr::lag(spi_comp, 2) + di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + income_level_recoded,
               model = "within", 
               index = c("country_code", "year"),
               data = panel_data, 
               subset = group, # modifying based on regime stability
               effect = "twoways")
-summary(FE_all)
-summary(FE_all, vcov = vcovHC(FE_all, cluster = "group", type = "HC1"))
+summary(FE_with_SPI)
+summary(FE_with_SPI, vcov = vcovHC(FE_with_SPI, cluster = "group", type = "HC1"))
 ```
+
+# stargazer table of the two models above
+```{r}
+stargazer(FE_no_spi, FE_with_SPI,
+          type = "html",
+          title = "H4: SDG and DI Fixed Effects Models (regime change: autocracized) (with and without SPI)",
+          dep.var.labels = c("SDG Overall"),
+          column.labels = c("Without SPI", "With SPI"),
+          model.numbers = FALSE,
+          no.space = TRUE,
+          align = TRUE,
+          digits = 3,
+          out = "compiled_materials/results/H4_sdg~di+spi_FE_models.html")
+```
+

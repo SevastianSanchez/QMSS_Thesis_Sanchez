@@ -23,7 +23,7 @@ FE_all <- plm(formula = sci_overall ~ di_score + dplyr::lag(di_score, 1) + dplyr
               model = "within", 
               index = c("country_code", "year"),
               data = panel_data, 
-              subset = group
+              subset = group,
               effect = "twoways")
 summary(FE_all)
 summary(FE_all, vcov = vcovHC(FE_all, cluster = "group", type = "HC1"))

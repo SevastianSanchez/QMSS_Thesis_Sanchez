@@ -23,13 +23,24 @@ regime_change_status <- panel_data %>%
   arrange(country_code)
 
 # Display the table
-print(regime_change_table)
+print(regime_change_status)
+```
+
+# Create stargazer table for the regime change status
+```{r}
+# Convert the regime change status table to a stargazer table for better visualization
+stargazer(regime_change_status, 
+          type = "html", 
+          summary = FALSE, 
+          title = "Regime Change Status of Countries",
+          digits = 0,
+          out = "compiled_materials/results/stats/regime_change_status_by_country.html")
 ```
 
 ## 1.2 Create a frequency table summarizing the regime change status of countries
 ```{r}
 # Frequency table of countries based on has_aut_ep, has_dem_ep, has_neither, autocratized, democratized, and stable variables [DONE!!]
-freq_regime_change_status <- regime_change_table %>%
+freq_regime_change_status <- regime_change_status %>%
   summarise(
     Total_Countries = n(),
     Countries_with_Autocratization_Episodes = sum(as.numeric(as.character(has_aut_ep)), na.rm = TRUE),
@@ -42,6 +53,18 @@ freq_regime_change_status <- regime_change_table %>%
 
 # pivot the freq_table to long format for better visualization
   pivot_longer(cols = everything(), names_to = "Category", values_to = "Count")
+```
+
+## convert table to stargazer table 
+```{r}
+# Convert the frequency table to a stargazer table for better visualization
+stargazer(freq_regime_change_status, 
+          type = "html", 
+          summary = FALSE, 
+          title = "Frequency Table of Regime Change Status",
+          digits = 0,
+          out = "compiled_materials/results/stats/regime_change_status_counts.html")
+
 ```
 
 # 1.3 Summary Statistics of Panel Data Variables 
@@ -71,5 +94,13 @@ country_variable_coverage <- panel_data %>%
 print(country_variable_coverage)
 ```
 
-
-
+# create a stargazer table of the country_variable_coverage
+```{r}
+# Convert the country_variable_coverage table to a stargazer table for better visualization
+stargazer(country_variable_coverage, 
+          type = "html", 
+          summary = FALSE, 
+          title = "Country Variable Coverage",
+          digits = 1,
+          out = "compiled_materials/results/stats/country_variable_coverage.html")
+```

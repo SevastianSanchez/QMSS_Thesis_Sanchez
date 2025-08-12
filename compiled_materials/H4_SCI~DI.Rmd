@@ -1,6 +1,8 @@
 ---
 title: "H2_SCI~DI"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 
@@ -22,10 +24,11 @@ Using fixed effects regression, how does a change in DI score impact SCI perform
 ```{r}
 # baseline model
 FE_all <- plm(formula = sci_overall ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc + income_level_recoded,
-                  model = "within", 
-                  index = c("country_code", "year"),
-                  data = panel_data, 
-                  effect = "twoways")
+              model = "within", 
+              index = c("country_code", "year"),
+              subset = stable == 1,
+              data = panel_data, 
+              effect = "twoways")
 summary(FE_all)
 summary(FE_all, vcov = vcovHC(FE_all, cluster = "group", type = "HC1"))
 ```
@@ -75,7 +78,7 @@ stargazer(
   align = TRUE,
   dep.var.labels = "SCI Overall Score",
   column.labels = c("All", "Autocratized", "Democratized"),
-  #covariate.labels = c("DI Composite", "Lagged DI (t-1)", "Lagged DI (t-2)",  "Log(GDPper-capita)", "Lower-Middle Income (LMIC)", "Upper-Middle Income (UMIC)", "High Income (HIC)", "Intercept"),
+  covariate.labels = c("DI Composite", "Lagged DI (t-1)", "Lagged DI (t-2)",  "Log(GDPper-capita)", "Lower-Middle Income (LMIC)", "Upper-Middle Income (UMIC)", "High Income (HIC)", "Intercept"),
   report = "vcs*",
   notes = "Robust standard errors clustered by country in parentheses",
   omit = "factor\\(year\\)",
