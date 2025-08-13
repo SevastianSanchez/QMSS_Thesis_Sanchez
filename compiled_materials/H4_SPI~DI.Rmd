@@ -61,6 +61,18 @@ summary(FE_dem)
 summary(FE_dem, vcov = vcovHC(FE_dem, cluster = "group", type = "HC1"))
 ```
 
+
+# Model Observations 
+Function that extracts model data for plm models
+```{r}
+# load the extract_plm_data function
+source("functions/extract_plm_data_function.R")
+
+FE_all_data <- extract_plm_data(FE_all)
+FE_aut_data <- extract_plm_data(FE_aut)
+FE_dem_data <- extract_plm_data(FE_dem)
+```
+
 ## Put all three models in a table
 ```{r}
 # Extracting robust standard errors for the three FE models
