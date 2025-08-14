@@ -21,7 +21,6 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
   #VDEM DATASET
   
   name1 <- df1 %>%
-    dplyr::filter(year >= start_yr, year <= end_yr) %>% 
     dplyr::select(country_name, country_text_id, year, v2x_regime, v2x_regime_amb, v2x_polyarchy, 
                   v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2xel_frefair, v2x_accountability, 
                   v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, v2x_freexp_altinf, 
@@ -42,7 +41,9 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
            diag_account = v2x_diagacc,
            academ_free = v2xca_academ,
            freexp_altinfo = v2x_freexp_altinf,
-           population = e_wb_pop)
+           population = e_wb_pop) %>% 
+    dplyr::mutate(log_pop = log(population)) %>% 
+    dplyr::filter(year >= start_yr, year <= end_yr)
   
   #SPI DATASET
   name2 <- df2 %>% 

@@ -9,7 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Correlation Matrix: Stage 1 & 2 predictors 
+# Correlation Matrix: Main variables & controls 
 create correlation matrix for SDG score, SPI score, DI score and log GDP per capita
 ```{r}
 # Load necessary libraries
@@ -31,19 +31,29 @@ source("Comp2_panel_wrangling.R")
 # Extract the data 
 corr_data <- all_data %>%
   dplyr::select(sdg_overall, spi_comp, sci_overall, di_score, log_gdppc, income_level, population, country_name, country_code, year, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra)
+```
 
+# Recoding & Imputing missing data
+```{r}
+# Impute missing data: log_gdppc
+corr_data_impute <- corr_data %>%
+  dplyr::filter(year >= 2016) %>%
+  mutate(
+    log_gdppc = ifelse(is.na(log_gdppc), median(log_gdppc, na.rm = TRUE), log_gdppc), 
+    population = ifelse(is.na(population), median(population, na.rm = TRUE), population)
+  )
+
+# Recode income_level to a factor with labels
+corr_data_impute <- corr_data_impute %>%
+  mutate(log_pop = log(population))
 ```
 
 # VIF Test: Stage 1 & 2 predictors
 ```{r}
-# Libraries
-library(plm)
-library(car)  
-
 # Calculate VIF for the predictors in the panel data
 vif_data <- corr_data %>%
   dplyr::filter(year >= 2016) %>%
-  dplyr::select(sdg_overall, spi_comp, di_score, log_gdppc, year, income_level, population)
+  dplyr::select(sdg_overall, spi_comp, di_score, log_gdppc, year, income_level, log_pop)
 
 # Stage 1 Models 
 # Fit a linear model to assess multicollinearity
@@ -64,16 +74,9 @@ vif_values_s2
 
 # Main Variables Matrix
 ```{r}
-  # Impute missing data: log_gdppc
-corr_data_impute <- corr_data %>%
-  dplyr::filter(year >= 2016) %>%
-  mutate(
-    log_gdppc = ifelse(is.na(log_gdppc), median(log_gdppc, na.rm = TRUE), log_gdppc), 
-    population = ifelse(is.na(population), median(population, na.rm = TRUE), population)
-  )
 
 # Calculate the correlation matrix
-correlation_matrix <- cor(corr_data_impute[, c("sdg_overall", "spi_comp", "sci_overall", "di_score", "log_gdppc", "population")], use = "pairwise.complete.obs")
+correlation_matrix <- cor(corr_data_impute[, c("sdg_overall", "spi_comp", "sci_overall", "di_score", "log_gdppc", "log_pop")], use = "pairwise.complete.obs")
 
 # Convert the correlation matrix to a data frame for ggplot
 melted_correlation <- melt(correlation_matrix)

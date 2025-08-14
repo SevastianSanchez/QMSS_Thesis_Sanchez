@@ -57,9 +57,45 @@ di <- read_csv("data/input_data/democracy-index-eiu.csv") %>%
 #write.csv(di, "data/misc/perp_di.csv")
 
 #GINI Coefficient - Income [API]
-gini <- WDI(country = "all", indicator = "SI.POV.GINI", start = 2000, end = 2024)
+gini <- WDI(country = "all", indicator = "SI.POV.GINI", start = 2000, end = NULL)
 
 #previously:
 #read.csv("https://ourworldindata.org/grapher/economic-inequality-gini-index.csv?v=1&csvType=full&useColumnShortNames=true") 
-#write.csv(info_cap, "data/misc/perp_gini.csv")
+#write.csv(gini, "data/misc/perp_gini.csv")
+
+### OTHER INTERESTING/RELATED WDI VARIABLES ###
+# Access to electricity
+#WDIsearch(string='1.1_ACCESS.ELECTRICITY.TOT', field='indicator')
+
+# % rural population
+#WDIsearch(string='SP.RUR.TOTL.ZS', field='indicator')
+
+# % urban population
+#WDIsearch(string='SP.URB.TOTL.IN.ZS', field='indicator')
+
+# % total population 
+#WDIsearch(string='SP.POP.TOTL', field='indicator')
+
+# % population with secondary education
+#WDIsearch(string='CC.SE.CAT3.ZS', field='indicator')
+
+# % population with post-secondary education
+#WDIsearch(string='CC.SE.CAT4.ZS', field='indicator')
+
+# Research and development expenditure (% of GDP)
+#WDIsearch(string='GB.XPD.RSDV.GD.ZS', field='indicator')
+
+# GNI total (in USD)
+#WDIsearch(string='C1.7', field='indicator')
+
+# GNI per capita 
+#WDIsearch(string='C1.8', field='indicator')
+
+# GINI Coefficient
+#WDIsearch(string='3.0.Gini', field='indicator')
+# GINI Coefficient - Index?
+#WDIsearch(string='SI.POV.GINI', field='indicator')
+
+### Example code to pull any of the above indicators
+# x <- WDI(country = "all", indicator = "var", start = 2000, end = NULL)
 
