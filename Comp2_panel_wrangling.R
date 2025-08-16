@@ -186,3 +186,6 @@ fd_data <- panel_data %>%
 
 # View(panel_data)
 # View(fd_data)
+
+# save to csv
+# write_csv(panel_data, "data/Main CSV Outputs/panel_data.csv")
