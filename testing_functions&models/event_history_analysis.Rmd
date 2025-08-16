@@ -1,0 +1,79 @@
+---
+title: "event_history_analysis"
+output: html_document
+---
+
+```{r}
+# set working directory
+setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
+
+#load libraries/packages
+source("packages.R")
+
+# load data
+source("Comp2_panel_wrangling.R")
+```
+
+
+
+```{r}
+regime_event_data <- panel_data %>%
+  group_by(country_code) %>%
+  mutate(
+    # Find the transition year for each country based on regime change type
+    transition_year = case_when(
+      autocratized == 1 ~ year[regch_event == -1][1],  # Backsliding: when regch_event = -1
+      democratized == 1 ~ year[regch_event == 1][1],   # Democratization: when regch_event = 1
+      stable == 1 ~ NA_real_                           # Stable countries: no transition
+    ),
+    # Calculate event_time as years relative to transition
+    event_time = ifelse(!is.na(transition_year), year - transition_year, NA)
+  ) %>%
+  ungroup() %>% 
+  # ensure regch_event is a factor
+  mutate(regch_event = factor(regch_event, levels = c(-1, 0, 1), labels = c("Autocratization", "Stable", "Democratization")))
+
+# Check that regch_event == -1 corresponds to event_time == 0 for autocratized countries
+check_autocrat <- regime_event_data %>%
+  filter(autocratized == 1, regch_event == -1) %>%
+  select(country_code, year, event_time)
+
+# Check that regch_event == 1 corresponds to event_time == 0 for democratized countries  
+check_democrat <- regime_event_data %>%
+  filter(democratized == 1, regch_event == 1) %>%
+  select(country_code, year, event_time)
+
+print("All transition years should have event_time = 0:")
+print(bind_rows(check_autocrat, check_democrat))
+
+```
+
+```{r}
+# Filter to autocratized countries for your main analysis
+df_autocrat <- regime_event_data %>% filter(autocratized == 1)
+
+# Event study with DI interaction
+aut_event_model <- plm(spi_comp ~ di_score + factor(event_time) + 
+                   log_gdppc + income_level_recoded,
+                   data = df_autocrat,
+                   index = c("country_code", "year"), 
+                   model = "within", 
+                   effect = "twoways")
+
+summary(aut_event_model)
+coeftest(aut_event_model, vcov = vcovHC(aut_event_model, cluster = "group", type = "HC1"))
+#summary(aut_event_model, vcov = vcovHC(aut_event_model, cluster = "group", type = "HC1"))
+
+```
+
+- AI Question: Do I need to check my analysis with more than one democracy variable? what if the regime change variable is not the same as the democracy variable? could this affect the results?
+
+
+
+AI Question 2: 
+```{r}
+# Ensure event_time is correctly calculated for both autocratized and democratized countries
+# Check the transition_year and event_time calculations
+check_event_time <- regime_event_data %>%
+  filter(!is.na(transition_year)) %>%
+  select(country_code, year, transition_year, event_time, regch_event)
