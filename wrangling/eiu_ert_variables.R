@@ -92,6 +92,7 @@ eiu_ert_variables <- function(data) {
       eiu_has_dem_ep = ifelse(any(eiu_dem_ep == 1, na.rm = TRUE), 1, 0),
       eiu_has_both = ifelse(any(eiu_aut_ep == 1 & eiu_dem_ep == 1, na.rm = TRUE), 1, 0),
       eiu_has_neither = ifelse(!any(eiu_aut_ep == 1 | eiu_dem_ep == 1, na.rm = TRUE), 1, 0),
+      
       # Total episode counts
       eiu_total_aut_ep = sum(eiu_aut_ep, na.rm = TRUE),
       eiu_total_dem_ep = sum(eiu_dem_ep, na.rm = TRUE),
@@ -117,25 +118,26 @@ eiu_ert_variables <- function(data) {
           min(year[eiu_regch_event == -1], na.rm = TRUE)
         } else {
           NA_integer_
-        }
+        },
       ) %>%
         
         # Now calculate event times safely
         mutate(
           # Years since democratization event
-          eiu_dem_event_time = if_else(!is.na(first_dem_year), 
-                                       year - first_dem_year, 
+          eiu_dem_event_time = if_else(!is.na(first_dem_year), year - first_dem_year, 
                                        NA_integer_),
           
           # Years since autocratization event
-          eiu_aut_event_time = if_else(!is.na(first_aut_year), 
-                                       year - first_aut_year, 
+          eiu_aut_event_time = if_else(!is.na(first_aut_year), year - first_aut_year, 
                                        NA_integer_)
         ) %>%
-        
+       
         # Clean up temporary variables
         select(-first_dem_year, -first_aut_year) %>%
         ungroup() %>%
+    #------------------------------------------------------------
+    # 4. CATEGORICAL CONVERSION
+    #------------------------------------------------------------
     
     # Convert to factors for categorical analysis
     mutate(
@@ -154,22 +156,19 @@ eiu_ert_variables <- function(data) {
   return(eiu_consistent)
 }
 
-# Example usage:
-panel_data_eiu <- eiu_ert_variables(panel_data)
-# 
-# # Get list of countries that experienced democratization
-#democratized_countries <- panel_data_eiu %>%
-#   filter(eiu_democratized == 1) %>%
-#   distinct(country_name) %>%#
-#   pull(country_name)
-
-# # Get list of countries that experienced autocratization
-#autocratized_countries <- panel_data_eiu %>%
-#   filter(eiu_autocratized == 1) %>%
-#   distinct(country_name) %>%
-#   pull(country_name)
-
-# # Create event history dataset focused on years around transitions
-#dem_transitions <- panel_data_ert %>%
-#  filter(!is.na(eiu_dem_event_time)) %>%
-#  filter(eiu_dem_event_time >= -5 & eiu_dem_event_time <= 5)
+# unit test for the function
+#if (interactive()) {
+#  # Example usage with a sample dataframe
+#  sample_data <- data.frame(
+#    country_code = rep("COUNTRY", 10),
+#    year = 2000:2009,
+#    di_score = c(4.5, 4.6, 4.7, 4.8, 5.0, 5.1, 5.2, 5.3, 5.4, 5.5)
+#  )
+#  
+#  result <- eiu_ert_variables(sample_data)
+#  print(result)
+#} 
+#   eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep,
+#   eiu_has_aut_ep, eiu_has_dem_ep, eiu_has_both, eiu_has_neither,
+#   eiu_total_aut_ep, eiu_total_dem_ep, eiu_democratized,
+#   eiu_autocratized, eiu_stable, eiu_dem_event_time, eiu_aut_event_time

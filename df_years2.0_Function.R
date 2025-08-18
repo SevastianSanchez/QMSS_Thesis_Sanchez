@@ -33,7 +33,8 @@ custom_match_forward <- c(
   "Bahamas" = "BHS",
   "Belize" = "BLZ",
   "Brunei" = "BRN",
-  "South Sudan" = "SSD"
+  "South Sudan" = "SSD", 
+  "Marshall Islands" = "MHL"
 )
 
 # Define reverse mapping (ISO3 codes to country names)
@@ -52,7 +53,8 @@ custom_match_reverse <- c(
   "BHS" = "Bahamas",
   "BLZ" = "Belize",
   "BRN" = "Brunei",
-  "SSD" = "South Sudan"
+  "SSD" = "South Sudan",
+  "MHL" = "Marshall Islands"
 )
 
 standardize_country_codes <- function(df) {
@@ -199,4 +201,5 @@ df_years2.0 <- function(x, y) {
 }
 
 testing2.0 <- df_years2.0(2004, 2023)
+write_csv(testing2.0, "data/MISC/testing2.0_data.csv")
 
