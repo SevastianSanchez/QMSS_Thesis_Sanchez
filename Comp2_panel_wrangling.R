@@ -20,8 +20,7 @@ panel_data <- all_data %>%
                 income_level, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, 
                 p5_infra) %>% 
   arrange(country_code, year) %>% # Critical for correct lagging
-  filter(year >= 2016)
-
+  filter(year >= 2015)
 
 # Transforming variables: Centering >> Lagging >> Squaring & Cubing Terms (for polynomial terms)
 panel_data <- panel_data %>%
@@ -81,7 +80,7 @@ panel_data <- panel_data %>%
   )) %>% 
   mutate(income_level_recoded = as.factor(income_level_recoded)) %>% 
   
-  #### REGIME TYPE VARIABLES ####
+  #### RoW REGIME TYPE VARIABLES ####
   # factorizing regime_type_4 (RoW based): 0 = Autocracy; 1 = Democracy 
   mutate(regime_type_4 = as.factor(regime_type_4)) %>% 
   # creating two variables for autocracy and democracy dummies (RoW based)
@@ -101,17 +100,9 @@ panel_data <- panel_data %>%
       TRUE ~ NA_integer_ # Handle any other cases
     )
   ) %>% 
-  # Creating a new regime type var (di_score)
-  mutate(
-    eiu_regime_type = case_when(
-      di_score < 5 ~ 0,  # Autocracy
-      di_score >= 5 ~ 1,  # Democracy
-      TRUE ~ NA_integer_
-  )) %>% 
   # Convert to factors
   mutate(ert_autocracy = as.factor(ert_autocracy), # autocracy dummy
-         ert_democracy = as.factor(ert_democracy), # democracy dummy
-         eiu_regime_type = as.factor(eiu_regime_type)) # regime type dummy (di based)
+         ert_democracy = as.factor(ert_democracy)) # democracy dummy
 
 #### ERT REGIME CHANGE VARIABLES ####
 panel_data <- panel_data %>%
@@ -127,6 +118,8 @@ panel_data <- panel_data %>%
   mutate(ert_has_aut_ep = case_when(any(ert_aut_ep == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
   # has atleast 1 democratization episode
   mutate(ert_has_dem_ep = case_when(any(ert_dem_ep == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>% 
+  # has both autocratization and democratization episodes
+  mutate(ert_has_both = case_when(any(ert_aut_ep == 1 & ert_dem_ep == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
   # has neither autocratization nor democratization episodes
   mutate(ert_has_neither = case_when(!any(ert_aut_ep == 1 | dem_ep == 1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
   # two new variable for the sum of aut_ep and dem_ep episodes 
@@ -139,7 +132,8 @@ panel_data <- panel_data %>%
   # change from democracy >> autocracy
   mutate(ert_autocratized = case_when(any(regch_event == -1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>%
   # stable regime (no change)
-  mutate(ert_stable = case_when(!any(regch_event == 1 | regch_event == -1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>% 
+  mutate(ert_stable = case_when(!any(regch_event == 1 | regch_event == -1, na.rm = TRUE) ~ 1, TRUE ~ 0)
+         ) %>% 
   ungroup() %>% 
   
   # Convert to factors
@@ -156,10 +150,12 @@ panel_data <- panel_data %>%
 
 # reorder columns
 panel_data <- panel_data %>%
-  select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, eiu_regime_type, elect_dem, 
-         ert_aut_ep, ert_dem_ep, ert_has_aut_ep, ert_has_dem_ep, ert_total_aut_ep, ert_total_dem_ep, ert_has_neither, regime_type_4, ert_regch_event, ert_autocracy, ert_democracy, ert_autocratized, ert_democratized, ert_stable, 
-         log_gdppc, income_level, income_level_recoded,
-         goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra, everything())
+  select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, 
+         elect_dem, ert_aut_ep, ert_dem_ep, ert_has_aut_ep, ert_has_dem_ep, 
+         ert_total_aut_ep, ert_total_dem_ep, ert_has_neither, regime_type_4, ert_regch_event, 
+         ert_autocracy, ert_democracy, ert_autocratized, ert_democratized, ert_stable, 
+         log_gdppc, income_level, income_level_recoded, goal1:goal17, p1_use, p2_services, 
+         p3_products, p4_sources, p5_infra, everything())
 
 ### EIU-CONSISTENT REGIME CHANGE VARIABLES ###
 source("testing_functions&models/eiu_ert_variables.R")
@@ -168,22 +164,19 @@ eiu_panel_data <- eiu_ert_variables(panel_data)
 # Reorder columns for clarity
 eiu_panel_data <- eiu_panel_data %>%
   select(country_name, country_code, year, sdg_overall, spi_comp, di_score,
-         eiu_regime_type, eiu_regime_transition, eiu_dem_ep, eiu_aut_ep, 
+         eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep, 
          eiu_has_aut_ep, eiu_has_dem_ep, eiu_total_aut_ep, eiu_total_dem_ep, 
-         eiu_has_neither, log_gdppc, income_level, income_level_recoded,
+         eiu_has_neither, eiu_has_both, log_gdppc, income_level, income_level_recoded,
          goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra,
-         di_score_lag1, di_score_lag2,
-         spi_comp_lag1, spi_comp_lag2,
-         log_gdppc_lag1, log_gdppc_lag2,
-         everything())
+         di_score_lag1, di_score_lag2, spi_comp_lag1, spi_comp_lag2, log_gdppc_lag1, 
+         log_gdppc_lag2, everything())
 
 # Create a summary of regime transitions and episodes
 regime_changes_summary <- eiu_panel_data %>%
-  filter(eiu_regime_transition != 0 | eiu_dem_ep == 1 | eiu_aut_ep == 1) %>%
-  select(country_code, country_name, year, di_score, di_score_lag1, di_score_change, 
-         eiu_regime_transition, eiu_dem_ep, eiu_aut_ep) %>%
+  filter(eiu_regch_event != 0 | eiu_dem_ep == 1 | eiu_aut_ep == 1) %>%
+  select(country_code, country_name, year, di_score, di_score_lag1, di_score_diff, 
+         eiu_regch_event, eiu_dem_ep, eiu_aut_ep) %>%
   arrange(country_code, year)
-
 
 #### YEAR TO YEAR LAGS FOR FD MODELS (NEW DF) ####
 fd_data <- panel_data %>%
