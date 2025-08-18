@@ -19,8 +19,9 @@ panel_data <- all_data %>%
                 di_score, elect_dem, aut_ep, dem_ep, regime_type_4, regch_event, log_gdppc, 
                 income_level, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, 
                 p5_infra) %>% 
-  arrange(country_code, year) %>%  # Critical for correct lagging
+  arrange(country_code, year) %>% # Critical for correct lagging
   filter(year >= 2016)
+
 
 # Transforming variables: Centering >> Lagging >> Squaring & Cubing Terms (for polynomial terms)
 panel_data <- panel_data %>%
@@ -140,6 +141,7 @@ panel_data <- panel_data %>%
   # stable regime (no change)
   mutate(ert_stable = case_when(!any(regch_event == 1 | regch_event == -1, na.rm = TRUE) ~ 1, TRUE ~ 0)) %>% 
   ungroup() %>% 
+  
   # Convert to factors
   mutate(
     ert_aut_ep = as.factor(ert_aut_ep), # autocratization episode
@@ -159,10 +161,10 @@ panel_data <- panel_data %>%
          log_gdppc, income_level, income_level_recoded,
          goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra, everything())
 
-
 ### EIU-CONSISTENT REGIME CHANGE VARIABLES ###
-source("testing_functions/eiu_ert_variables.R")
+source("testing_functions&models/eiu_ert_variables.R")
 eiu_panel_data <- eiu_ert_variables(panel_data)
+
 # Reorder columns for clarity
 eiu_panel_data <- eiu_panel_data %>%
   select(country_name, country_code, year, sdg_overall, spi_comp, di_score,

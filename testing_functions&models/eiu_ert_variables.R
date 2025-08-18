@@ -1,8 +1,10 @@
 # Create regime change variables based on EIU Democracy Index following V-Dem ERT methodology
 eiu_ert_variables <- function(data) {
-  # Validate input data
+  # Validate all columns exist in DF
   required_cols <- c("country_code", "year", "di_score", "eiu_regime_type")
-  missing_cols <- setdiff(required_cols, names(data))
+  # check for missing required columns
+  missing_cols <- setdiff(required_cols, names(data)) 
+  # stop if any required columns are missing
   if (length(missing_cols) > 0) {
     stop("Missing required columns: ", paste(missing_cols, collapse = ", "))
   }
@@ -78,10 +80,10 @@ eiu_ert_variables <- function(data) {
     ) %>%
     ungroup() %>%
     
-    #------------------------------------------------------------
-    # 4. COUNTRY-LEVEL IDENTIFIER VARIABLES
-    #------------------------------------------------------------
-    # Group by country to create country-level identifiers
+     #------------------------------------------------------------
+     # 4. COUNTRY-LEVEL IDENTIFIER VARIABLES
+     #------------------------------------------------------------
+     # Group by country to create country-level identifiers
     group_by(country_code) %>%
     mutate(
       # Episode identifiers
@@ -128,7 +130,7 @@ eiu_ert_variables <- function(data) {
 }
 
 # Example usage:
-# panel_data_ert <- eiu_ert_variables(panel_data)
+panel_data_ert <- eiu_ert_variables(panel_data)
 # 
 # # Get list of countries that experienced democratization
 # democratized_countries <- panel_data_ert %>%
@@ -143,6 +145,6 @@ eiu_ert_variables <- function(data) {
 #   pull(country_name)
 # 
 # # Create event history dataset focused on years around transitions
-# dem_transitions <- panel_data_ert %>%
-#   filter(!is.na(eiu_dem_event_time)) %>%
-#   filter(eiu_dem_event_time >= -5 & eiu_dem_event_time <= 5)
+#dem_transitions <- panel_data_ert %>%
+#  filter(!is.na(eiu_dem_event_time)) %>%
+#  filter(eiu_dem_event_time >= -5 & eiu_dem_event_time <= 5)

@@ -15,7 +15,6 @@ source("Comp2_panel_wrangling.R")
 ```
 
 
-
 ```{r}
 regime_event_data <- panel_data %>%
   group_by(country_code) %>%
@@ -63,7 +62,6 @@ aut_event_model <- plm(spi_comp ~ di_score + factor(event_time) +
 summary(aut_event_model)
 coeftest(aut_event_model, vcov = vcovHC(aut_event_model, cluster = "group", type = "HC1"))
 #summary(aut_event_model, vcov = vcovHC(aut_event_model, cluster = "group", type = "HC1"))
-
 ```
 
 - AI Question: Do I need to check my analysis with more than one democracy variable? what if the regime change variable is not the same as the democracy variable? could this affect the results?
