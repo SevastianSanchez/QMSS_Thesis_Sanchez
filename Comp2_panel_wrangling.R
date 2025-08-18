@@ -149,12 +149,12 @@ panel_data <- panel_data %>%
   )
 
 # reorder columns
-panel_data <- panel_data %>%
+panel_data_ert <- panel_data %>%
   select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, 
          elect_dem, ert_aut_ep, ert_dem_ep, ert_has_aut_ep, ert_has_dem_ep, 
          ert_total_aut_ep, ert_total_dem_ep, ert_has_neither, regime_type_4, ert_regch_event, 
          ert_autocracy, ert_democracy, ert_autocratized, ert_democratized, ert_stable, 
-         log_gdppc, income_level, income_level_recoded, goal1:goal17, p1_use, p2_services, 
+         log_gdppc, income_level_recoded, goal1:goal17, p1_use, p2_services, 
          p3_products, p4_sources, p5_infra, everything())
 
 ### EIU-CONSISTENT REGIME CHANGE VARIABLES ###
@@ -166,7 +166,7 @@ eiu_panel_data <- eiu_panel_data %>%
   select(country_name, country_code, year, sdg_overall, spi_comp, di_score,
          eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep, 
          eiu_has_aut_ep, eiu_has_dem_ep, eiu_total_aut_ep, eiu_total_dem_ep, 
-         eiu_has_neither, eiu_has_both, log_gdppc, income_level, income_level_recoded,
+         eiu_has_neither, eiu_has_both, log_gdppc, income_level_recoded,
          goal1:goal17, p1_use, p2_services, p3_products, p4_sources, p5_infra,
          di_score_lag1, di_score_lag2, spi_comp_lag1, spi_comp_lag2, log_gdppc_lag1, 
          log_gdppc_lag2, everything())

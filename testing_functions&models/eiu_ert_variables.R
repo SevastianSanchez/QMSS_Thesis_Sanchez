@@ -100,9 +100,42 @@ eiu_ert_variables <- function(data) {
       eiu_democratized = ifelse(any(eiu_regch_event == 1, na.rm = TRUE), 1, 0),
       eiu_autocratized = ifelse(any(eiu_regch_event == -1, na.rm = TRUE), 1, 0),
       eiu_stable = ifelse(!any(eiu_regch_event == 1 | eiu_regch_event == -1, na.rm = TRUE), 1, 0)
+    ) %>%
       
+      # Create a separate object to avoid warnings with min()
+      # First identify the transition years for each country
+      mutate(
+        # Find first year of democratization (if it exists)
+        first_dem_year = if(any(eiu_regch_event == 1, na.rm = TRUE)) {
+          min(year[eiu_regch_event == 1], na.rm = TRUE)
+        } else {
+          NA_integer_
+        },
+        
+        # Find first year of autocratization (if it exists)
+        first_aut_year = if(any(eiu_regch_event == -1, na.rm = TRUE)) {
+          min(year[eiu_regch_event == -1], na.rm = TRUE)
+        } else {
+          NA_integer_
+        }
       ) %>%
-    ungroup() %>%
+        
+        # Now calculate event times safely
+        mutate(
+          # Years since democratization event
+          eiu_dem_event_time = if_else(!is.na(first_dem_year), 
+                                       year - first_dem_year, 
+                                       NA_integer_),
+          
+          # Years since autocratization event
+          eiu_aut_event_time = if_else(!is.na(first_aut_year), 
+                                       year - first_aut_year, 
+                                       NA_integer_)
+        ) %>%
+        
+        # Clean up temporary variables
+        select(-first_dem_year, -first_aut_year) %>%
+        ungroup() %>%
     
     # Convert to factors for categorical analysis
     mutate(
