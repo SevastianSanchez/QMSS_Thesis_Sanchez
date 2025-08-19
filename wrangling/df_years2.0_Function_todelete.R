@@ -544,9 +544,6 @@ process_datasets <- function(df_lists, dataset_names = NULL) {
   # Process each dataset
   processed_data <- list()
   
-  # Store original column names for later use
-  original_colnames <- list()
-  
   for(i in seq_along(df_lists)) {
     df <- df_lists[[i]]
     
@@ -556,9 +553,6 @@ process_datasets <- function(df_lists, dataset_names = NULL) {
     } else {
       NULL
     }
-    
-    # Save original column names for this dataset
-    original_colnames[[i]] <- names(df)
     
     # Standardize year column naming
     year_col <- names(df)[tolower(names(df)) %in% c("year")]
@@ -781,87 +775,6 @@ process_datasets <- function(df_lists, dataset_names = NULL) {
   attr(final_df, "unmatched_countries") <- all_unmatched
   attr(final_df, "matching_summary") <- matching_summary
   
-  # NEW: Clean up the column names by removing the _ds# suffixes
-  message("Cleaning up column names...")
-  
-  # Create a list to store the original variable name mapping
-  var_name_mapping <- list()
-  
-  # Build mapping of suffixed columns to original names
-  for (i in seq_along(df_lists)) {
-    # Get original column names for this dataset
-    orig_cols <- original_colnames[[i]]
-    
-    # Skip country columns that will be standardized
-    orig_cols <- orig_cols[!tolower(orig_cols) %in% tolower(country_colnames)]
-    
-    # For each original column, create a mapping to the suffixed version
-    for (col in orig_cols) {
-      suffixed_col <- paste0(col, "_ds", i)
-      if (suffixed_col %in% names(final_df)) {
-        var_name_mapping[[suffixed_col]] <- col
-      }
-    }
-  }
-  
-  # Identify duplicate target names to handle
-  duplicated_targets <- duplicated(unlist(var_name_mapping)) | 
-                       duplicated(unlist(var_name_mapping), fromLast = TRUE)
-  
-  if (any(duplicated_targets)) {
-    dup_names <- unique(unlist(var_name_mapping)[duplicated_targets])
-    message(paste("Found duplicated variable names:", paste(dup_names, collapse=", ")))
-    
-    # For duplicates, keep the dataset suffix to distinguish them
-    for (name in dup_names) {
-      # Find all columns that would map to this name
-      cols_to_this_name <- names(var_name_mapping)[unlist(var_name_mapping) == name]
-      
-      # Update the mapping to keep dataset identifier
-      for (col in cols_to_this_name) {
-        # Extract dataset number from the suffix
-        ds_num <- gsub(".*_ds([0-9]+)$", "\\1", col)
-        # Create a new name with dataset identifier
-        var_name_mapping[[col]] <- paste0(name, "_ds", ds_num)
-      }
-    }
-  }
-  
-  # Rename columns using the mapping
-  old_names <- names(var_name_mapping)
-  new_names <- unlist(var_name_mapping)
-  
-  # Only try to rename columns that actually exist
-  old_names <- old_names[old_names %in% names(final_df)]
-  new_names <- new_names[1:length(old_names)]
-  
-  if (length(old_names) > 0) {
-    # Create a named vector for renaming
-    rename_vec <- setNames(old_names, new_names)
-    
-    # Rename columns
-    final_df <- final_df %>% rename(!!!rename_vec)
-    
-    message(paste("Renamed", length(old_names), "columns to their original names"))
-  }
-  
-  # Remove redundant country columns
-  country_cols_to_keep <- c("country_code", "country_name", "year", "year_fct")
-  redundant_cols <- grep("country|Country|iso3|ISO3|original_country", 
-                        names(final_df), value = TRUE)
-  redundant_cols <- setdiff(redundant_cols, country_cols_to_keep)
-  
-  if (length(redundant_cols) > 0) {
-    final_df <- final_df %>% select(-all_of(redundant_cols))
-    message(paste("Removed", length(redundant_cols), "redundant country columns"))
-  }
-  
-  # Ensure core columns are present
-  if (!"year_fct" %in% names(final_df) && "year" %in% names(final_df)) {
-    final_df$year_fct <- as.factor(final_df$year)
-    message("Added year_fct column")
-  }
-  
   return(final_df)
 }
 
@@ -917,8 +830,10 @@ df_years2.0 <- function(x, y) {
   cols_to_numeric <- c("sci_overall", "sci_method", "sci_periodicity", "sci_source")
   
   # Only try to convert columns that actually exist
-  factor_cols_exist <- cols_to_factor[cols_to_factor %in% names(processed)]
-  numeric_cols_exist <- cols_to_numeric[cols_to_numeric %in% names(processed)]
+  factor_cols_exist <- intersect(grep("_ds", names(processed), value = TRUE), 
+                                paste0(cols_to_factor, "_ds", 1:length(list_for_dfs)))
+  numeric_cols_exist <- intersect(grep("_ds", names(processed), value = TRUE),
+                                 paste0(cols_to_numeric, "_ds", 1:length(list_for_dfs)))
   
   data <- processed %>% 
     dplyr::mutate(year_fct = as.factor(year))
@@ -941,8 +856,9 @@ df_years2.0 <- function(x, y) {
   priority_cols <- c("income_level", "sdg_overall", "spi_comp", "sci_overall", 
                     "di_score", "di_reg_type_2", "log_gdppc", "log_pop", "gini_score")
   
-  # Find which priority columns exist
-  priority_exist <- priority_cols[priority_cols %in% names(data)]
+  # Find which priority columns exist with dataset suffixes
+  priority_pattern <- paste0("^(", paste(priority_cols, collapse="|"), ")_ds")
+  priority_exist <- grep(priority_pattern, names(data), value = TRUE)
   
   # Add everything else
   other_cols <- setdiff(names(data), c(select_cols, priority_exist))
@@ -970,7 +886,13 @@ get_country_matching_logs <- function(data) {
   ))
 }
 
+# The write.csv line should remain as it was in your original script
+#write.csv(final_df, "testing_df_years2.0.csv", row.names = FALSE)
+
+
 # Example usage | NEWEST VERSION OF df_years2.0 AS OF 8/19/2025
 #testing_df_years2.0 <- df_years2.0(2018, 2019)
 # save testing_df_years2.0
 #write_csv(testing_df_years2.0, "data/MISC/testing_df_years2.0.csv")
+
+# logs <- get_country_matching_logs(data)
