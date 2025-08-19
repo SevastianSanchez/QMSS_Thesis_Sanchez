@@ -1,7 +1,7 @@
 library(tidyverse)
 
 #calls sources
-source("data/data_sources.R")
+source("data/input_data/data_sources.R")
 
 #function to extract data from specified years 
 years_filter <- function(start_yr = 2005, end_yr = 2023, 
@@ -70,14 +70,20 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
   #SCI DATASET
   name4 <- df4 %>% 
     dplyr::select(country_name, country_code, Year, IQ.SCI.OVRL, IQ.SCI.MTHD, IQ.SCI.PRDC, IQ.SCI.SRCE) %>% 
-    mutate(year = as.numeric(Year),
-           sci_overall = as.numeric(IQ.SCI.OVRL), 
-           sci_method = as.numeric(IQ.SCI.MTHD), 
-           sci_periodicity = as.numeric(IQ.SCI.PRDC),
-           sci_source = as.numeric(IQ.SCI.SRCE)) %>% 
-    dplyr::select(-Year) %>%
-    dplyr::filter(year >= start_yr, year <= end_yr)
-  
+    # Replacing ".." with NA explicitly
+    dplyr::mutate(across(c(IQ.SCI.OVRL, IQ.SCI.MTHD, IQ.SCI.PRDC, IQ.SCI.SRCE), 
+                         ~ ifelse(. == "..", NA_character_, .))) %>%
+    # converting to numeric
+    dplyr::mutate(
+      year = as.numeric(Year),
+      sci_overall = as.numeric(IQ.SCI.OVRL), 
+      sci_method = as.numeric(IQ.SCI.MTHD), 
+      sci_periodicity = as.numeric(IQ.SCI.PRDC),
+      sci_source = as.numeric(IQ.SCI.SRCE)) %>% 
+  # Select only the columns you want to keep
+  dplyr::select(country_name, country_code, year, sci_overall, sci_method, sci_periodicity, sci_source) %>%
+  dplyr::filter(year >= start_yr, year <= end_yr)
+
   #ERT DATASET 
   name5 <- df5 %>%
     dplyr::select(country_name, country_text_id, country_id, year, reg_type, v2x_polyarchy, 
@@ -134,9 +140,16 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
     dplyr::mutate(year = as.numeric(year)) %>% 
     dplyr::filter(year >= start_yr, year <= end_yr)
   
-  return(list(vdem = name1, spi = name2, sdg = name3, 
-              sci_df = name4, ert = name5, gdppc_df = name6, #info_cap = name7, 
-              gni_class = name8, di = name9, 
+  return(list(vdem = name1, 
+              spi = name2, 
+              sdg = name3, 
+              sci_df = name4, 
+              ert = name5, 
+              gdppc_df = name6, #info_cap = name7, 
+              gni_class = name8, 
+              di = name9, 
               gini = name10))
   
 } 
+
+#testing_years_filter <- years_filter(start_yr = 2014, end_yr = 2015) # Example usage to test the function

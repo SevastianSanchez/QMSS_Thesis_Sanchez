@@ -200,6 +200,6 @@ df_years2.0 <- function(x, y) {
   return(data)
 }
 
-testing2.0 <- df_years2.0(2004, 2023)
-write_csv(testing2.0, "data/MISC/testing2.0_data.csv")
+#testing2.0_original <- df_years2.0(2004, 2023)
+#write_csv(testing2.0, "data/MISC/testing2.0_data.csv")
 
