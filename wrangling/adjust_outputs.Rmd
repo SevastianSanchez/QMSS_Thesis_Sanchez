@@ -22,7 +22,7 @@ source("packages.R")
 #load function: all available data within year range 
 source("wrangling/df_years2.0_Function.R")
 #specify start & end year
-merged_full_new <- df_years2.0(2004, 2023) 
+merged_full <- df_years2.0(2004, 2023) 
 
 #saving full version as CSV output (unhash when certain)
 #write.table(merged_full, file = 'data/Main CSV Outputs/merged_full_df.csv', row.names=F, sep = ",")
@@ -32,7 +32,7 @@ merged_full_new <- df_years2.0(2004, 2023)
 *[SKIP IF LOADING FROM DIRECTORY]*
 ```{r eval=FALSE, include=FALSE}
 # load merged_full csv [SKIP IF YOU CHANGED YEARS ABOVE]
-merged_full <- read_csv('data/Main CSV Outputs/merged_full_df.csv')
+#merged_full <- read_csv('data/Main CSV Outputs/merged_full_df.csv')
 
 # FILTERING FOR ALL COUNTRIES WITH ATLEAST 1 SDG VALUE 
 sdg_cols <- paste0("goal", 1:17)
