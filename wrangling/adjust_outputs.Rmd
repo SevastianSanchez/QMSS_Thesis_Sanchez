@@ -14,64 +14,161 @@ source("packages.R")
 ```
 
 ### SECOND: Run function in r-script: df_years_function.R   
-*[ADJUST TIME OR SKIP AND LOADING DATA FROM DIRECTORY]*
+*[ADJUST TIME OR SKIP IF YOU'RE LOADING DATA FROM DIRECTORY]*
 
 ```{r eval=FALSE, include=FALSE}
-#df_years2.0():[Updated Version] used for extracting all available country data (based on country_codes) from specified range of years
+# df_years2.0():[Updated Version] 
+# Function used for extracting all available country data from datasets in specified year range
 
-#load function: all available data within year range 
-source("wrangling/df_years2.0_Function.R")
-#specify start & end year
-merged_full <- df_years2.0(2004, 2023) 
+source("wrangling/df_years2.0_Function.R") #load function
+merged_full <- df_years2.0(2004, 2023) #specify start & end year
 
-#saving full version as CSV output (unhash when certain)
-#write.table(merged_full, file = 'data/Main CSV Outputs/merged_full_df.csv', row.names=F, sep = ",")
+# Robustness check for missing identifier variables: country_code, country_name and year
+check_missing_identifiers <- function(df) {
+  missing_rows <- sum(is.na(df$country_code) | is.na(df$country_name) | is.na(df$year))
+  print(paste("Number of rows with missing identifiers:", missing_rows))
+  return(missing_rows)}
+missing_ids <- check_missing_identifiers(merged_full)
+
+# NEW full version as CSV output (unhash when certain)
+write_csv(merged_full, file = 'data/Main CSV Outputs/merged_full_NEW.csv')
 ```
 
-### THIRD: Load and Refine Data   
-*[SKIP IF LOADING FROM DIRECTORY]*
-```{r eval=FALSE, include=FALSE}
-# load merged_full csv [SKIP IF YOU CHANGED YEARS ABOVE]
-#merged_full <- read_csv('data/Main CSV Outputs/merged_full_df.csv')
+## Dependent Y = SPI (spi_comp)
+**Prioritizing spi_comp data**
+Deleting all countries without any SPI data 
+```{r}
+# load 'merged_full_NEW.csv'
+merged_full <- read_csv("data/Main CSV Outputs/merged_full_NEW.csv")
 
-# FILTERING FOR ALL COUNTRIES WITH ATLEAST 1 SDG VALUE 
-sdg_cols <- paste0("goal", 1:17)
+# Define SDG columns
+spi_cols <- c('p1_use', 'p2_services', 'p3_products', 'p4_sources', 'p5_infra')
 
-# Identify & remove countries where all SDG columns are NA across all years
-countries_all_sdg <- merged_full %>%
-  group_by(country_code) %>%
+# Define threshold 
+threshold <- 70 # 70% of SPI index values must be present for each country to remain
+
+# 1) Only countries with atleast 1 value in any of the 5 SPI pillars
+all_missing_pillars <- merged_full %>% 
+  group_by(country_code, country_name) %>%
+  summarise(all_missing = all(if_all(all_of(spi_cols), is.na))) %>%
+  filter(all_missing) %>%
+  select(country_code, country_name) %>% 
+  ungroup()
+# Saving countries w missing SPI data
+write_csv(all_missing_pillars, "wrangling/adjust_outputs_diagnostics/countries_missing_all_spi.csv")
+
+# Removing countries from main DF 
+merged_cleaned_spi_1 <- merged_full %>% 
+  filter(!country_code %in% all_missing_pillars$country_code)
+
+# 2) Only countries with atleast 1 value in the SPI composite (spi_comp) in any year
+all_missing_spi_comp <- merged_cleaned_spi_1 %>%
+  group_by(country_code, country_name) %>%
+  summarise(all_missing = all(is.na(spi_comp))) %>%
+  filter(all_missing) %>%
+  select(country_code, country_name) %>% 
+  ungroup()
+# Saving countries w missing SPI data
+write_csv(all_missing_spi_comp, "wrangling/adjust_outputs_diagnostics/countries_missing_spi_comp.csv")
+
+# Removing countries from main DF
+merged_cleaned_spi_2 <- merged_cleaned_spi_1 %>%
+  filter(!country_code %in% all_missing_spi_comp$country_code)
+
+# 3) Only countries with 70% of SPI Composite values across all years (2004-2023)
+insufficient_spi_comp <- merged_cleaned_spi_2 %>%
+  group_by(country_code, country_name) %>%
+  summarise(pct_available = mean(!is.na(spi_comp)) * 100) %>%
+  filter(pct_available < threshold) %>%
+  select(country_code, country_name) %>% 
+  ungroup()
+# Saving countries w insufficient SPI data  
+write_csv(insufficient_spi_comp, "wrangling/adjust_outputs_diagnostics/countries_insufficient_spi_comp.csv")
+
+# Removing countries from main DF
+merged_cleaned_spi_3 <- merged_cleaned_spi_2 %>%
+  filter(!country_code %in% insufficient_spi_comp$country_code)
+
+# Saving final dataframe 
+write_csv(merged_cleaned_spi_3, "data/Main CSV Outputs/merged_cleaned_spi.csv")
+```
+
+## Dependent Y = SDG (sdg_overall)
+**Prioritizing SDG data**
+Deleting all countries without any SDG data 
+```{r}
+# load 'merged_full_NEW.csv'
+merged_full <- read_csv("data/Main CSV Outputs/merged_full_NEW.csv")
+
+# Define SDG columns
+sdg_cols <- paste0("goal", 1:17) 
+
+# Define threshold 
+threshold <- 70 # 70% of SDG index values must be present for each country to remain
+
+# 1) Only countries with atleast 1 value in any of the 17 SDG goals
+all_missing_sdgs <- merged_full %>% 
+  group_by(country_code, country_name) %>%
   summarise(all_missing = all(if_all(all_of(sdg_cols), is.na))) %>%
   filter(all_missing) %>%
-  pull(country_code)
-merged_cleaned <- merged_full %>% # Removing all rows for those countries
-  filter(!country_code %in% countries_all_sdg) %>% 
-  filter(!is.na(country_code) & !is.na(year)) # missingness is non-random (only 1 country missing all 20 years)
+  select(country_code, country_name) %>% 
+  ungroup()
+# Saving countries w missing SDG data
+write_csv(all_missing_sdgs, "wrangling/adjust_outputs_diagnostics/countries_missing_all_sdgs.csv")
 
-#saving merged CSV output (unhash when certain)
-#write.table(merged_cleaned, file = 'data/Main CSV Outputs/merged_cleaned.csv', row.names=F, sep = ",")
+# Removing countries from main DF 
+merged_cleaned_sdg_1 <- merged_full %>% 
+  filter(!country_code %in% all_missing_sdgs$country_code)
+
+# 2) Please filter to only countries with atleast 1 value in the SDG Overall Index (sdg_overall) in any year
+all_missing_sdg_overall <- merged_cleaned_sdg_1 %>%
+  group_by(country_code, country_name) %>%
+  summarise(all_missing = all(is.na(sdg_overall))) %>%
+  filter(all_missing) %>%
+  select(country_code, country_name) %>% 
+  ungroup()
+# Saving countries w missing SDG data
+write_csv(all_missing_sdg_overall, "wrangling/adjust_outputs_diagnostics/countries_missing_sdg_overall.csv")
+
+# Removing countries from main DF
+merged_cleaned_sdg_2 <- merged_cleaned_sdg_1 %>%
+  filter(!country_code %in% all_missing_sdg_overall$country_code)
+
+# 3) Only countries with 70% of SDG Index values across all years (2004-2023)
+insufficient_sdg_overall <- merged_cleaned_sdg_2 %>%
+  group_by(country_code, country_name) %>%
+  summarise(pct_available = mean(!is.na(sdg_overall)) * 100) %>%
+  filter(pct_available < threshold) %>%
+  select(country_code, country_name) %>% 
+  ungroup()
+# Saving countries w insufficient SDG data  
+write_csv(insufficient_sdg_overall, "wrangling/adjust_outputs_diagnostics/countries_insufficient_sdg_overall.csv")
+
+# Removing countries from main DF
+merged_cleaned_sdg_3 <- merged_cleaned_sdg_2 %>%
+  filter(!country_code %in% insufficient_sdg_overall$country_code)
+
+# Saving final dataframe 
+write_csv(merged_cleaned_sdg_3, "data/Main CSV Outputs/merged_cleaned_sdg.csv")
 ```
 
-### FOURTH: Load cleaned 'merged' Dataset  
+### FOURTH: Selecting Variables 
 *[ADJUST VARIABLES OR SKIP IF LOADING FROM CSV]*
 ```{r eval=FALSE, include=FALSE}
-#Load final cleaned 'merged' Dataset & selecting variables 
-#merged_final <- read_csv("data/Main CSV Outputs/merged_cleaned.csv") %>% 
-
-merged_final <- merged_cleaned %>%
+# merged_cleaned_sdg_3 <- read_csv("data/Main CSV Outputs/merged_cleaned_sdg.csv")
+merged_final_sdg <- merged_cleaned_sdg_3 %>%
   dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, income_level, income_level_lab, gdp_pc, log_gdppc, population, log_pop, p1_use, p2_services, p3_products, p4_sources, p5_infra, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17)
+#write_csv(merged_final_sdg, 'data/Main CSV Outputs/merged_final_sdg.csv')
 
-#writing final merged csv (unhash when certain)
-#write.table(merged_final, file = 'data/Main CSV Outputs/merged_final_df.csv', row.names=F, sep = ",")
+# merged_cleaned_spi_3 <- read_csv("data/Main CSV Outputs/merged_cleaned_spi.csv")
+merged_final_spi <- merged_cleaned_spi_3 %>%
+  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, income_level, income_level_lab, gdp_pc, log_gdppc, population, log_pop, p1_use, p2_services, p3_products, p4_sources)
 
-# gini_score, di_regime_type_2
-```
-
-```{r}
-merged_finalx <- read_csv("data/Main CSV Outputs/merged_final_df.csv") %>%
-  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, income_level, income_level_lab, gdp_pc, log_gdppc, population, log_pop, p1_use, p2_services, p3_products, p4_sources, p5_infra, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17)
+#write_csv(merged_final_spi, 'data/Main CSV Outputs/merged_final_spi.csv')
 ```
 
 # Test for identical DFs
+As needed... 
 ```{r}
 library(testthat)
 

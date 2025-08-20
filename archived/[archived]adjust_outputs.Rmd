@@ -1,0 +1,81 @@
+---
+title: "adjust_outputs"
+output: html_document
+---
+
+### FIRST: Libraries, Directory & Data 
+
+```{r include=FALSE}
+# set working directory 
+setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
+
+#load libraries 
+source("packages.R")
+```
+
+### SECOND: Run function in r-script: df_years_function.R   
+*[ADJUST TIME OR SKIP AND LOADING DATA FROM DIRECTORY]*
+
+```{r eval=FALSE, include=FALSE}
+#df_years2.0():[Updated Version] used for extracting all available country data (based on country_codes) from specified range of years
+
+#load function: all available data within year range 
+source("wrangling/df_years2.0_Function.R")
+#specify start & end year
+merged_full <- df_years2.0(2004, 2023) 
+
+#saving full version as CSV output (unhash when certain)
+#write.table(merged_full, file = 'data/Main CSV Outputs/merged_full_df.csv', row.names=F, sep = ",")
+```
+
+### THIRD: Load and Refine Data   
+*[SKIP IF LOADING FROM DIRECTORY]*
+```{r eval=FALSE, include=FALSE}
+# load merged_full csv [SKIP IF YOU CHANGED YEARS ABOVE]
+#merged_full <- read_csv('data/Main CSV Outputs/merged_full_df.csv')
+
+# FILTERING FOR ALL COUNTRIES WITH ATLEAST 1 SDG VALUE 
+sdg_cols <- paste0("goal", 1:17)
+
+# Identify & remove countries where all SDG columns are NA across all years
+countries_all_sdg <- merged_full %>%
+  group_by(country_code) %>%
+  summarise(all_missing = all(if_all(all_of(sdg_cols), is.na))) %>%
+  filter(all_missing) %>%
+  pull(country_code)
+merged_cleaned <- merged_full %>% # Removing all rows for those countries
+  filter(!country_code %in% countries_all_sdg) %>% 
+  filter(!is.na(country_code) & !is.na(year)) # missingness is non-random (only 1 country missing all 20 years)
+
+#saving merged CSV output (unhash when certain)
+#write.table(merged_cleaned, file = 'data/Main CSV Outputs/merged_cleaned.csv', row.names=F, sep = ",")
+```
+
+### FOURTH: Load cleaned 'merged' Dataset  
+*[ADJUST VARIABLES OR SKIP IF LOADING FROM CSV]*
+```{r eval=FALSE, include=FALSE}
+#Load final cleaned 'merged' Dataset & selecting variables 
+#merged_final <- read_csv("data/Main CSV Outputs/merged_cleaned.csv") %>% 
+
+merged_final <- merged_cleaned %>%
+  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, income_level, income_level_lab, gdp_pc, log_gdppc, population, log_pop, p1_use, p2_services, p3_products, p4_sources, p5_infra, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17)
+
+#writing final merged csv (unhash when certain)
+#write.table(merged_final, file = 'data/Main CSV Outputs/merged_final_df.csv', row.names=F, sep = ",")
+```
+
+```{r}
+merged_finalx <- read_csv("data/Main CSV Outputs/merged_final_df.csv") %>%
+  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, income_level, income_level_lab, gdp_pc, log_gdppc, population, log_pop, p1_use, p2_services, p3_products, p4_sources, p5_infra, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17)
+```
+
+# Test for identical DFs
+```{r}
+library(testthat)
+
+# In a test script
+test_that("Dataframes are identical", {
+  expect_identical(merged_final, merged_finalx)
+})
+```
+

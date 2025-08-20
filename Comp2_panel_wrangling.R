@@ -6,7 +6,6 @@ source("packages.R")
 
 #load function [paused for now]
 #source("wrangling/df_years2.0_Function.R")
-all_data <- merged_final
 #all_data <- df_years2.0(2015, 2023)
 
 # load data 
