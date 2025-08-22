@@ -4,22 +4,19 @@ setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 # load libraries/packages
 source("packages.R")
 
-#load function [paused for now]
-#source("wrangling/df_years2.0_Function.R")
-#all_data <- df_years2.0(2015, 2023)
-
-# load data 
+# load data [Thesis Data]
 #all_data <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
+
+# load data [Cleaned SPI & SDG Datasets]
+all_data <- read_csv(file.choose("data/Main CSV Outputs"))
 
 # Main data transformation pipeline
 panel_data <- all_data %>% 
   # Select variables and filter
   dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, 
                 di_score, elect_dem, aut_ep, dem_ep, regime_type_4, regch_event, log_gdppc, 
-                income_level, goal1:goal17, p1_use, p2_services, p3_products, p4_sources, 
-                p5_infra) %>% 
+                income_level, p1_use, p2_services, p3_products, p4_sources, p5_infra, goal1:goal17) %>% 
   arrange(country_code, year) %>%
-  filter(year >= 2016) %>%
   
   # Create all transformations in a single grouped operation
   group_by(country_code) %>%
@@ -108,20 +105,15 @@ panel_data <- panel_data %>%
          eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep, 
          log_gdppc, income_level_recoded, p1_use:p5_infra, goal1:goal17, everything())
 
-# Reorder EIU data columns
-eiu_panel_data <- panel_data %>%
-  filter(year >= 2016) %>%
-  select(country_name, country_code, year, sdg_overall, spi_comp, di_score,
-         eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep, eiu_has_aut_ep, 
-         eiu_has_dem_ep, eiu_total_aut_ep, eiu_total_dem_ep, eiu_has_neither, 
-         eiu_has_both, log_gdppc, income_level_recoded, p1_use:p5_infra, goal1:goal17)
-
 # Create regime changes summary
 #regime_changes_summary <- eiu_panel_data %>%
 #  filter(eiu_regch_event != 0 | eiu_dem_ep == 1 | eiu_aut_ep == 1) %>%
 #  select(country_code, country_name, year, di_score, di_score_lag1, di_score_diff, 
 #         eiu_regch_event, eiu_dem_ep, eiu_aut_ep) %>%
 #  arrange(country_code, year)
+
+# remove all_data to free up memory
+rm(all_data)
 
 # First difference data for FD models
 fd_data <- panel_data %>%

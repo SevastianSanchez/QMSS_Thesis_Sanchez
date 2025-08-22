@@ -25,9 +25,9 @@ eiu_ert_variables <- function(data) {
     
     # Create lagged variables for democracy score
     mutate(
-      di_score_lag1 = dplyr::lag(di_score, 1),
-      di_score_lag2 = dplyr::lag(di_score, 2),
-      eiu_regime_type_lag1 = dplyr::lag(eiu_regime_type, 1),
+      di_score_lag1 = plm::lag(di_score, 1),
+      di_score_lag2 = plm::lag(di_score, 2),
+      eiu_regime_type_lag1 = plm::lag(eiu_regime_type, 1),
       
       #------------------------------------------------------------
       # 1. REGIME TRANSITIONS - Following V-Dem methodology
@@ -58,8 +58,8 @@ eiu_ert_variables <- function(data) {
       di_score_pct_diff = (di_score - di_score_lag1) / di_score_lag1 * 100,
       
       # Calculate 3yr changes: moving average changes (for identifying episodes)
-      di_score_diff_3yr = di_score - dplyr::lag(di_score, 3),
-      di_score_pct_diff_3yr = (di_score - dplyr::lag(di_score, 3)) / dplyr::lag(di_score, 3) * 100,
+      di_score_diff_3yr = di_score - plm::lag(di_score, 3),
+      di_score_pct_diff_3yr = (di_score - plm::lag(di_score, 3)) / plm::lag(di_score, 3) * 100,
       
       # Identifying episodes based on thresholds
       eiu_dem_ep = case_when(

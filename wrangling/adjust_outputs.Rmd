@@ -21,7 +21,7 @@ source("packages.R")
 # Function used for extracting all available country data from datasets in specified year range
 
 source("wrangling/df_years2.0_Function.R") #load function
-merged_full <- df_years2.0(2004, 2023) #specify start & end year
+#merged_full <- df_years2.0(2004, 2023) #specify start & end year
 
 # Robustness check for missing identifier variables: country_code, country_name and year
 check_missing_identifiers <- function(df) {
@@ -43,9 +43,6 @@ merged_full <- read_csv("data/Main CSV Outputs/merged_full_NEW.csv")
 
 # Define SDG columns
 spi_cols <- c('p1_use', 'p2_services', 'p3_products', 'p4_sources', 'p5_infra')
-
-# Define threshold 
-threshold <- 70 # 70% of SPI index values must be present for each country to remain
 
 # 1) Only countries with atleast 1 value in any of the 5 SPI pillars
 all_missing_pillars <- merged_full %>% 
@@ -75,8 +72,13 @@ write_csv(all_missing_spi_comp, "wrangling/adjust_outputs_diagnostics/countries_
 merged_cleaned_spi_2 <- merged_cleaned_spi_1 %>%
   filter(!country_code %in% all_missing_spi_comp$country_code)
 
-# 3) Only countries with 70% of SPI Composite values across all years (2004-2023)
+# 3) Only countries with 70% of SPI Composite values across all years (2015-2023)
+
+# Define threshold 
+threshold <- 70 # 70% of SPI index values must be present for each country to remain
+
 insufficient_spi_comp <- merged_cleaned_spi_2 %>%
+  filter(year >= 2015) %>% # Ensure we only consider years from 2015 onwards
   group_by(country_code, country_name) %>%
   summarise(pct_available = mean(!is.na(spi_comp)) * 100) %>%
   filter(pct_available < threshold) %>%
@@ -87,6 +89,7 @@ write_csv(insufficient_spi_comp, "wrangling/adjust_outputs_diagnostics/countries
 
 # Removing countries from main DF
 merged_cleaned_spi_3 <- merged_cleaned_spi_2 %>%
+  filter(year >= 2015) %>% # Ensure we only consider years from 2015 onwards
   filter(!country_code %in% insufficient_spi_comp$country_code)
 
 # Saving final dataframe 
@@ -102,9 +105,6 @@ merged_full <- read_csv("data/Main CSV Outputs/merged_full_NEW.csv")
 
 # Define SDG columns
 sdg_cols <- paste0("goal", 1:17) 
-
-# Define threshold 
-threshold <- 70 # 70% of SDG index values must be present for each country to remain
 
 # 1) Only countries with atleast 1 value in any of the 17 SDG goals
 all_missing_sdgs <- merged_full %>% 
@@ -135,6 +135,7 @@ merged_cleaned_sdg_2 <- merged_cleaned_sdg_1 %>%
   filter(!country_code %in% all_missing_sdg_overall$country_code)
 
 # 3) Only countries with 70% of SDG Index values across all years (2004-2023)
+threshold <- 70 # 70% of SDG index values must be present for each country to remain
 insufficient_sdg_overall <- merged_cleaned_sdg_2 %>%
   group_by(country_code, country_name) %>%
   summarise(pct_available = mean(!is.na(sdg_overall)) * 100) %>%
