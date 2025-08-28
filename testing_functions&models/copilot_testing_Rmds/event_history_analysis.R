@@ -18,7 +18,7 @@ library(stargazer)
 #---------------------------------------------------------------------
 
 # Apply our improved regime change identification function to the panel data
-panel_data_regch <- eiu_identify_regime_changes(panel_data)
+panel_data_regch <- eiu_identify_regime_changes(panel_data_with_regch)
 
 # Select only the relevant columns for analysis
 panel_data_analysis <- panel_data_regch %>%
@@ -310,7 +310,7 @@ plot_dem_ep <- ggplot(dem_ep_coefs, aes(x = time, y = coefficient)) +
 
 # Autocratization transition event study with fixest
 aut_event_feols <- feols(
-  spi_comp ~ i(eiu_aut_event_time, ref = -1) + di_score + log_gdppc + income_level_recoded |
+  spi_comp ~ i(eiu_aut_event_time, ref = -0) + di_score + log_gdppc + income_level_recoded |
              country_code + year,
   data = aut_event_data,
   cluster = "country_code"
@@ -319,7 +319,7 @@ aut_event_feols <- feols(
 # Plot with coefplot from fixest
 aut_event_plot <- coefplot(aut_event_feols, 
                           var = "i\\(eiu_aut_event_time.*\\)",
-                          main = "Effect of Autocratization on Social Progress",
+                          main = "Effect of Autocratization on Statistical Capacity",
                           xlab = "Years relative to transition (t=0)",
                           ylab = "Coefficient estimate")
 

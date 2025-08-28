@@ -42,7 +42,7 @@ eiu_identify_regime_changes <- function(data) {
       
       # Set thresholds for significant changes
       abrupt_change_threshold = 0.5,    # Single year change threshold
-      cumulative_change_threshold = 0.75, # Multi-year change threshold
+      cumulative_change_threshold = 0.5, # Multi-year change threshold
       
       # Identify pre-autocratization years (negative changes)
       eiu_pre_aut_ep = case_when(
@@ -223,3 +223,35 @@ eiu_identify_regime_changes <- function(data) {
 
 # Example usage:
 panel_data_with_regch <- eiu_identify_regime_changes(panel_data)
+
+# View a summary of regime changes
+regime_changes_summary <- panel_data_with_regch %>%
+  filter(eiu_regch_event != "No Transition" | eiu_dem_ep == 1 | eiu_aut_ep == 1) %>%
+  select(country_code, country_name, year, di_score, di_score_lag1, di_score_diff, 
+         eiu_regch_event, eiu_dem_ep, eiu_aut_ep) %>%
+  arrange(country_code, year)
+print(regime_changes_summary)
+# View the updated panel data with regime change variables
+head(panel_data_with_regch)
+# View structure of the updated data
+str(panel_data_with_regch)
+# Check unique values of key variables
+sapply(panel_data_with_regch %>% select(eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep, eiu_has_aut_ep, eiu_has_dem_ep, eiu_has_both, eiu_has_neither, eiu_democratized, eiu_autocratized, eiu_stable), unique)
+# Check counts of regime transitions and episodes
+table(panel_data_with_regch$eiu_regch_event)
+table(panel_data_with_regch$eiu_dem_ep)
+table(panel_data_with_regch$eiu_aut_ep)
+table(panel_data_with_regch$eiu_has_aut_ep)
+table(panel_data_with_regch$eiu_has_dem_ep)
+table(panel_data_with_regch$eiu_has_both)
+table(panel_data_with_regch$eiu_has_neither)
+table(panel_data_with_regch$eiu_democratized)
+table(panel_data_with_regch$eiu_autocratized)
+table(panel_data_with_regch$eiu_stable)
+# Check event time distributions
+summary(panel_data_with_regch$eiu_dem_event_time)
+summary(panel_data_with_regch$eiu_aut_event_time)
+summary(panel_data_with_regch$eiu_dem_ep_time)
+summary(panel_data_with_regch$eiu_aut_ep_time)
+# Check for any NA values in key variables
+sapply(panel_data_with_regch %>% select(eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep, eiu_has_aut_ep, eiu_has_dem_ep, eiu_has_both, eiu_has_neither, eiu_democratized, eiu_autocratized, eiu_stable, eiu_dem_event_time, eiu_aut_event_time, eiu_dem_ep_time, eiu_aut_ep_time), function(x) sum(is.na(x)))
