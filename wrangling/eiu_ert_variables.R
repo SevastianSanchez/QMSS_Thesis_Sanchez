@@ -12,8 +12,7 @@ eiu_ert_variables <- function(data) {
   
   # Create a new dataframe 
   eiu_consistent <- data %>%
-    group_by(country_code) %>%
-    arrange(year) %>%
+    arrange(country_code, year) %>%
     
     # Creating regime type variable for EIU Democracy Index (di_score)
     mutate(
@@ -24,6 +23,7 @@ eiu_ert_variables <- function(data) {
       )) %>% 
     
     # Create lagged variables for democracy score
+    group_by(country_code) %>%
     mutate(
       di_score_lag1 = plm::lag(di_score, 1),
       di_score_lag2 = plm::lag(di_score, 2),
@@ -32,20 +32,21 @@ eiu_ert_variables <- function(data) {
       #------------------------------------------------------------
       # 1. REGIME TRANSITIONS - Following V-Dem methodology
       #------------------------------------------------------------
-      # Regime transition occurs when a country crosses the democracy threshold
+      # Regime transition occurs when a country crosses the democracy threshold and 
+      # remains there for at least 3 years
       # eiu_regime_type: 0 = autocracy, 1 = democracy
       
       eiu_regch_event = case_when(
+        # Democratization event
+        eiu_regime_type == 1 & eiu_regime_type_lag1 == 0 &
+          di_score >= 5 & plm::lag(di_score, 2) >= 5 & plm::lag(di_score, 3) >= 5 ~ 1,
         
-        # Autocratization: democracy to autocracy transition (first year of autocracy)
-        eiu_regime_type == 0 & eiu_regime_type_lag1 == 1 ~ -1,  
+        # Autocratization event
+        eiu_regime_type == 0 & eiu_regime_type_lag1 == 1 &
+          di_score < 5 & plm::lag(di_score, 2) < 5 & plm::lag(di_score, 3) < 5 ~ -1,
         
-        # Democratization: autocracy to democracy transition (first year of democracy)
-        eiu_regime_type == 1 & eiu_regime_type_lag1 == 0 ~ 1,   
-        
-        # No transition (regime stability)
-        !is.na(eiu_regime_type) & !is.na(eiu_regime_type_lag1) ~ 0,  
-        TRUE ~ NA_integer_
+        # No regime change
+        TRUE ~ 0
       ),
       
       #------------------------------------------------------------

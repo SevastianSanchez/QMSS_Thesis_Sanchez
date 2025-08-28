@@ -19,32 +19,6 @@ panel_data <- panel_data %>%
   arrange(country_code, year)
 ```
 
-# Create a aut_ep_event_time variable for the year just prior to eiu_aut_ep event years if they exist
-```{r}
-
-```
-
-
-
-
-```{r}
-# Check that regch_event == -1 corresponds to event_time == 0 for autocratized countries
-check_autocrat <- panel_data %>%
-  filter(eiu_autocratized == 1, eiu_regch_event == -1) %>%
-  select(country_code, year, eiu_aut_event_time)
-
-# Check that regch_event == 1 corresponds to event_time == 0 for democratized countries  
-check_democrat <- panel_data %>%
-  filter(eiu_democratized == 1, eiu_regch_event == 1) %>%
-  select(country_code, year, eiu_dem_event_time)
-
-print("All transition years should have event_time = 0:")
-print(bind_rows(check_autocrat, check_democrat))
-```
-
-
-
-
 
 ```{r}
 # Event study with DI interaction

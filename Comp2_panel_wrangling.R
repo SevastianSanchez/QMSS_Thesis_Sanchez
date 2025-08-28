@@ -101,7 +101,7 @@ panel_data <- eiu_ert_variables(panel_data)
 # re-arrange columns to have key variables first for easier viewing
 panel_data <- panel_data %>%
   filter(year >= 2016) %>%
-  select(country_name, country_code, year, sdg_overall, spi_comp, di_score, 
+  select(country_name, country_code, year, sdg_overall, spi_comp, di_score, sci_overall,
          eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep, 
          log_gdppc, income_level_recoded, p1_use:p5_infra, goal1:goal17, everything())
 

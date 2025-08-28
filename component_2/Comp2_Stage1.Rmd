@@ -36,7 +36,7 @@ summary(ols_spi_di, vcov = vcovHC(ols_spi_di, cluster = "group", type = "HC1"))
 
 # Adding Lag1: SPI ~ DI
 ols_spi_di_L1 <- plm(
-  formula = spi_comp ~ di_score + dplyr::lag(di_score, n=1) + log_gdppc + income_level_recoded + factor(year), 
+  formula = spi_comp ~ di_score + plm::lag(di_score, n=1) + log_gdppc + income_level_recoded + factor(year), 
   index = c("country_code", "year"),
   model = "pooling", 
   data = panel_data)
@@ -44,7 +44,7 @@ summary(ols_spi_di_L1, vcov = vcovHC(ols_spi_di_L1, cluster = "group", type = "H
 
 # Adding Lag2: SPI ~ DI
 ols_spi_di_L2 <- plm(
-  formula = spi_comp ~ di_score + dplyr::lag(di_score, n=1) + dplyr::lag(di_score, n=2) + log_gdppc + income_level_recoded + factor(year), 
+  formula = spi_comp ~ di_score + plm::lag(di_score, n=1) + dplyr::lag(di_score, n=2) + log_gdppc + income_level_recoded + factor(year), 
   index = c("country_code", "year"),
   model = "pooling", 
   data = panel_data)
@@ -96,7 +96,7 @@ summary(fd_spi_di, vcov = vcovHC(fd_spi_di, cluster = "group", type = "HC1"))
 
 # Adding Lag1: SPI ~ DI
 fd_spi_di_L1 <- plm(
-  formula = spi_comp ~ di_score + dplyr::lag(di_score, n=1) + log_gdppc + income_level_recoded,
+  formula = spi_comp ~ di_score + plm::lag(di_score, n=1) + log_gdppc + income_level_recoded,
   index = c("country_code", "year"),
   data = fd_data, #sub = (has_aut_ep == TRUE),
   model = "fd"
@@ -105,7 +105,7 @@ summary(fd_spi_di_L1, vcov = vcovHC(fd_spi_di_L1, cluster = "group", type = "HC1
 
 # Adding Lag2: SPI ~ DI
 fd_spi_di_L2 <- plm(
-  formula = spi_comp ~ di_score + dplyr::lag(di_score, n=1) + dplyr::lag(di_score, n=2) + log_gdppc + income_level_recoded,
+  formula = spi_comp ~ di_score + plm::lag(di_score, n=1) + plm::lag(di_score, n=2) + log_gdppc + income_level_recoded,
   index = c("country_code", "year"),
   data = fd_data, #sub = (has_aut_ep == TRUE),
   model = "fd"
@@ -155,7 +155,7 @@ summary(fe_spi_di, vcov = vcovHC(fe_spi_di, cluster = "group", type = "HC1"))
 
 # Adding Lag1: SPI ~ DI
 fe_spi_di_L1 <- plm(
-  formula = spi_comp ~ di_score + dplyr::lag(di_score, n=1) + log_gdppc + income_level_recoded,
+  formula = spi_comp ~ di_score + plm::lag(di_score, n=1) + log_gdppc + income_level_recoded,
   index = c("country_code", "year"),
   data = panel_data,
   model = "within", #FE
@@ -165,7 +165,7 @@ summary(fe_spi_di_L1, vcov = vcovHC(fe_spi_di_L1, cluster = "group", type = "HC1
 
 # Adding Lag2: SPI ~ DI
 fe_spi_di_L2 <- plm(
-  formula = spi_comp ~ di_score + dplyr::lag(di_score, n=1) + dplyr::lag(di_score, n=2) + log_gdppc + income_level_recoded,
+  formula = spi_comp ~ di_score + plm::lag(di_score, n=1) + dplyr::lag(di_score, n=2) + log_gdppc + income_level_recoded,
   index = c("country_code", "year"),
   data = panel_data,
   model = "within", #FE
