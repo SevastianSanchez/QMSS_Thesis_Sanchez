@@ -25,9 +25,9 @@ eiu_ert_variables <- function(data) {
     # Create lagged variables for democracy score
     group_by(country_code) %>%
     mutate(
-      di_score_lag1 = plm::lag(di_score, 1),
-      di_score_lag2 = plm::lag(di_score, 2),
-      eiu_regime_type_lag1 = plm::lag(eiu_regime_type, 1),
+      di_score_lag1 = dplyr::lag(di_score, 1),
+      di_score_lag2 = dplyr::lag(di_score, 2),
+      eiu_regime_type_lag1 = dplyr::lag(eiu_regime_type, 1),
       
       #------------------------------------------------------------
       # 1. REGIME TRANSITIONS - Following V-Dem methodology
@@ -39,11 +39,11 @@ eiu_ert_variables <- function(data) {
       eiu_regch_event = case_when(
         # Democratization event
         eiu_regime_type == 1 & eiu_regime_type_lag1 == 0 &
-          di_score >= 5 & plm::lag(di_score, 2) >= 5 & plm::lag(di_score, 3) >= 5 ~ 1,
+          di_score >= 5 & dplyr::lag(di_score, 2) >= 5 & dplyr::lag(di_score, 3) >= 5 ~ 1,
         
         # Autocratization event
         eiu_regime_type == 0 & eiu_regime_type_lag1 == 1 &
-          di_score < 5 & plm::lag(di_score, 2) < 5 & plm::lag(di_score, 3) < 5 ~ -1,
+          di_score < 5 & dplyr::lag(di_score, 2) < 5 & dplyr::lag(di_score, 3) < 5 ~ -1,
         
         # No regime change
         TRUE ~ 0
@@ -166,7 +166,7 @@ eiu_ert_variables <- function(data) {
 #    di_score = c(4.5, 4.6, 4.7, 4.8, 5.0, 5.1, 5.2, 5.3, 5.4, 5.5)
 #  )
 #  
-#  result <- eiu_ert_variables(sample_data)
+  result <- eiu_ert_variables(panel_data)
 #  print(result)
 #} 
 #   eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep,

@@ -95,8 +95,8 @@ panel_data <- panel_data %>%
   ungroup()
 
 # EIU-consistent regime change variables
-source("wrangling/eiu_ert_variables.R")
-panel_data <- eiu_ert_variables(panel_data)
+#source("wrangling/eiu_ert_variables.R")
+#panel_data <- eiu_ert_variables(panel_data)
 
 # re-arrange columns to have key variables first for easier viewing
 panel_data <- panel_data %>%
