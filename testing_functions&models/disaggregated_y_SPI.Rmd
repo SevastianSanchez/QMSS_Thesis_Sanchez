@@ -19,6 +19,7 @@ panel_data <- panel_data %>%
          di_score, elect_dem, aut_ep, dem_ep, regime_type_4, regch_event, log_gdppc, 
          income_level, income_level_recoded, p1_use, p2_services, p3_products, p4_sources, p5_infra, goal1:goal17) %>% 
   filter(year >= 2015) # filter to only years with SPI data (2015-2023)
+
 ```
 
 **All 5 Pillars:**
@@ -39,16 +40,17 @@ p5_infra = Pillar 5 (Infrastructure): 5.1 Legislation & Governance, 5.2 Standard
 y <- panel_data$p5_infra
 
 # baseline model
-FE_pillar_all <- plm(formula = y ~ di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) + log_gdppc + income_level_recoded,
+FE_pillar_all <- plm(formula = y ~ di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) + plm::lag(di_score, 2) + log_gdppc + income_level_recoded,
               model = "within", 
               index = c("country_code", "year"),
               data = panel_data, 
               effect = "twoways")
 summary(FE_pillar_all)
-summary(FE_pillar_all, vcov = vcovHC(FE_pillar, cluster = "group", type = "HC1"))
+summary(FE_pillar_all, vcov = vcovHC(FE_pillar_all, cluster = "group", type = "HC1"))
 
 # observations used
-FE_pillar_all <- extract_plm_data(FE_pillar_all)
+source("functions/extract_plm_data_function.R")
+FE_pillar_all_data <- extract_plm_data(FE_pillar_all)
 ```
 
 ## Stable Regime, Subgrouping

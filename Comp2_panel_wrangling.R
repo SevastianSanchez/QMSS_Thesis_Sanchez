@@ -5,7 +5,7 @@ setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 source("packages.R")
 
 # load data [Thesis Data]
-#all_data <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
+all_data1 <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
 
 # load data [Cleaned SPI & SDG Datasets]
 all_data <- read_csv(file.choose("data/Main CSV Outputs"))
