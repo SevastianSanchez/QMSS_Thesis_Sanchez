@@ -96,7 +96,7 @@ merged_cleaned_spi_3 <- merged_cleaned_spi_2 %>%
 write_csv(merged_cleaned_spi_3, "data/Main CSV Outputs/merged_cleaned_spi.csv")
 ```
 
-## Diagnostics: Countries removed from SPI analyses
+## SPI df Diagnostics: Countries removed from SPI analyses
 ```{r}
 # combining dataframes of filtered countries for spi
 countries_not_in_spi_analysis <- bind_rows(all_missing_pillars, all_missing_spi_comp, insufficient_spi_comp) %>%
@@ -109,16 +109,16 @@ countries_not_in_spi_analysis1 <- read_csv("wrangling/adjust_outputs_diagnostics
   distinct(country_code, .keep_all = TRUE) # no duplicates
 
 # Ensuring no discrepancies between saved and active DF
-library(testthat) 
-test_that("Dataframes are identical", {
+rm(check_identical_spi) # remove previous instance if it exists
+check_identical_spi <- test_that("Dataframes are identical", {
   expect_identical(countries_not_in_spi_analysis, countries_not_in_spi_analysis1)
 })
 
-# Save if the following if test passes
-if (identical(countries_not_in_spi_analysis, countries_not_in_spi_analysis1, num.eq = FALSE, single.NA = FALSE, attrib.as.set = FALSE, ignore.bytecode = FALSE, ignore.environment = FALSE, ignore.srcref = FALSE, extptr.as.ref = TRUE)) {
+# Save if the check_identical test passes (==TRUE)
+if (check_identical_spi==TRUE) {
   write_csv(countries_not_in_spi_analysis, "wrangling/adjust_outputs_diagnostics/countries_not_in_spi_analysis.csv")
-} else { stop("Dataframes are not identical. Check for discrepancies.")
-}
+  paste("No discrepencies, countries_not_in_spi_analysis.csv saved successfully")
+} 
 ```
 
 ## Dependent Y = SDG (sdg_overall)
@@ -178,7 +178,7 @@ merged_cleaned_sdg_3 <- merged_cleaned_sdg_2 %>%
 write_csv(merged_cleaned_sdg_3, "data/Main CSV Outputs/merged_cleaned_sdg.csv")
 ```
 
-## Diagnostics: Countries removed from SDG analysis
+## SDG df Diagnostics: Countries removed from SDG analysis
 ```{r}
 # combining dataframes of filtered countries for sdg
 countries_not_in_sdg_analysis <- bind_rows(all_missing_sdgs, all_missing_sdg_overall, insufficient_sdg_overall) %>%
@@ -190,16 +190,17 @@ countries_not_in_sdg_analysis1 <- read_csv("wrangling/adjust_outputs_diagnostics
   bind_rows(read_csv("wrangling/adjust_outputs_diagnostics/countries_insufficient_sdg_overall.csv")) %>%
   distinct(country_code, .keep_all = TRUE) # Ensure no duplicates
 
-library(testthat) # Ensuring no discrepancies between saved and active DF
-test_that("Dataframes are identical", {
+# Ensuring no discrepancies between saved and active DF
+check_identical_sdg <- test_that("Dataframes are identical", {
   expect_identical(countries_not_in_sdg_analysis, countries_not_in_sdg_analysis1)
 })
 
-# save if the following if test passes
-if (identical(countries_not_in_sdg_analysis, countries_not_in_sdg_analysis1, num.eq = FALSE, single.NA = FALSE, attrib.as.set = FALSE, ignore.bytecode = FALSE, ignore.environment = FALSE, ignore.srcref = FALSE, extptr.as.ref = TRUE)) {
+# save if the check_identical test passes (==TRUE)
+if (check_identical_sdg==TRUE) {
   write_csv(countries_not_in_sdg_analysis, "wrangling/adjust_outputs_diagnostics/countries_not_in_sdg_analysis.csv")
-} else { stop("Dataframes are not identical. Check for discrepancies")
-}
+  paste("No discrepencies, countries_not_in_sdg_analysis.csv saved successfully")
+} 
+
 ```
 
 ## Compare missing countries between SPI and SDG analyses
@@ -217,7 +218,7 @@ print(paste("Number of countries removed only from SPI analysis:", length(unique
 unique_to_sdg <- setdiff(countries_not_in_sdg_analysis$country_code, countries_not_in_spi_analysis$country_code)
 print(paste("Number of countries removed only from SDG analysis:", length(unique_to_sdg)))
 
-# Dataframe of all countries removed from either analysis with a column indicating which analysis they were removed from
+## Comparison dataframe: showing which countries were removed from which analysis
 countries_removed_comparison <- bind_rows(
   countries_not_in_spi_analysis %>% mutate(removed_from = "SPI"),
   countries_not_in_sdg_analysis %>% mutate(removed_from = "SDG")
@@ -232,34 +233,117 @@ countries_removed_comparison <- bind_rows(
   select(country_code, country_name, removed_from)
 View(countries_removed_comparison)
 
-# Comparison dataframe: showing which countries were removed from which analysis
-write_csv(countries_removed_comparison, "wrangling/adjust_outputs_diagnostics/all_countries_removed_comparison.csv")
+# Check: save if countries listed as "Not in SPI Analysis" are not found in the SPI cleaned DF and vice versa, stop if any country listed as "Not in SPI Analysis" is found in the cleaned SPI DF and vice versa
+rm(check_rm_compare) # remove previous instance if it exists
+check_rm_compare <- test_that("Countries labeled as 'Not in SPI Analysis' or 'Not in SDG Analysis' are not in the respective cleaned dataframes", {
+  expect_true(all(!countries_removed_comparison %>%
+                    filter(removed_from == "Not in SPI Analysis") %>%
+                    pull(country_code) %in% merged_cleaned_spi_3$country_code))
+  expect_true(all(!countries_removed_comparison %>%
+                    filter(removed_from == "Not in SDG Analysis") %>%
+                    pull(country_code) %in% merged_cleaned_sdg_3$country_code))
+})
 
-# create summary table
+# Save if the check_rm_compare test passes (==TRUE)
+if (check_rm_compare==TRUE) {
+  write_csv(countries_removed_comparison, "wrangling/adjust_outputs_diagnostics/all_countries_removed_comparison.csv")
+  paste("No discrepencies, all_countries_removed_comparison.csv saved successfully")
+} 
+
+# Summary counts dataframe: number of countries removed from each analysis
 summary_counts_all_removed_comparison <- countries_removed_comparison %>%
   group_by(removed_from) %>%
   summarise(num_countries = n()) %>%
   ungroup()
-print(summary_table)
+print(summary_counts_all_removed_comparison)
 
-# save summary counts table
+# saving summary_counts_all_removed_comparison
 write_csv(summary_counts_all_removed_comparison, "wrangling/adjust_outputs_diagnostics/summary_counts_all_removed_comparison.csv")
 ```
 
-### FOURTH: Selecting Variables 
-*[ADJUST VARIABLES OR SKIP IF LOADING FROM CSV]*
-```{r eval=FALSE, include=FALSE}
-# merged_cleaned_sdg_3 <- read_csv("data/Main CSV Outputs/merged_cleaned_sdg.csv")
-merged_final_sdg <- merged_cleaned_sdg_3 %>%
-  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, income_level, income_level_lab, gdp_pc, log_gdppc, population, log_pop, p1_use, p2_services, p3_products, p4_sources, p5_infra, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17)
-#write_csv(merged_final_sdg, 'data/Main CSV Outputs/merged_final_sdg.csv')
+## Create Inclusive and Exclusive DFs based on SPI and SDG analyses
+```{r}
+# Inclusive DF: Countries in SPI or SDG analyses
+inclusive_countries <- union(merged_cleaned_spi_3$country_code, merged_cleaned_sdg_3$country_code)
+merged_inclusive <- merged_full %>%
+  filter(country_code %in% inclusive_countries)
 
-# merged_cleaned_spi_3 <- read_csv("data/Main CSV Outputs/merged_cleaned_spi.csv")
-merged_final_spi <- merged_cleaned_spi_3 %>%
-  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, regime_type_2, regime_type_4, regch_event, aut_ep, dem_ep, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, income_level, income_level_lab, gdp_pc, log_gdppc, population, log_pop, p1_use, p2_services, p3_products, p4_sources)
+# Exclusive DF: Countries in both SPI and SDG analyses
+exclusive_countries <- intersect(merged_cleaned_spi_3$country_code, merged_cleaned_sdg_3$country_code)
+merged_exclusive <- merged_full %>%
+  filter(country_code %in% exclusive_countries)
 
-#write_csv(merged_final_spi, 'data/Main CSV Outputs/merged_final_spi.csv')
+# run check: ensures that no countries in exclusive DFs are in the missing countries list
+rm(check_exclusive) # remove previous instance if it exists
+check_exclusive <- test_that("No countries in exclusive DF are in missing countries list", {
+  expect_true(all(!merged_exclusive$country_code %in% countries_not_in_spi_analysis$country_code))
+  expect_true(all(!merged_exclusive$country_code %in% countries_not_in_sdg_analysis$country_code))
+})
+
+# run check: ensures that only countries labelled as 'Not in SPI Analysis' and 'Not in SDG Analysis' under the removed_from column in the missing countries list are still included in the inclusive DF alonhgg with countries in both analyses
+rm(check_inclusive) # remove previous instance if it exists
+check_inclusive <- test_that("All countries labeled as 'Not in SPI Analysis' and 'Not in SDG Analysis' are in inclusive DF", { 
+  expect_true(all(countries_removed_comparison %>%
+                    filter(removed_from %in% c("Not in SPI Analysis", "Not in SDG Analysis")) %>%
+                    pull(country_code) %in% merged_inclusive$country_code))
+})
+
+# Saves DFs if both checks pass 
+if (check_exclusive==TRUE & check_inclusive==TRUE) {
+  write_csv(merged_inclusive, "data/Main CSV Outputs/merged_inclusive.csv")
+  write_csv(merged_exclusive, "data/Main CSV Outputs/merged_exclusive.csv")
+  paste("No discrepencies in inclusive and exclusive DFs, merged_inclusive.csv and merged_exclusive.csv saved successfully")
+} 
+
+# Dataframe based on merged_inclusive indicating which countries are in each dataframe
+countries_studied_comparison <- merged_inclusive %>%
+  distinct(country_code, country_name) %>%
+  mutate(in_merged_cleaned_spi = if_else(country_code %in% merged_cleaned_spi_3$country_code, 1, 0),
+         in_merged_cleaned_sdg = if_else(country_code %in% merged_cleaned_sdg_3$country_code, 1, 0), 
+         in_merged_exclusive = if_else(country_code %in% merged_exclusive$country_code, 1, 0),
+         in_merged_inclusive = 1) %>% # all countries in this DF are in inclusive DF
+  select(country_code, country_name, in_merged_cleaned_spi, in_merged_cleaned_sdg, in_merged_exclusive, in_merged_inclusive)
+View(countries_studied_comparison) # View list 
+
+# saving countries_studied_comparison
+write_csv(countries_studied_comparison, "wrangling/adjust_outputs_diagnostics/all_countries_studied_comparison.csv")
+
+# Summary counts of countries included in each dataframe (SPI, SDG, Inclusive and Exclusive)
+summary_counts_all_dfs <- tibble(
+  dataframe = c("SPI Analysis", "SDG Analysis", "Inclusive DF", "Exclusive DF"),
+  num_countries = c(
+    sum(countries_studied_comparison$in_merged_cleaned_spi==1),
+    sum(countries_studied_comparison$in_merged_cleaned_sdg==1),
+    sum(countries_studied_comparison$in_merged_inclusive==1),
+    sum(countries_studied_comparison$in_merged_exclusive==1)
+  )
+)
+print(summary_counts_all_dfs)
+# saving summary_counts_all_dfs
+write_csv(summary_counts_all_dfs, "wrangling/adjust_outputs_diagnostics/summary_counts_all_studied_comparison.csv")
 ```
+*As of September 1 2025:*
+- SPI Analysis = 174 countries (merged_cleaned_spi.csv)
+- SDG Analysis = 167 countries (merged_cleaned_sdg.csv)
+- Inclusive DF = 179 countries (merged_inclusive.csv)
+- Exclusive DF = 162 countries (merged_exclusive.csv)
+
+## Check: Number of countries with spi_comp vs sdg_overall in original merged_full dataframe for robustness
+```{r}
+# checking the number of countries covered by spi_comp vs sdg_overall variables in merged_full dataframe
+merged_full_sub <- read_csv("data/Main CSV Outputs/merged_full_NEW.csv")
+num_countries_spi <- merged_full_sub %>%
+  filter(!is.na(spi_comp)) %>%
+  summarise(num_countries = n_distinct(country_code)) %>%
+  pull(num_countries)
+num_countries_sdg <- merged_full %>%
+  filter(!is.na(sdg_overall)) %>%
+  summarise(num_countries = n_distinct(country_code)) %>%
+  pull(num_countries)
+print(paste("Number of countries with spi_comp data:", num_countries_spi))
+print(paste("Number of countries with sdg_overall data:", num_countries_sdg))
+```
+- merged_full (base dataframe) = 187 countries with spi_comp data and 167 countries with sdg_overall data
 
 # Test for identical DFs
 As needed... 

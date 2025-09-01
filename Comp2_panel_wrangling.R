@@ -4,18 +4,14 @@ setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 # load libraries/packages
 source("packages.R")
 
-# load data [Thesis Data]
-all_data1 <- read_csv("data/Main CSV Outputs/merged_final_df.csv")
-
 # load data [Cleaned SPI & SDG Datasets]
-all_data <- read_csv(file.choose("data/Main CSV Outputs"))
+selected_df <- read_csv(file.choose("data/Main CSV Outputs"))
+
+# REFERENCE FOR COVERAGE OF COUNTRIES IN DATASETS
+COUNTRIES_BY_DF_REFERENCE <- read_csv("wrangling/adjust_outputs_diagnostics/all_countries_studied_comparison.csv")
 
 # Main data transformation pipeline
-panel_data <- all_data %>% 
-  # Select variables and filter
-  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, 
-                di_score, elect_dem, aut_ep, dem_ep, regime_type_4, regch_event, log_gdppc, 
-                income_level, p1_use, p2_services, p3_products, p4_sources, p5_infra, goal1:goal17) %>% 
+panel_data <- selected_df %>% 
   arrange(country_code, year) %>%
   
   # Create all transformations in a single grouped operation
@@ -94,15 +90,15 @@ panel_data <- panel_data %>%
   ) %>% 
   ungroup()
 
-# EIU-consistent regime change variables
+# EIU-consistent regime change variables # FOR COMP 3 ANALYSIS (ARTICLE)
 #source("wrangling/eiu_ert_variables.R")
-#panel_data <- eiu_ert_variables(panel_data)
+#panel_data_eiu <- eiu_ert_variables(panel_data)
 
 # re-arrange columns to have key variables first for easier viewing
 panel_data <- panel_data %>%
   filter(year >= 2016) %>%
   select(country_name, country_code, year, sdg_overall, spi_comp, di_score, sci_overall,
-         eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep, 
+         #eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep, 
          log_gdppc, income_level_recoded, p1_use:p5_infra, goal1:goal17, everything())
 
 # Create regime changes summary
@@ -112,8 +108,8 @@ panel_data <- panel_data %>%
 #         eiu_regch_event, eiu_dem_ep, eiu_aut_ep) %>%
 #  arrange(country_code, year)
 
-# remove all_data to free up memory
-rm(all_data)
+# remove selected_df to free up memory
+rm(selected_df)
 
 # First difference data for FD models
 fd_data <- panel_data %>%
