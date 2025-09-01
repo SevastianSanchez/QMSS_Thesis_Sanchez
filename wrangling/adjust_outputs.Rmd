@@ -96,6 +96,31 @@ merged_cleaned_spi_3 <- merged_cleaned_spi_2 %>%
 write_csv(merged_cleaned_spi_3, "data/Main CSV Outputs/merged_cleaned_spi.csv")
 ```
 
+## Diagnostics: Countries removed from SPI analyses
+```{r}
+# combining dataframes of filtered countries for spi
+countries_not_in_spi_analysis <- bind_rows(all_missing_pillars, all_missing_spi_comp, insufficient_spi_comp) %>%
+  distinct(country_code, .keep_all = TRUE) # no duplicates
+
+# Countries removed from SPI analysis
+countries_not_in_spi_analysis1 <- read_csv("wrangling/adjust_outputs_diagnostics/countries_missing_all_spi.csv") %>%
+  bind_rows(read_csv("wrangling/adjust_outputs_diagnostics/countries_missing_spi_comp.csv")) %>%
+  bind_rows(read_csv("wrangling/adjust_outputs_diagnostics/countries_insufficient_spi_comp.csv")) %>%
+  distinct(country_code, .keep_all = TRUE) # no duplicates
+
+# Ensuring no discrepancies between saved and active DF
+library(testthat) 
+test_that("Dataframes are identical", {
+  expect_identical(countries_not_in_spi_analysis, countries_not_in_spi_analysis1)
+})
+
+# Save if the following if test passes
+if (identical(countries_not_in_spi_analysis, countries_not_in_spi_analysis1, num.eq = FALSE, single.NA = FALSE, attrib.as.set = FALSE, ignore.bytecode = FALSE, ignore.environment = FALSE, ignore.srcref = FALSE, extptr.as.ref = TRUE)) {
+  write_csv(countries_not_in_spi_analysis, "wrangling/adjust_outputs_diagnostics/countries_not_in_spi_analysis.csv")
+} else { stop("Dataframes are not identical. Check for discrepancies.")
+}
+```
+
 ## Dependent Y = SDG (sdg_overall)
 **Prioritizing SDG data**
 Deleting all countries without any SDG data 
@@ -153,6 +178,74 @@ merged_cleaned_sdg_3 <- merged_cleaned_sdg_2 %>%
 write_csv(merged_cleaned_sdg_3, "data/Main CSV Outputs/merged_cleaned_sdg.csv")
 ```
 
+## Diagnostics: Countries removed from SDG analysis
+```{r}
+# combining dataframes of filtered countries for sdg
+countries_not_in_sdg_analysis <- bind_rows(all_missing_sdgs, all_missing_sdg_overall, insufficient_sdg_overall) %>%
+  distinct(country_code, .keep_all = TRUE) # Ensure no duplicates
+
+# Countries removed from SPI analysis
+countries_not_in_sdg_analysis1 <- read_csv("wrangling/adjust_outputs_diagnostics/countries_missing_all_sdgs.csv") %>%
+  bind_rows(read_csv("wrangling/adjust_outputs_diagnostics/countries_missing_sdg_overall.csv")) %>%
+  bind_rows(read_csv("wrangling/adjust_outputs_diagnostics/countries_insufficient_sdg_overall.csv")) %>%
+  distinct(country_code, .keep_all = TRUE) # Ensure no duplicates
+
+library(testthat) # Ensuring no discrepancies between saved and active DF
+test_that("Dataframes are identical", {
+  expect_identical(countries_not_in_sdg_analysis, countries_not_in_sdg_analysis1)
+})
+
+# save if the following if test passes
+if (identical(countries_not_in_sdg_analysis, countries_not_in_sdg_analysis1, num.eq = FALSE, single.NA = FALSE, attrib.as.set = FALSE, ignore.bytecode = FALSE, ignore.environment = FALSE, ignore.srcref = FALSE, extptr.as.ref = TRUE)) {
+  write_csv(countries_not_in_sdg_analysis, "wrangling/adjust_outputs_diagnostics/countries_not_in_sdg_analysis.csv")
+} else { stop("Dataframes are not identical. Check for discrepancies")
+}
+```
+
+## Compare missing countries between SPI and SDG analyses
+**Please note:** we are comparing dataframes of missing countries NOT the cleaned dataframes of countries that are used in analyses
+```{r}
+# Number countries not in either analysis 
+overlap_countries <- intersect(countries_not_in_spi_analysis$country_code, countries_not_in_sdg_analysis$country_code)
+print(paste("Number of countries removed from both SPI and SDG analyses:", length(overlap_countries)))
+
+# Number of countries Missing in SPI that are not Missing in SDG
+unique_to_spi <- setdiff(countries_not_in_spi_analysis$country_code, countries_not_in_sdg_analysis$country_code)
+print(paste("Number of countries removed only from SPI analysis:", length(unique_to_spi)))
+
+# Number of countries Missing in SDG that are not Missing in SPI
+unique_to_sdg <- setdiff(countries_not_in_sdg_analysis$country_code, countries_not_in_spi_analysis$country_code)
+print(paste("Number of countries removed only from SDG analysis:", length(unique_to_sdg)))
+
+# Dataframe of all countries removed from either analysis with a column indicating which analysis they were removed from
+countries_removed_comparison <- bind_rows(
+  countries_not_in_spi_analysis %>% mutate(removed_from = "SPI"),
+  countries_not_in_sdg_analysis %>% mutate(removed_from = "SDG")
+) %>%
+  distinct(country_code, removed_from, .keep_all = TRUE) %>%
+  pivot_wider(names_from = removed_from, values_from = removed_from, values_fill = NA) %>%
+  mutate(removed_from = case_when(
+    !is.na(SPI) & !is.na(SDG) ~ "Not in Either Analysis",
+    !is.na(SPI) ~ "Not in SPI Analysis",
+    !is.na(SDG) ~ "Not in SDG Analysis"
+  )) %>%
+  select(country_code, country_name, removed_from)
+View(countries_removed_comparison)
+
+# Comparison dataframe: showing which countries were removed from which analysis
+write_csv(countries_removed_comparison, "wrangling/adjust_outputs_diagnostics/all_countries_removed_comparison.csv")
+
+# create summary table
+summary_counts_all_removed_comparison <- countries_removed_comparison %>%
+  group_by(removed_from) %>%
+  summarise(num_countries = n()) %>%
+  ungroup()
+print(summary_table)
+
+# save summary counts table
+write_csv(summary_counts_all_removed_comparison, "wrangling/adjust_outputs_diagnostics/summary_counts_all_removed_comparison.csv")
+```
+
 ### FOURTH: Selecting Variables 
 *[ADJUST VARIABLES OR SKIP IF LOADING FROM CSV]*
 ```{r eval=FALSE, include=FALSE}
@@ -175,7 +268,7 @@ library(testthat)
 
 # In a test script
 test_that("Dataframes are identical", {
-  expect_identical(merged_final, merged_finalx)
+  expect_identical(countries_not_in_spi_analysis, countries_not_in_spi_analysis1)
 })
 ```
 
