@@ -1,9 +1,20 @@
 ---
 title: "Component 2, Stage 1: DI -> SPI"
-output: html_document
+author: "Sevastian Sanchez"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
 ---
+```{r}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 60) 
+)
+```
 
-# Set up and Wrangling 
+# Set up
 ```{r}
 # set working directory
 setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
@@ -69,7 +80,7 @@ summary(ols_spi_di_L2, vcov = vcovHC(ols_spi_di_L2, cluster = "group", type = "H
 ```
 
 ## POLS Summary Table
-```{r}
+```{r eval=FALSE, include=FALSE}
 # --- POLS MODELS TABLE ---
 
 # Extracting robust standard errors for the two POLS models
@@ -96,7 +107,6 @@ stargazer(
   model.names = FALSE
 )
 ```
-
 
 # 1.2) First Difference [Stage 1]: SPI ~ DI
 ```{r}
@@ -127,10 +137,9 @@ fd_spi_di_L2 <- plm(
 )
 summary(fd_spi_di_L2, vcov = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"))
 ```
-**results** 
 
 ## First Difference Summary Table
-```{r}
+```{r eval=FALSE, include=FALSE}
 # --- FD MODELS TABLE ---
 # extracting robust standard errors for the three FD models
 rob_se_fd <- list(
@@ -183,10 +192,9 @@ fe_spi_di_L2 <- plm(
 summary(fe_spi_di_L2, vcov = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"))
 
 ```
-**results**
 
 ## Fixed Effects Summary Table
-```{r}
+```{r eval=FALSE, include=FALSE}
 # --- FE MODELS TABLE ---
 # Extracting robust standard errors for the three FE models
 rob_se_fe <- list(
@@ -213,7 +221,7 @@ stargazer(
 ```
 
 ### stargazer table for only lag2 models
-```{r}
+```{r eval=FALSE, include=FALSE}
 # stargazer table for only lag2 models
 stargazer(
   ols_spi_di_L2, fd_spi_di_L2, fe_spi_di_L2,
@@ -237,7 +245,7 @@ stargazer(
 
 ```
 
-# Visualize the results using error bar charts that show the coefficient and robust standard error of every lagged effect in the fe_spi_di_L2 FE model
+## Fixed Effects Error Bar Visualization 
 ```{r}
 # Extract coefficients and robust standard errors from the FE model
 fe_spi_di_L2_results <- summary(fe_spi_di_L2, vcov = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"))
@@ -260,7 +268,7 @@ ggplot(coef_df, aes(x = term, y = estimate)) +
 
 ```
 
-# visualize the results using error bar charts that show the coefficient and robust standard error of every lagged effect in the fd_spi_di_L2 FD model
+## First Difference Error Bar Visualization 
 ```{r}
 # Extract coefficients and robust standard errors from the FD model
 fd_spi_di_L2_results <- summary(fd_spi_di_L2, vcov = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"))
@@ -283,14 +291,35 @@ ggplot(coef_fd_df, aes(x = term, y = estimate)) +
 
 ```
 
-# MODEL MISSPECIFICATION CHECKS [Stage 1]
+## Check for Autocorrelation 
+```{r}
+# APPLY Wooldridge Test for AR(1) Errors in FE Panel Models: pwartest()
+# https://search.r-project.org/CRAN/refmans/plm/html/pwartest.html  
+# This is MUCH BETTER for panel data with small T AND unbalanced panels!!!
+pwartest(fe_spi_di_L2) # [significant]
+```
+Significant p-value indicates the presence of autocorrelation in the residuals of the fixed effects model. This suggests that the errors are correlated over time, which violates one of the key assumptions of linear regression models.
+
+This is corrected by using robust standard errors clustered by country, which accounts for the potential autocorrelation in the residuals.
+
+## Check for Heteroskedasticity
+```{r}
+# Apply Breusch-Pagan test for heteroskedasticity
+bptest(fe_spi_di_L2, studentize = TRUE) # Heteroskedasticity [significant]
+bptest(fd_spi_di_L2, studentize = TRUE) # Heteroskedasticity [significant]
+```
+The Breusch-Pagan test indicates the presence of heteroskedasticity in the residuals of the fixed effects model. This suggests that the variance of the errors is not constant across observations, which violates another key assumption of linear regression models.
+
+##*[IGNORE ALL BELOW]*
+## MODEL MISSPECIFICATION CHECKS [Stage 1]
+================================================================================
 Following standard econometric practice, I first establish the appropriate functional form for main effects, using RESET tests and residual diagnostics, before testing for theoretically motivated interaction effects.
 
 ## RESET Test for Misspecification [STAGE 1]
 The RESET test checks for omitted variable bias by testing if the squared and cubed fitted values significantly improve the model fit. If the p-value is low (typically < 0.05), it suggests that the model may be misspecified, indicating that a non-linear relationship or omitted variables are present.
 
 When you get a p-value of less than 0.05 this means that you reject the null hypothesis - this means that statistically your model is better with first order terms.
-```{r}
+```{r eval=FALSE, include=FALSE}
 # transforming to base R lm()
 ols_spi_di <- lm(spi_comp ~ di_score_lag1 + log_gdppc + factor(income_level_recoded) + factor(year), data = panel_data_s1) # regular linear model
 fd_spi_di <- lm(spi_diff ~ di_diff_lag1 + log_gdppc_diff + factor(income_level_recoded), data = fd_data)
@@ -331,7 +360,7 @@ For this section, all continuous predictors (DI & Log(GDP)) are centered for sim
 
 - **H0:** The relationship between SPI and DI performance is linear.
 - **H1:** The relationship between SPI and DI performance is non-linear (quadratic or cubic).
-```{r}
+```{r eval=FALSE, include=FALSE}
 # No quadratic Terms Applied - Baseline 
 fe_spi_di_base <- plm(formula = spi_comp ~ cen_di_score_lag1 + log_gdppc + factor(income_level_recoded) + factor(year),
                model = "within", 
@@ -395,14 +424,12 @@ plm_aic_bic(rob_sum_m4) # cubic FE
 
 DI: We fail to reject the null hypothesis of linearity in the relationship between DI and SPI performance, as the p-value is greater than 0.05 in all models. Although literature suggests a non-linear relationship (SOURCE), the results here do not support it. 
 
-
-
 # MODEL DIAGNOSTICS [Stage 1]
 
 ## Multicollinearity Assessment and Correction [Stage 2] 
 ### [CHECK BACK W GREG - NEED TO FIGURE OUT WHAT TO DO WITH THIS]
 The only model worth looking for multicollinearity is the base model, as the other models have no polynomial or interaction terms.
-```{r}
+```{r eval=FALSE, include=FALSE}
 # converting to base R lm() for VIF calculation
 ols_spi_di <- lm(spi_comp ~ di_score_lag1 + log_gdppc + factor(income_level_recoded) + factor(year), data = panel_data_s1) # regular linear model
 fe_spi_di <- lm(spi_comp ~ di_score_lag1 + log_gdppc + factor(income_level_recoded) + factor(year) + factor(country_code), data = panel_data_s1)
@@ -424,21 +451,3 @@ write.csv(vif_df, file = "results_csv/s1_vif_results.csv", row.names = FALSE)
 # The VIF values are all below 5, indicating no significant multicollinearity issues.
 ```
 
-## Check for Autocorrelation 
-```{r}
-# APPLY Wooldridge Test for AR(1) Errors in FE Panel Models: pwartest()
-# https://search.r-project.org/CRAN/refmans/plm/html/pwartest.html  
-# This is MUCH BETTER for panel data with small T AND unbalanced panels!!!
-pwartest(fe_spi_di_base) # [significant]
-
-```
-Significant p-value indicates the presence of autocorrelation in the residuals of the fixed effects model. This suggests that the errors are correlated over time, which violates one of the key assumptions of linear regression models.
-
-This is corrected by using robust standard errors clustered by country, which accounts for the potential autocorrelation in the residuals.
-
-## Check for Heteroskedasticity
-```{r}
-# Apply Breusch-Pagan test for heteroskedasticity
-bptest(fe_spi_di_base, studentize = TRUE) # Heteroskedasticity [significant]
-```
-The Breusch-Pagan test indicates the presence of heteroskedasticity in the residuals of the fixed effects model. This suggests that the variance of the errors is not constant across observations, which violates another key assumption of linear regression models.

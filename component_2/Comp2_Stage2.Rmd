@@ -1,10 +1,20 @@
 ---
 title: "Component 2, Stage 2: SPI -> SDG"
-output: html_document
+author: "Sevastian Sanchez"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
 ---
-# Stage 2: SDG ~ SPI (Mediator) + DI 
+```{r}
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 60) 
+)
+```
 
-# Set up and Wrangling 
+# Set up
 ```{r}
 # set working directory
 setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
@@ -199,8 +209,7 @@ stargazer(ols_sdg_spi_L2, fd_sdg_spi_L2, fe_sdg_spi_L2,
           out = "figures/s2_lag2_mods.html")
 ```
 
-
-# visualize the results using error bar charts that show the coefficient and robust standard error of every lagged effect in the fe_sdg_spi_L2 FE model
+## Fixed Effects Error Bar Visualization 
 ```{r}
 # Extract coefficients and robust standard errors from the FE model
 coefs <- summary(fe_sdg_spi_L2, vcov = vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1"))$coefficients
@@ -224,7 +233,7 @@ ggplot(coef_df, aes(x = term, y = estimate)) +
 #ggsave("figures/error_bar_fe_sdg_spi_L2.png", width = 10, height = 6)
 ```
 
-# visualize the results using error bar charts that show the coefficient and robust standard error of every lagged effect in the fd_sdg_spi_L2 FD model
+## First Difference Error Bar Visualization
 ```{r}
 # Extract coefficients and robust standard errors from the FD model
 coefs_fd <- summary(fd_sdg_spi_L2, vcov = vcovHC(fd_sdg_spi_L2, cluster = "group", type = "HC1"))$coefficients
@@ -248,8 +257,30 @@ ggplot(coef_df_fd, aes(x = term, y = estimate)) +
 #ggsave("figures/error_bar_fd_sdg_spi_L2.png", width = 10, height = 6)
 ```
 
-# MODEL MISSPECIFICATION CHECKS [Stage 2]
+## Check for Autocorrelation 
+```{r}
+# APPLY Wooldridge Test for AR(1) Errors in FE Panel Models: pwartest()
+# https://search.r-project.org/CRAN/refmans/plm/html/pwartest.html  
+# This is MUCH BETTER for panel data with small T AND unbalanced panels!!!
+pwartest(fe_sdg_spi_L2) # [significant]
+#pwartest(fd_sdg_spi_L2) # [significant]
 
+```
+Significant p-value indicates the presence of autocorrelation in the residuals of the fixed effects model. This suggests that the errors are correlated over time, which violates one of the key assumptions of linear regression models.
+
+## Check for Heteroskedasticity
+```{r}
+# Apply Breusch-Pagan test for heteroskedasticity
+bptest(fe_sdg_spi_L2, studentize = TRUE) # Heteroskedasticity [significant]
+bptest(fd_sdg_spi_L2, studentize = TRUE) # Heteroskedasticity [significant]
+```
+The Breusch-Pagan test indicates the presence of heteroskedasticity in the residuals of the fixed effects model. This suggests that the variance of the errors is not constant across observations, which violates another key assumption of linear regression models.
+
+Both violations are corrected by using robust standard errors clustered at the country level, which accounts for autocorrelation and heteroskedasticity.
+
+##*[IGNORE ALL BELOW]*
+# MODEL MISSPECIFICATION CHECKS [Stage 2]
+================================================================================
 ## RESET Test for Misspecification [STAGE 2]
 [ALL VARIABLES NOT UPDATED TO MATCH PRE-MADE LAGS]
 ```{r eval=FALSE, include=FALSE}
@@ -289,9 +320,6 @@ write.csv(s2_reset_results, file = "results_csv/s2_reset_results.csv", row.names
 Results from the reset test indicate that the null hypothesis of  is rejected for all models, suggesting potential non-linearity or omitted variable bias in the models.
 
 
-
-
-================================================================================
 ## Stepwise Check: Applying Polynomial Terms [Stage 2]
 For this section, all continuous predictors (DI, SPI, Log(GDP)) in non-linear models are centered to avoid multicollinearity issues. 
 
@@ -379,23 +407,4 @@ BIC: 2477.667
 **M4: cubic SPI + DI, FE**
 AIC: 2324.069
 BIC: 2528.789
-
-## Check for Autocorrelation 
-```{r}
-# APPLY Wooldridge Test for AR(1) Errors in FE Panel Models: pwartest()
-# https://search.r-project.org/CRAN/refmans/plm/html/pwartest.html  
-# This is MUCH BETTER for panel data with small T AND unbalanced panels!!!
-pwartest(fe_sdg_spi_base) # [significant]
-
-```
-Significant p-value indicates the presence of autocorrelation in the residuals of the fixed effects model. This suggests that the errors are correlated over time, which violates one of the key assumptions of linear regression models.
-
-This is corrected by using robust standard errors clustered by country, which accounts for the potential autocorrelation in the residuals.
-
-## Check for Heteroskedasticity
-```{r}
-# Apply Breusch-Pagan test for heteroskedasticity
-bptest(fe_sdg_spi_base, studentize = TRUE) # Heteroskedasticity [significant]
-```
-The Breusch-Pagan test indicates the presence of heteroskedasticity in the residuals of the fixed effects model. This suggests that the variance of the errors is not constant across observations, which violates another key assumption of linear regression models.
 
