@@ -18,13 +18,22 @@ panel_data <- selected_df %>%
   group_by(country_code) %>%
   arrange(year) %>%
   mutate(
-    # Basic lag variables
+  # Basic lag variables #
+    # Lag & lead DI vars
     di_score_lag1 = dplyr::lag(di_score, n = 1),
     di_score_lag2 = dplyr::lag(di_score, n = 2),
+    di_score_lead1 = dplyr::lead(di_score, n = 1),  # For potential future use
+    di_score_lead2 = dplyr::lead(di_score, n = 2),  # For potential future use
+    # Lag & lead SPI vars
     spi_comp_lag1 = dplyr::lag(spi_comp, n = 1),
     spi_comp_lag2 = dplyr::lag(spi_comp, n = 2),
+    spi_comp_lead1 = dplyr::lead(spi_comp, n = 1),  # For potential future use
+    spi_comp_lead2 = dplyr::lead(spi_comp, n = 2),  # For potential future use
+    # Lag & lead log GDP vars
     log_gdppc_lag1 = dplyr::lag(log_gdppc, n = 1),
     log_gdppc_lag2 = dplyr::lag(log_gdppc, n = 2),
+    log_gdppc_lead1 = dplyr::lead(log_gdppc, n = 1),  # For potential future use
+    log_gdppc_lead2 = dplyr::lead(log_gdppc, n = 2),  # For potential future use
     
     # Centered variables (country-specific means)
     cen_spi_comp = spi_comp - mean(spi_comp, na.rm = TRUE),
@@ -102,7 +111,7 @@ panel_data <- panel_data %>%
 # re-arranging columns to have key variables first for easier viewing
 panel_data <- panel_data %>%
   filter(year >= 2016) %>%
-  select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, 
+  select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, di_score_lag1, di_score_lag2,
          eiu_regime_type, log_gdppc, income_level_recoded, p1_use:p5_infra, goal1:goal17, everything())
 
 # remove selected_df to free up memory

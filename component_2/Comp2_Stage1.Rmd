@@ -13,8 +13,18 @@ source("packages.R")
 
 # load data
 source("Comp2_panel_wrangling.R")
+# select path = "data/Main CSV Outputs/merged_cleaned_sdg.csv"
 
-head(panel_data[, c("country_code", "year", "spi_comp_lag1", "di_score_lag1", "log_gdppc_lag1")])
+panel_data_s1 <- panel_data %>% 
+  dplyr::select(country_name, country_code, year, spi_comp, di_score, di_score_lag1, di_score_lag2, log_gdppc, spi_comp_lag1, spi_comp_lag2, income_level_recoded) %>%
+  dplyr::arrange(country_code, year)
+
+head(panel_data_s1)
+
+# check lag structure is correct 
+head(panel_data_s1[, c("country_code", "year", "spi_comp", "spi_comp_lag1", "spi_comp_lag2",  "di_score", "di_score_lag1", "di_score_lag2")])
+
+dim(panel_data_s1) # 1336 rows, 11 columns
 ```
 
 # Stage 1 Models:
@@ -35,26 +45,26 @@ The effect of democracy on SPI Performance
 ```{r}
 # Contemporaneous Effect: SPI ~ DI
 ols_spi_di <- plm(
-  formula = spi_comp ~ di_score + log_gdppc + income_level_recoded + factor(year), 
+  formula = spi_comp ~ di_score + log_gdppc + factor(income_level_recoded) + factor(year), 
   index = c("country_code", "year"),
   model = "pooling", 
-  data = panel_data)
+  data = panel_data_s1)
 summary(ols_spi_di, vcov = vcovHC(ols_spi_di, cluster = "group", type = "HC1"))
 
 # Adding Lag1: SPI ~ DI
 ols_spi_di_L1 <- plm(
-  formula = spi_comp ~ di_score + plm::lag(di_score, n=1) + log_gdppc + income_level_recoded + factor(year), 
+  formula = spi_comp ~ di_score + di_score_lag1 + log_gdppc + factor(income_level_recoded) + factor(year), 
   index = c("country_code", "year"),
   model = "pooling", 
-  data = panel_data)
+  data = panel_data_s1)
 summary(ols_spi_di_L1, vcov = vcovHC(ols_spi_di_L1, cluster = "group", type = "HC1"))
 
 # Adding Lag2: SPI ~ DI
 ols_spi_di_L2 <- plm(
-  formula = spi_comp ~ di_score + plm::lag(di_score, n=1) + plm::lag(di_score, n=2) + log_gdppc + income_level_recoded + factor(year), 
+  formula = spi_comp ~ di_score + di_score_lag1 + di_score_lag2 + log_gdppc + factor(income_level_recoded) + factor(year), 
   index = c("country_code", "year"),
   model = "pooling", 
-  data = panel_data)
+  data = panel_data_s1)
 summary(ols_spi_di_L2, vcov = vcovHC(ols_spi_di_L2, cluster = "group", type = "HC1"))
 ```
 
@@ -92,27 +102,27 @@ stargazer(
 ```{r}
 # Contemporaneous Effect: SPI ~ DI
 fd_spi_di <- plm(
-  formula = spi_comp ~ di_score + log_gdppc + income_level_recoded,
+  formula = spi_comp ~ di_score + log_gdppc +  factor(income_level_recoded),
   index = c("country_code", "year"),
-  data = fd_data, #sub = (has_aut_ep == TRUE),
+  data = fd_data, 
   model = "fd"
 )
 summary(fd_spi_di, vcov = vcovHC(fd_spi_di, cluster = "group", type = "HC1"))
 
 # Adding Lag1: SPI ~ DI
 fd_spi_di_L1 <- plm(
-  formula = spi_comp ~ di_score + plm::lag(di_score, n=1) + log_gdppc + income_level_recoded,
+  formula = spi_comp ~ di_score + di_score_lag1 + log_gdppc + factor(income_level_recoded),
   index = c("country_code", "year"),
-  data = fd_data, #sub = (has_aut_ep == TRUE),
+  data = fd_data, 
   model = "fd"
 )
 summary(fd_spi_di_L1, vcov = vcovHC(fd_spi_di_L1, cluster = "group", type = "HC1"))
 
 # Adding Lag2: SPI ~ DI
 fd_spi_di_L2 <- plm(
-  formula = spi_comp ~ di_score + plm::lag(di_score, n=1) + plm::lag(di_score, n=2) + log_gdppc + income_level_recoded,
+  formula = spi_comp ~ di_score + di_score_lag1 + di_score_lag2 + log_gdppc + factor(income_level_recoded),
   index = c("country_code", "year"),
-  data = fd_data, #sub = (has_aut_ep == TRUE),
+  data = fd_data, 
   model = "fd"
 )
 summary(fd_spi_di_L2, vcov = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"))
@@ -150,32 +160,26 @@ stargazer(
 ```{r}
 # Contemporaneous Effect: SPI ~ DI 
 fe_spi_di <- plm(
-  formula = spi_comp ~ di_score + log_gdppc + income_level_recoded,
+  formula = spi_comp ~ di_score + log_gdppc + factor(income_level_recoded) + factor(year),
   index = c("country_code", "year"),
-  data = panel_data,
-  model = "within", #FE
-  effect = "twoways" 
-)
+  data = panel_data_s1,
+  model = "within")
 summary(fe_spi_di, vcov = vcovHC(fe_spi_di, cluster = "group", type = "HC1"))
 
 # Adding Lag1: SPI ~ DI
 fe_spi_di_L1 <- plm(
-  formula = spi_comp ~ di_score + plm::lag(di_score, n=1) + log_gdppc + income_level_recoded,
+  formula = spi_comp ~ di_score + di_score_lag1 + log_gdppc + factor(income_level_recoded) + factor(year),
   index = c("country_code", "year"),
-  data = panel_data,
-  model = "within", #FE
-  effect = "twoways" 
-)
+  data = panel_data_s1,
+  model = "within")
 summary(fe_spi_di_L1, vcov = vcovHC(fe_spi_di_L1, cluster = "group", type = "HC1"))
 
 # Adding Lag2: SPI ~ DI
 fe_spi_di_L2 <- plm(
-  formula = spi_comp ~ di_score + plm::lag(di_score, n=1) + dplyr::lag(di_score, n=2) + log_gdppc + income_level_recoded,
+  formula = spi_comp ~ di_score + di_score_lag1 + di_score_lag2 + log_gdppc + factor(income_level_recoded) + factor(year),
   index = c("country_code", "year"),
-  data = panel_data,
-  model = "within", #FE
-  effect = "twoways" 
-)
+  data = panel_data_s1,
+  model = "within")
 summary(fe_spi_di_L2, vcov = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"))
 
 ```
@@ -233,7 +237,6 @@ stargazer(
 
 ```
 
-
 # Visualize the results using error bar charts that show the coefficient and robust standard error of every lagged effect in the fe_spi_di_L2 FE model
 ```{r}
 # Extract coefficients and robust standard errors from the FE model
@@ -289,9 +292,9 @@ The RESET test checks for omitted variable bias by testing if the squared and cu
 When you get a p-value of less than 0.05 this means that you reject the null hypothesis - this means that statistically your model is better with first order terms.
 ```{r}
 # transforming to base R lm()
-ols_spi_di <- lm(spi_comp ~ dplyr::lag(di_score, 1) + log_gdppc + income_level_recoded + factor(year), data = panel_data) # regular linear model
-fd_spi_di <- lm(spi_diff ~ dplyr::lag(di_diff, 1) + log_gdppc_diff + income_level_recoded, data = fd_data)
-fe_spi_di <- lm(spi_comp ~ dplyr::lag(di_score, 1) + log_gdppc + income_level_recoded + factor(year) + factor(country_code), data = panel_data)
+ols_spi_di <- lm(spi_comp ~ di_score_lag1 + log_gdppc + factor(income_level_recoded) + factor(year), data = panel_data_s1) # regular linear model
+fd_spi_di <- lm(spi_diff ~ di_diff_lag1 + log_gdppc_diff + factor(income_level_recoded), data = fd_data)
+fe_spi_di <- lm(spi_comp ~ di_score_lag1 + log_gdppc + factor(income_level_recoded) + factor(year) + factor(country_code), data = panel_data_s1)
 
 # Performing RESET tests for the base models
 resettest(ols_spi_di, power = 2:3, type = "regressor", 
@@ -326,40 +329,36 @@ We reject the Null Hypothesis of no misspecification in the relationship between
 ## Stepwise Check: Applying Polynomial Terms [Stage 1]
 For this section, all continuous predictors (DI & Log(GDP)) are centered for simplicity and to avoid multicollinearity issues. 
 
-- **H0:** The relationship between SPI and SDG performance is linear.
-- **H1:** The relationship between SPI and SDG performance is non-linear (quadratic or cubic).
+- **H0:** The relationship between SPI and DI performance is linear.
+- **H1:** The relationship between SPI and DI performance is non-linear (quadratic or cubic).
 ```{r}
 # No quadratic Terms Applied - Baseline 
-fe_spi_di_base <- plm(formula = spi_comp ~ cen_di_score_lag1 + log_gdppc + income_level_recoded,
+fe_spi_di_base <- plm(formula = spi_comp ~ cen_di_score_lag1 + log_gdppc + factor(income_level_recoded) + factor(year),
                model = "within", 
                index = c("country_code", "year"),
-               effect = "twoways",
-               data = panel_data)
+               data = panel_data_s1)
 rob_sum_base <-summary(fe_spi_di_base, vcov = vcovHC(fe_spi_di_base, cluster = "group", type = "HC1"))
 
 # + Quadratic terms for DI
-fe_quads_s1_m2 <- plm(formula = spi_comp ~ cen_di_score_lag1 + cen_di_score_lag1_sq + cen_log_gdppc + income_level_recoded,
+fe_quads_s1_m2 <- plm(formula = spi_comp ~ cen_di_score_lag1 + cen_di_score_lag1_sq + cen_log_gdppc + factor(income_level_recoded) + factor(year),
                model = "within", 
                index = c("country_code", "year"),
-               effect = "twoways",
-               data = panel_data)
+               data = panel_data_s1)
 rob_sum_m2 <- summary(fe_quads_s1_m2, vcov = vcovHC(fe_quads_s1_m2, cluster = "group", type = "HC1"))
 
 # + Quadratic terms for DI and Log(GDP)
 fe_quads_s1_m3 <- plm(formula = spi_comp ~ cen_di_score_lag1 + cen_di_score_lag1_sq
-                      + cen_log_gdppc + cen_log_gdppc_sq + income_level_recoded,
+                      + cen_log_gdppc + cen_log_gdppc_sq + factor(income_level_recoded) + factor(year),
                model = "within", 
                index = c("country_code", "year"),
-               effect = "twoways",
-               data = panel_data)
+               data = panel_data_s1)
 rob_sum_m3 <- summary(fe_quads_s1_m3, vcov = vcovHC(fe_quads_s1_m3, cluster = "group", type = "HC1"))
 
 # + Cubic terms for DI and Log(GDP)
-fe_cubics_s1_m4 <- plm(formula = spi_comp ~ cen_di_score_lag1 + cen_di_score_lag1_sq + cen_di_score_lag1_cub + cen_log_gdppc + cen_log_gdppc_sq + cen_log_gdppc_cub + income_level_recoded,
+fe_cubics_s1_m4 <- plm(formula = spi_comp ~ cen_di_score_lag1 + cen_di_score_lag1_sq + cen_di_score_lag1_cub + cen_log_gdppc + cen_log_gdppc_sq + cen_log_gdppc_cub + factor(income_level_recoded) + factor(year),
                model = "within", 
                index = c("country_code", "year"),
-               effect = "twoways",
-               data = panel_data)
+               data = panel_data_s1)
 rob_sum_m4 <- summary(fe_cubics_s1_m4, vcov = vcovHC(fe_cubics_s1_m4, cluster = "group", type = "HC1"))
 
 # Extracting robust standard errors for each model
@@ -405,8 +404,8 @@ DI: We fail to reject the null hypothesis of linearity in the relationship betwe
 The only model worth looking for multicollinearity is the base model, as the other models have no polynomial or interaction terms.
 ```{r}
 # converting to base R lm() for VIF calculation
-ols_spi_di <- lm(spi_comp ~ dplyr::lag(di_score, 1) + log_gdppc + income_level_recoded + factor(year), data = panel_data) # regular linear model
-fe_spi_di <- lm(spi_comp ~ dplyr::lag(di_score, 1) + log_gdppc + income_level_recoded + factor(year) + factor(country_code), data = panel_data)
+ols_spi_di <- lm(spi_comp ~ di_score_lag1 + log_gdppc + factor(income_level_recoded) + factor(year), data = panel_data_s1) # regular linear model
+fe_spi_di <- lm(spi_comp ~ di_score_lag1 + log_gdppc + factor(income_level_recoded) + factor(year) + factor(country_code), data = panel_data_s1)
 
 vif(ols_spi_di)
 vif(fe_spi_di)
