@@ -62,7 +62,7 @@ summary(ols_sdg_spi_L2, vcov = vcovHC(ols_sdg_spi_L2, cluster = "group", type = 
 ```
 
 ## Stargazer Table for POLS Models
-```{r}
+```{r eval=FALSE, include=FALSE}
 # --- POLS MODELS TABLE ---
 # Extracting robust standard errors for the three POLS models
 rob_se_pols <- list(
@@ -113,7 +113,7 @@ summary(fd_sdg_spi_L2, vcov = vcovHC(fd_sdg_spi_L2, cluster = "group", type = "H
 ```
 
 ## Stargazer Table for FD Models
-```{r}
+```{r eval=FALSE, include=FALSE}
 # Extracting robust standard errors for the three FD models
 rob_se_fd <- list(
   sqrt(diag(vcovHC(fd_sdg_spi, cluster = "group", type = "HC1"))),
@@ -162,7 +162,7 @@ summary(fe_sdg_spi_L2, vcov = vcovHC(fe_sdg_spi_L2, cluster = "group", type = "H
 ```
 
 # Stargazer Table for FE Models
-```{r}
+```{r eval=FALSE, include=FALSE}
 # Extracting robust standard errors for the three FE models
 rob_se_fe <- list(
   sqrt(diag(vcovHC(fe_sdg_spi, cluster = "group", type = "HC1"))),
@@ -186,7 +186,7 @@ stargazer(fe_sdg_spi, fe_sdg_spi_L1, fe_sdg_spi_L2,
 ```
 
 ## make a stargazer table of all Lag2 models for POLS, FD and FE
-```{r}
+```{r eval=FALSE, include=FALSE}
 # Extracting robust standard errors for the three models
 rob_se_lag2 <- list(
   sqrt(diag(vcovHC(ols_sdg_spi_L2, cluster = "group", type = "HC1"))),
@@ -263,7 +263,6 @@ ggplot(coef_df_fd, aes(x = term, y = estimate)) +
 # https://search.r-project.org/CRAN/refmans/plm/html/pwartest.html  
 # This is MUCH BETTER for panel data with small T AND unbalanced panels!!!
 pwartest(fe_sdg_spi_L2) # [significant]
-#pwartest(fd_sdg_spi_L2) # [significant]
 
 ```
 Significant p-value indicates the presence of autocorrelation in the residuals of the fixed effects model. This suggests that the errors are correlated over time, which violates one of the key assumptions of linear regression models.
