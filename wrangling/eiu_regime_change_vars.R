@@ -6,24 +6,14 @@ source("packages.R")
 
 eiu_identify_regime_changes <- function(data) {
   # Validate all columns exist in DF
-  required_cols <- c("country_code", "year", "di_score")
+  required_cols <- c("country_code", "year", "di_score", "eiu_regime_type")
   missing_cols <- setdiff(required_cols, names(data)) 
   if (length(missing_cols) > 0) {
     stop("Missing required columns: ", paste(missing_cols, collapse = ", "))
   }
   
   result <- data %>%
-    arrange(country_code, year) %>%
-    
-    # Create regime type classification based on 5.0 threshold
-    mutate(
-      eiu_regime_type = case_when(
-        di_score < 5 ~ 0,  # Autocracy
-        di_score >= 5 ~ 1,  # Democracy
-        TRUE ~ NA_integer_
-      )
-    ) %>% 
-    
+    arrange(country_code, year) %>% 
     group_by(country_code) %>%
     mutate(
       # Lag variables for regime type and score

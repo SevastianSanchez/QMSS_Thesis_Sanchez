@@ -13,15 +13,22 @@ source("packages.R")
 
 # load data
 source("Comp2_panel_wrangling.R")
+
+head(panel_data[, c("country_code", "year", "spi_comp_lag1", "di_score_lag1", "log_gdppc_lag1")])
 ```
 
 # Stage 1 Models:
 ols_spi_di
-fd_spi_di
-fe_spi_di
 ols_spi_di_L1
+ols_spi_di_L2
+
+fd_spi_di
 fd_spi_di_L1
+fd_spi_di_L2
+
+fe_spi_di
 fe_spi_di_L1
+fe_spi_di_L2
 
 # 1.1) POLS [Stage 1]: SPI ~ DI
 The effect of democracy on SPI Performance
@@ -44,14 +51,12 @@ summary(ols_spi_di_L1, vcov = vcovHC(ols_spi_di_L1, cluster = "group", type = "H
 
 # Adding Lag2: SPI ~ DI
 ols_spi_di_L2 <- plm(
-  formula = spi_comp ~ di_score + plm::lag(di_score, n=1) + dplyr::lag(di_score, n=2) + log_gdppc + income_level_recoded + factor(year), 
+  formula = spi_comp ~ di_score + plm::lag(di_score, n=1) + plm::lag(di_score, n=2) + log_gdppc + income_level_recoded + factor(year), 
   index = c("country_code", "year"),
   model = "pooling", 
   data = panel_data)
 summary(ols_spi_di_L2, vcov = vcovHC(ols_spi_di_L2, cluster = "group", type = "HC1"))
 ```
-
-**results**
 
 ## POLS Summary Table
 ```{r}
@@ -229,7 +234,7 @@ stargazer(
 ```
 
 
-# visualize the results using error bar charts that show the coefficient and robust standard error of every lagged effect in the fe_spi_di_L2 FE model
+# Visualize the results using error bar charts that show the coefficient and robust standard error of every lagged effect in the fe_spi_di_L2 FE model
 ```{r}
 # Extract coefficients and robust standard errors from the FE model
 fe_spi_di_L2_results <- summary(fe_spi_di_L2, vcov = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"))

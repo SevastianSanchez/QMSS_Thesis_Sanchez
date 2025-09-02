@@ -66,6 +66,14 @@ panel_data <- panel_data %>%
     ),
     income_level_recoded = as.factor(income_level_recoded),
     
+    # Regime Type (EUI): regime type classification based on 5.0 threshold of di_score
+      eiu_regime_type = case_when(
+        di_score < 5 ~ 0,  # Autocracy
+        di_score >= 5 ~ 1,  # Democracy
+        TRUE ~ NA_integer_
+      ), # 'eiu_regime_type' created here because it is used in comp 2 analysis.
+         # It's also needed to create regime change variables for further event-history analysis.
+    
     # Regime type variables (ERT)
     regime_type_4 = as.factor(regime_type_4),
     ert_autocracy = as.factor(ifelse(regime_type_4 %in% c(0, 1), 1, 0)),
@@ -90,23 +98,12 @@ panel_data <- panel_data %>%
   ) %>% 
   ungroup()
 
-# EIU-consistent regime change variables # FOR COMP 3 ANALYSIS (ARTICLE)
-#source("wrangling/eiu_ert_variables.R")
-#panel_data_eiu <- eiu_ert_variables(panel_data)
-
-# re-arrange columns to have key variables first for easier viewing
+# Component 2 dataset 
+# re-arranging columns to have key variables first for easier viewing
 panel_data <- panel_data %>%
   filter(year >= 2016) %>%
-  select(country_name, country_code, year, sdg_overall, spi_comp, di_score, sci_overall,
-         #eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep, 
-         log_gdppc, income_level_recoded, p1_use:p5_infra, goal1:goal17, everything())
-
-# Create regime changes summary
-#regime_changes_summary <- eiu_panel_data %>%
-#  filter(eiu_regch_event != 0 | eiu_dem_ep == 1 | eiu_aut_ep == 1) %>%
-#  select(country_code, country_name, year, di_score, di_score_lag1, di_score_diff, 
-#         eiu_regch_event, eiu_dem_ep, eiu_aut_ep) %>%
-#  arrange(country_code, year)
+  select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, 
+         eiu_regime_type, log_gdppc, income_level_recoded, p1_use:p5_infra, goal1:goal17, everything())
 
 # remove selected_df to free up memory
 rm(selected_df)
@@ -137,3 +134,17 @@ fd_data <- panel_data %>%
 
 # Optional: Save to CSV (uncommented when needed)
 # write_csv(panel_data, "data/Main CSV Outputs/panel_data.csv")
+# write_csv(fd_data, "data/Main CSV Outputs/fd_data.csv")
+
+
+# FOR COMP 3 ANALYSIS (ARTICLE) [WORRY ABOUT LATER]
+# EIU-consistent regime change variables 
+#source("wrangling/eiu_regime_change_vars.R")
+#panel_data_eiu <- eiu_identify_regime_changes(panel_data)
+
+# Create regime changes summary
+#regime_changes_summary <- eiu_panel_data %>%
+#  filter(eiu_regch_event != 0 | eiu_dem_ep == 1 | eiu_aut_ep == 1) %>%
+#  select(country_code, country_name, year, di_score, di_score_lag1, di_score_diff, 
+#         eiu_regch_event, eiu_dem_ep, eiu_aut_ep) %>%
+#  arrange(country_code, year)
