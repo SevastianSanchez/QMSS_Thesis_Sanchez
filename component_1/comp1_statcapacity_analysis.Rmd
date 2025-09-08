@@ -3,9 +3,9 @@ title: "Component 1: Multiple OLS, Interactions, Subgroups"
 author: "Sevastian Sanchez"
 date: "`r Sys.Date()`"
 output:
-  html_document: default
-  pdf_document: default
   word_document: default
+  pdf_document: default
+  html_document: default
 ---
 
 # All Countries, Preliminary Analysis (SPI x SDGs)
