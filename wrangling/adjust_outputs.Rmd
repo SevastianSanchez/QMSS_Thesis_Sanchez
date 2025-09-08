@@ -34,6 +34,21 @@ missing_ids <- check_missing_identifiers(merged_full)
 write_csv(merged_full, file = 'data/Main CSV Outputs/merged_full_NEW.csv')
 ```
 
+## Cross Sectional Data (Comp 1)
+- Prioritizing SDG data
+- Country-years are independent units
+```{r}
+merged_full <- read_csv("data/Main CSV Outputs/merged_full_NEW.csv")
+
+# All observations with an sdg_overall value
+comp1_sdg_data <- merged_full %>%
+  filter(!is.na(sdg_overall)) 
+
+#saving merged CSV output (unhash when certain)
+write_csv(comp1_sdg_data, file = 'data/Main CSV Outputs/comp1_data.csv')
+```
+
+
 ## Dependent Y = SPI (spi_comp)
 **Prioritizing spi_comp data**
 Deleting all countries without any SPI data 

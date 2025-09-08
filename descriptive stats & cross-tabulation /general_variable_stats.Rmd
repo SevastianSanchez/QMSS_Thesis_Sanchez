@@ -42,8 +42,8 @@ setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 source("packages.R")
 
 # Load the merged (filtered, final) and merged_full (unfiltered, full) datasets
-merged_full <- read_csv("data/Main CSV Outputs/merged_full_df.csv") # full unfiltered dataset
-merged <- read_csv("data/Main CSV Outputs/merged_final_df.csv") # filtered dataset
+merged_full <- read_csv("data/Main CSV Outputs/merged_full_NEW.csv") # full unfiltered dataset
+merged <- read_csv("data/Main CSV Outputs/comp1_data.csv") # filtered dataset
 
 # regime type variable (based on EIU DI data)
 merged <- merged %>%
@@ -61,10 +61,10 @@ key_vars <- c("sdg_overall", "spi_comp", "sci_overall", "di_score",
 *SDG VARIABLE NOTE: While all member states have a country profile, only those with less than 20% missing data are ranked in the SDG Index, resulting in 167 countries being ranked in the 2024 report.*
 
 **Reason to remove GINI from study [Explained in paper]:**
-This study uses country-years as my primary unit of analysis, at least in the cross-sectional segment of component 1. While inequalities in the distribution of wealth for a given country is an important consideration that may affect statistical capacity and sustainable development (source), not enough data points are available for every country, let alone every year, to produce a reliable estimate. I suspect that this missingness is non-random, as a significant share of countries, predominantly of emerging markets in the global south, face greater challenges in developing and consolidating the statistical infrastructure necessary for producing quality statistics (SOURCE). With almost 2000 missing country-year values, including the GINI coefficient as a control would dramatically decrease the sample size and yield unreliable results. To reiterate, this analysis refrains from using list-wise imputation, especially for variables like the GINI coefficient that are not available for all countries and years. Instead, the analysis focused on the available data, which is sufficient to draw meaningful conclusions about the relationship between statistical capacity and sustainable development.
+
 
 **Reason to remove Population from models [Explained in paper]**
-The models will not be including total national population although is theoretically important for my research as it likely contributes the nations ability to capture high quality statistics on the population as surly this can challenge current structures in place that are not equipped to track a growing population (source). The reason is because doing so would introduce colinearity with national (logged) Gross Domestic Product per capita (population), which would bias results.
+
 
 # 2. Dataset Coverage
 
@@ -208,7 +208,7 @@ key_vars <- c("sdg_overall", "spi_comp", "sci_overall", "di_score", "gdp_pc", "l
 gni_filter <- "all" # specify desired GNI level (e.g., LIC, LMIC, UMIC, HIC, all)
 
 # Apply subgroup filter level for regime type 
-regime_filter <- "autocracy" # specify desired regime type (e.g., all, Democracy, Autocracy)
+regime_filter <- "all" # specify desired regime type (e.g., all, Democracy, Autocracy)
 
 # Generating summary statistics for key variables
 merged_stats <- merged %>%
