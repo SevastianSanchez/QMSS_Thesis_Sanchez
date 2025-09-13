@@ -26,17 +26,32 @@ source("packages.R")
 source("Comp2_panel_wrangling.R")
 # select path = "data/Main CSV Outputs/merged_cleaned_sdg.csv"
 
-panel_data_s1 <- panel_data %>% 
+panel_data_spi <- panel_data %>% 
   dplyr::select(country_name, country_code, year, spi_comp, di_score, di_score_lag1, di_score_lag2, log_gdppc, spi_comp_lag1, spi_comp_lag2, income_level_recoded) %>%
   dplyr::arrange(country_code, year)
 
-head(panel_data_s1)
+# how many countries 
+length(unique(panel_data_comp1_data$country_code)) 
 
-# check lag structure is correct 
-head(panel_data_s1[, c("country_code", "year", "spi_comp", "spi_comp_lag1", "spi_comp_lag2",  "di_score", "di_score_lag1", "di_score_lag2")])
+# check that lag structure is correct 
+head(panel_data_spi[, c("country_code", "year", "spi_comp", "spi_comp_lag1", "spi_comp_lag2",  "di_score", "di_score_lag1", "di_score_lag2")])
 
-dim(panel_data_s1) # 1336 rows, 11 columns
+# check dimensions
+dim(panel_data_spi) 
+
+# testing dataframes for sensitivity of results 
+panel_data <- panel_data_spi
 ```
+*sensitivity analysis*
+Basing analysis of dataset sensitivity on FE model of the second order (fe_spi_di_L2)
+
+- Dataset = panel_data_comp1_data, 1336 obs, 167 countries, FE models (di_score_lag2) showed p = 0.07598 (marginally significant)
+
+- Dataset = panel_data_sdg,  1336 obs, 167 countries, FE models (di_score_lag2) showed p = 0.07598 (marginally significant)
+
+- Dataset = panel_data_exclusive, 1296 obs, 162 countries, FE models (di_score_lag2) showed p = 0.079 (marginally significant)
+
+- Dataset = panel_data_spi, 1392 obs, 174 countries, FE models (di_score_lag2) showed p = 0.1497 (not significant)
 
 # Stage 1 Models:
 ols_spi_di
@@ -59,7 +74,7 @@ ols_spi_di <- plm(
   formula = spi_comp ~ di_score + log_gdppc + factor(income_level_recoded) + factor(year), 
   index = c("country_code", "year"),
   model = "pooling", 
-  data = panel_data_s1)
+  data = panel_data)
 summary(ols_spi_di, vcov = vcovHC(ols_spi_di, cluster = "group", type = "HC1"))
 
 # Adding Lag1: SPI ~ DI
@@ -67,7 +82,7 @@ ols_spi_di_L1 <- plm(
   formula = spi_comp ~ di_score + di_score_lag1 + log_gdppc + factor(income_level_recoded) + factor(year), 
   index = c("country_code", "year"),
   model = "pooling", 
-  data = panel_data_s1)
+  data = panel_data)
 summary(ols_spi_di_L1, vcov = vcovHC(ols_spi_di_L1, cluster = "group", type = "HC1"))
 
 # Adding Lag2: SPI ~ DI
@@ -75,7 +90,7 @@ ols_spi_di_L2 <- plm(
   formula = spi_comp ~ di_score + di_score_lag1 + di_score_lag2 + log_gdppc + factor(income_level_recoded) + factor(year), 
   index = c("country_code", "year"),
   model = "pooling", 
-  data = panel_data_s1)
+  data = panel_data)
 summary(ols_spi_di_L2, vcov = vcovHC(ols_spi_di_L2, cluster = "group", type = "HC1"))
 ```
 
@@ -171,7 +186,7 @@ stargazer(
 fe_spi_di <- plm(
   formula = spi_comp ~ di_score + log_gdppc + factor(income_level_recoded) + factor(year),
   index = c("country_code", "year"),
-  data = panel_data_s1,
+  data = panel_data,
   model = "within")
 summary(fe_spi_di, vcov = vcovHC(fe_spi_di, cluster = "group", type = "HC1"))
 
@@ -179,7 +194,7 @@ summary(fe_spi_di, vcov = vcovHC(fe_spi_di, cluster = "group", type = "HC1"))
 fe_spi_di_L1 <- plm(
   formula = spi_comp ~ di_score + di_score_lag1 + log_gdppc + factor(income_level_recoded) + factor(year),
   index = c("country_code", "year"),
-  data = panel_data_s1,
+  data = panel_data,
   model = "within")
 summary(fe_spi_di_L1, vcov = vcovHC(fe_spi_di_L1, cluster = "group", type = "HC1"))
 
@@ -187,7 +202,7 @@ summary(fe_spi_di_L1, vcov = vcovHC(fe_spi_di_L1, cluster = "group", type = "HC1
 fe_spi_di_L2 <- plm(
   formula = spi_comp ~ di_score + di_score_lag1 + di_score_lag2 + log_gdppc + factor(income_level_recoded) + factor(year),
   index = c("country_code", "year"),
-  data = panel_data_s1,
+  data = panel_data,
   model = "within")
 summary(fe_spi_di_L2, vcov = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"))
 
