@@ -5,8 +5,8 @@ setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 source("packages.R")
 
 # load data [Cleaned SPI & SDG Datasets]
-selected_df <- read_csv(file.choose())
-#selected_df <- read_csv("data/Main CSV Outputs/merged_cleaned_sdg.csv")
+selected_df <- read_csv("data/Main CSV Outputs/merged_exclusive.csv") 
+#selected_df <- read_csv(file.choose()) # used for sensitivity analysis (different datasets)
 
 # REFERENCE FOR COVERAGE OF COUNTRIES IN DATASETS
 COUNTRIES_BY_DF_REFERENCE <- read_csv("wrangling/adjust_outputs_diagnostics/all_countries_studied_comparison.csv")

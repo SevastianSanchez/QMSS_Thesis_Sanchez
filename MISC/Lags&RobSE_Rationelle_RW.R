@@ -46,10 +46,10 @@ summary(fe_plm_lags)
 
 # FOR FIGURING OUT CORRECT Robust SE - GOAL 2
 
-summary(pols_premade_lags)
+summary(ols_spi_di_L2)
 coeftest(pols_premade_lags) # Same as summary(pols_premade_lags)
 
 coeftest(pols_premade_lags, vcovHC) # Defaults to HC0 
 
-coeftest(pols_premade_lags, vcovHC(pols_premade_lags, cluster = "group", type = "HC1")) # Same as below
-summary(pols_premade_lags, vcov = vcovHC(pols_premade_lags, cluster = "group", type = "HC1"))
+coeftest(ols_spi_di_L2, vcovHC(ols_spi_di_L2, cluster = "group", type = "HC1")) # Same as below
+summary(ols_spi_di_L2, vcov = vcovHC(ols_spi_di_L2, cluster = "group", type = "HC1"))

@@ -1,16 +1,28 @@
 ---
-title: "Component 2, Stage 2: SPI -> SDG"
+title: "Component 2, Stage 2"
 author: "Sevastian Sanchez"
 date: "`r Sys.Date()`"
 output:
-  pdf_document: default
+  pdf_document:
+    toc: no
+    toc_depth: '3'
+    number_sections: yes
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+    number_sections: yes
+    highlight: tango
+    theme: default
+    fig_caption: yes
+    df_print: tibble
   word_document: default
-  html_document: default
+  urlcolor: blue
 ---
 ```{r}
 knitr::opts_chunk$set(
-  tidy = TRUE,
-  tidy.opts = list(width.cutoff = 60) 
+  echo = TRUE, warning = FALSE, message = FALSE,
+  tidy = TRUE, tidy.opts = list(width.cutoff = 60) 
 )
 ```
 
@@ -32,7 +44,7 @@ panel_data <- panel_data %>%
   dplyr::arrange(country_code, year)
 
 # how many countries 
-length(unique(panel_data_comp1_data$country_code)) 
+length(unique(panel_data$country_code)) 
 
 # check lag structure is correct 
 head(panel_data[, c("country_code", "year", "sdg_overall", "spi_comp", "spi_comp_lag1", "spi_comp_lag2",  "di_score", "di_score_lag1", "di_score_lag2")])
@@ -88,7 +100,7 @@ stargazer(ols_sdg_spi, ols_sdg_spi_L1, ols_sdg_spi_L2,
           model.numbers = FALSE,
           #keep.stat = c("n", "rsq", "adj.rsq"),
           omit = "factor\\(year\\)",  # Omits year FE from display
-          out = "figures/s2_pols_lags.html") 
+          out = "component_2/figures/stage2/s2_pols_lags.html") 
 
 ```
 
@@ -137,7 +149,7 @@ stargazer(fd_sdg_spi, fd_sdg_spi_L1, fd_sdg_spi_L2,
           report = "vcs*", 
           #keep.stat = c("n", "rsq", "adj.rsq"),
           omit = "factor\\(year\\)",  # Omits year FE from display
-          out = "figures/s2_fd_lags.html")
+          out = "component_2/figures/stage2/s2_fd_lags.html")
 ```
 
 # 2.3) Fixed Effects [Stage 2]
@@ -186,7 +198,7 @@ stargazer(fe_sdg_spi, fe_sdg_spi_L1, fe_sdg_spi_L2,
           report = "vcs*", 
           #keep.stat = c("n", "rsq", "adj.rsq"),
           omit = "factor\\(year\\)",  # Omits year FE from display
-          out = "figures/s2_fe_lags.html")
+          out = "component_2/figures/stage2/s2_fe_lags.html")
 ```
 
 ## make a stargazer table of all Lag2 models for POLS, FD and FE
@@ -210,7 +222,7 @@ stargazer(ols_sdg_spi_L2, fd_sdg_spi_L2, fe_sdg_spi_L2,
           report = "vcs*", 
           #keep.stat = c("n", "rsq", "adj.rsq"),
           omit = "factor\\(year\\)",  # Omits year FE from display
-          out = "figures/s2_lag2_mods.html")
+          out = "component_2/figures/stage2/s2_lag2_mods.html")
 ```
 
 ## Fixed Effects Error Bar Visualization 
@@ -224,17 +236,58 @@ coef_df <- data.frame(
   std.error = coefs[, "Std. Error"]
 )
 # Create a ggplot error bar chart
-ggplot(coef_df, aes(x = term, y = estimate)) +
+ebar_fe <- ggplot(coef_df, aes(x = term, y = estimate)) +
   geom_point() +
   geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error), width = 0.2) +
-  labs(title = "Lagged Effects in FE Model (sdg_overall ~ spi_comp + di_score + log_gdppc + income_level_recoded)",
-       x = "Predictors",
+  labs(title = "Stage II: FE Model (sdg_overall ~ spi_comp + di_score)",
+       x = NULL,
        y = "Coefficient Estimate") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_x_discrete(labels = c("di_score" = "Democracy (DI)", 
+                              "di_score_lag1" = "Lagged DI (t-1)", 
+                              "di_score_lag2" = "Lagged DI (t-2)", 
+                              "spi_comp" = "Statistical Performance (SPI)",
+                              "spi_comp_lag1" = "Lagged SPI (t-1)",
+                              "spi_comp_lag2" = "Lagged SPI (t-2)",
+                              "log_gdppc" = "Log(GDP per capita)", 
+                              "factor(income_level_recoded)1" = "Lower-Middle Income (LMIC)", 
+                              "factor(income_level_recoded)2" = "Upper-Middle Income (UMIC)", 
+                              "factor(income_level_recoded)3" = "High Income (HIC)", 
+                              "factor(year)2017" = "Year 2017",
+                              "factor(year)2018" = "Year 2018",
+                              "factor(year)2019" = "Year 2019",
+                              "factor(year)2020" = "Year 2020",
+                              "factor(year)2021" = "Year 2021",
+                              "factor(year)2022" = "Year 2022",
+                              "factor(year)2023" = "Year 2023",
+                              "Intercept" = "Intercept"
+                              ),
+                   limits = c(
+                   "di_score", 
+                   "di_score_lag1",
+                   "di_score_lag2",
+                   "spi_comp",
+                   "spi_comp_lag1",
+                   "spi_comp_lag2",
+                   "log_gdppc",
+                   "factor(income_level_recoded)1",
+                   "factor(income_level_recoded)2",
+                   "factor(income_level_recoded)3",
+                   "factor(year)2017",
+                   "factor(year)2018",
+                   "factor(year)2019",
+                   "factor(year)2020",
+                   "factor(year)2021",
+                   "factor(year)2022",
+                   "factor(year)2023",
+                   "Intercept"
+                 ))
+
+ebar_fe
 
 # Save the plot
-#ggsave("figures/error_bar_fe_sdg_spi_L2.png", width = 10, height = 6)
+#ggsave("component_2/figures/stage2/error_bar_fe_sdg_spi_L2.png", ebar_fe, width = 10, height = 6)
 ```
 
 ## First Difference Error Bar Visualization
@@ -248,17 +301,44 @@ coef_df_fd <- data.frame(
   std.error = coefs_fd[, "Std. Error"]
 )
 # Create a ggplot error bar chart for the FD model
-ggplot(coef_df_fd, aes(x = term, y = estimate)) +
+ebar_fd <- ggplot(coef_df_fd, aes(x = term, y = estimate)) +
   geom_point() +
   geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error), width = 0.2) +
   labs(title = "Lagged Effects in FD Model (sdg_overall ~ spi_comp + di_score + log_gdppc + income_level_recoded)",
-       x = "Predictors",
+       x = NULL,
        y = "Coefficient Estimate") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_x_discrete(labels = c("di_score" = "Democracy (DI)", 
+                              "di_score_lag1" = "Lagged DI (t-1)", 
+                              "di_score_lag2" = "Lagged DI (t-2)", 
+                              "spi_comp" = "Statistical Performance (SPI)",
+                              "spi_comp_lag1" = "Lagged SPI (t-1)",
+                              "spi_comp_lag2" = "Lagged SPI (t-2)",
+                              "log_gdppc" = "Log(GDP per capita)", 
+                              "factor(income_level_recoded)1" = "Lower-Middle Income (LMIC)", 
+                              "factor(income_level_recoded)2" = "Upper-Middle Income (UMIC)", 
+                              "factor(income_level_recoded)3" = "High Income (HIC)", 
+                              "Intercept" = "Intercept"
+                              ),
+                   limits = c(
+                   "di_score", 
+                   "di_score_lag1",
+                   "di_score_lag2",
+                   "spi_comp",
+                   "spi_comp_lag1",
+                   "spi_comp_lag2",
+                   "log_gdppc",
+                   "factor(income_level_recoded)1",
+                   "factor(income_level_recoded)2",
+                   "factor(income_level_recoded)3",
+                   "Intercept"
+                 ))
+
+ebar_fd
 
 # Save the plot
-#ggsave("figures/error_bar_fd_sdg_spi_L2.png", width = 10, height = 6)
+#ggsave("component_2/figures/stage2/error_bar_fd_sdg_spi_L2.png", ebar_fd, width = 10, height = 6)
 ```
 
 ## Check for Autocorrelation 
