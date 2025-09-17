@@ -26,7 +26,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-
 # Set up and Wrangling 
 ```{r}
 # set working directory
@@ -36,19 +35,83 @@ setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 source("packages.R")
 
 # load data
-source("Comp2_panel_wrangling.R")
+source("Comp2_panel_wrangling.R") # using comp2 data 
+```
+Component 2 data is employed in Component 3, with additional variables utilized for subgrouping in this analysis.
+
+# Data Preparation
+```{r}
+# load & apply function
+source("wrangling/eiu_regime_change_vars.R")
+panel_data_comp3 <- eiu_identify_regime_changes(panel_data)
+rm(panel_data) # to free up memory
+
+
+# 
+
+# View a summary of regime changes
+REGIME_CH_INSTANCES <- panel_data_comp3 %>%
+  filter(eiu_regch_event != "No Transition" | eiu_dem_ep == 1 | eiu_aut_ep == 1) %>%
+  select(country_code, country_name, year, di_score, di_score_lag1, di_score_diff, 
+         eiu_regch_event, eiu_dem_ep, eiu_aut_ep) %>%
+  arrange(country_code, year)
+
+summary(REGIME_CH_INSTANCES)
+
+# how many countries experiences regime transitions?
+length(unique(REGIME_CH_INSTANCES$country_code)) # 34 countries experienced regime transitions or
+
+# how many countries democratized? 
+
+# how many countries autocratized?
+
+# View structure of the updated data
+str(panel_data_comp3)
+
+# Check unique values of key variables
+sapply(panel_data_comp3 %>% 
+         select(eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep, eiu_has_aut_ep, eiu_has_dem_ep, eiu_has_both, eiu_has_neither, eiu_democratized, eiu_autocratized, eiu_stable), 
+       unique)
+
+# Check counts of regime transitions and episodes
+table(panel_data_comp3$eiu_regch_event)
+table(panel_data_comp3$eiu_dem_ep)
+table(panel_data_comp3$eiu_aut_ep)
+table(panel_data_comp3$eiu_has_aut_ep)
+table(panel_data_comp3$eiu_has_dem_ep)
+table(panel_data_comp3$eiu_has_both)
+table(panel_data_comp3$eiu_has_neither)
+table(panel_data_comp3$eiu_democratized)
+table(panel_data_comp3$eiu_autocratized)
+table(panel_data_comp3$eiu_stable)
+
+# Check event time distributions
+summary(panel_data_comp3$eiu_dem_event_time)
+summary(panel_data_comp3$eiu_aut_event_time)
+summary(panel_data_comp3$eiu_dem_ep_time)
+summary(panel_data_comp3$eiu_aut_ep_time)
+
+# Check for any NA values in key variables
+sapply(panel_data_comp3 %>% 
+         select(eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep, eiu_has_aut_ep, eiu_has_dem_ep, eiu_has_both, eiu_has_neither, eiu_democratized, eiu_autocratized, eiu_stable, eiu_dem_event_time, eiu_aut_event_time, eiu_dem_ep_time, eiu_aut_ep_time), 
+       function(x) sum(is.na(x)))
+
 ```
 
 **Quick Counts**
 ```{r}
 # EIU DI binary regime type 
-table(panel_data$eiu_regime_type)
-
-# RoW V-Dem binary regime type
-#table(panel_data$regime_type_binary)
+table(panel_data_comp3$eiu_regime_type)
 
 # income_level_recoded 
-table(panel_data$income_level_recoded)
+table(panel_data_comp3$income_level_recoded)
+```
+
+## filter out transitioning regimes 
+```{r}
+panel_data <- panel_data_comp3 %>%
+  dplyr::filter(di_reg_type_2 != 1) # removing transitioning regimes
+
 ```
 
 ## Stepwise Check: Moderator/Interaction Terms [Stage 1]
@@ -74,30 +137,6 @@ FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dply
                   index = c("country_code", "year"),
                   data = panel_data, 
                   #subset = income_level_recoded == 3, # modifying based on income level
-                  effect = "twoways")
-summary(FE_testing)
-summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
-```
-
-## Regime Change Episodes (has_aut_ep), Subgrouping
-```{r}
-FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
-                  model = "within", 
-                  index = c("country_code", "year"),
-                  data = panel_data, 
-                  subset = has_aut_ep == 1, # modifying based regime stability
-                  effect = "twoways")
-summary(FE_testing)
-summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
-```
-
-## Regime Change Episodes (has_dem_ep), Subgrouping
-```{r}
-FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dplyr::lag(di_score, 2) + log_gdppc,
-                  model = "within", 
-                  index = c("country_code", "year"),
-                  data = panel_data, 
-                  subset = has_dem_ep == 1, # modifying based regime stability
                   effect = "twoways")
 summary(FE_testing)
 summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))

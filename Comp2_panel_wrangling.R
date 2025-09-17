@@ -145,16 +145,3 @@ fd_data <- panel_data %>%
 # Optional: Save to CSV (uncommented when needed)
 # write_csv(panel_data, "data/Main CSV Outputs/panel_data.csv")
 # write_csv(fd_data, "data/Main CSV Outputs/fd_data.csv")
-
-
-# FOR COMP 3 ANALYSIS (ARTICLE) [WORRY ABOUT LATER]
-# EIU-consistent regime change variables 
-#source("wrangling/eiu_regime_change_vars.R")
-#panel_data_eiu <- eiu_identify_regime_changes(panel_data)
-
-# Create regime changes summary
-#regime_changes_summary <- eiu_panel_data %>%
-#  filter(eiu_regch_event != 0 | eiu_dem_ep == 1 | eiu_aut_ep == 1) %>%
-#  select(country_code, country_name, year, di_score, di_score_lag1, di_score_diff, 
-#         eiu_regch_event, eiu_dem_ep, eiu_aut_ep) %>%
-#  arrange(country_code, year)
