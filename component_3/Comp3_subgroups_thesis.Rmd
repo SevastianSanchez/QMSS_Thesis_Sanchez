@@ -46,50 +46,45 @@ source("wrangling/eiu_regime_change_vars.R")
 panel_data_comp3 <- eiu_identify_regime_changes(panel_data)
 rm(panel_data) # to free up memory
 
+# View structure of the updated data
+str(panel_data_comp3)
 
-# 
-
-# View a summary of regime changes
+# summary of regime changes
 REGIME_CH_INSTANCES <- panel_data_comp3 %>%
   filter(eiu_regch_event != "No Transition" | eiu_dem_ep == 1 | eiu_aut_ep == 1) %>%
   select(country_code, country_name, year, di_score, di_score_lag1, di_score_diff, 
          eiu_regch_event, eiu_dem_ep, eiu_aut_ep) %>%
   arrange(country_code, year)
-
 summary(REGIME_CH_INSTANCES)
 
-# how many countries experiences regime transitions?
-length(unique(REGIME_CH_INSTANCES$country_code)) # 34 countries experienced regime transitions or
+# list of all countries in REGIME_CH_INSTANCES & frequency in a dataframe
+REGIME_CH_COUNTS <- REGIME_CH_INSTANCES %>%
+  group_by(country_code, country_name) %>%
+  summarise(
+    instances = n(),
+    democratizations = sum(eiu_regch_event == "Democratized", na.rm = TRUE),
+    autocratizations = sum(eiu_regch_event == "Autocratized", na.rm = TRUE),
+    dem_ep_events = sum(eiu_dem_ep == 1, na.rm = TRUE),
+    aut_ep_events = sum(eiu_aut_ep == 1, na.rm = TRUE)
+  ) %>% 
+  ungroup()
 
-# how many countries democratized? 
+# How many instances of democratization in total?
+nrow(REGIME_CH_INSTANCES %>% filter(eiu_regch_event == "Democratized"))
+# How many instances of autocratization in total?
+nrow(REGIME_CH_INSTANCES %>% filter(eiu_regch_event == "Autocratized"))
 
-# how many countries autocratized?
+# how many countries democratized at least once?
+REGIME_CH_COUNTS %>% 
+  # find the number of countries that democratized at least once and the number of times
+  filter(democratizations > 0) %>%
+  select(country_code, country_name, democratizations)
 
-# View structure of the updated data
-str(panel_data_comp3)
-
-# Check unique values of key variables
-sapply(panel_data_comp3 %>% 
-         select(eiu_regime_type, eiu_regch_event, eiu_dem_ep, eiu_aut_ep, eiu_has_aut_ep, eiu_has_dem_ep, eiu_has_both, eiu_has_neither, eiu_democratized, eiu_autocratized, eiu_stable), 
-       unique)
-
-# Check counts of regime transitions and episodes
-table(panel_data_comp3$eiu_regch_event)
-table(panel_data_comp3$eiu_dem_ep)
-table(panel_data_comp3$eiu_aut_ep)
-table(panel_data_comp3$eiu_has_aut_ep)
-table(panel_data_comp3$eiu_has_dem_ep)
-table(panel_data_comp3$eiu_has_both)
-table(panel_data_comp3$eiu_has_neither)
-table(panel_data_comp3$eiu_democratized)
-table(panel_data_comp3$eiu_autocratized)
-table(panel_data_comp3$eiu_stable)
-
-# Check event time distributions
-summary(panel_data_comp3$eiu_dem_event_time)
-summary(panel_data_comp3$eiu_aut_event_time)
-summary(panel_data_comp3$eiu_dem_ep_time)
-summary(panel_data_comp3$eiu_aut_ep_time)
+# how many countries autocratized at least once?
+REGIME_CH_COUNTS %>% 
+  # find the number of countries that democratized at least once
+  filter(autocratizations > 0) %>%
+  select(country_code, country_name, autocratizations)
 
 # Check for any NA values in key variables
 sapply(panel_data_comp3 %>% 
@@ -98,22 +93,78 @@ sapply(panel_data_comp3 %>%
 
 ```
 
-**Quick Counts**
+## filtering out transitioning regimes 
 ```{r}
-# EIU DI binary regime type 
-table(panel_data_comp3$eiu_regime_type)
+# removing transitioning regimes
+panel_data_stable <- panel_data_comp3 %>%
+  dplyr::filter(eiu_stable == 1) 
 
-# income_level_recoded 
-table(panel_data_comp3$income_level_recoded)
+# Subset for democracies
+sub_dem <- panel_data_stable %>%
+  dplyr::filter(eiu_regime_type == "Democracy") 
+
+# Subset for autocracies
+sub_aut <- panel_data_stable %>%
+  dplyr::filter(eiu_regime_type == "Autocracy")
 ```
 
-## filter out transitioning regimes 
+# Only Stable Regimes: Two-Way Fixed Effects Model
 ```{r}
-panel_data <- panel_data_comp3 %>%
-  dplyr::filter(di_reg_type_2 != 1) # removing transitioning regimes
+# create plm pdataframe with stable data 
+panel_data_stable <- pdata.frame(panel_data_stable, index = c("country_code", "year"))
 
+# Load the panel data
+FE_testing <- plm(formula = spi_comp ~ di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) + plm::lag(di_score, 3) + log_gdppc + factor(income_level_recoded),
+                  model = "within", 
+                  data = panel_data_stable, 
+                  effect = "twoways")
+summary(FE_testing)
+summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
 ```
 
+# Only Democratic Regimes: Two-Way Fixed Effects Model
+```{r}
+# create plm pdataframe with stable country data 
+sub_dem <- pdata.frame(sub_dem, index = c("country_code", "year"))
+
+# Load the panel data
+FE_testing <- plm(formula = spi_comp ~ di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) + plm::lag(di_score, 3) + log_gdppc + factor(income_level_recoded),
+                  model = "within", 
+                  data = sub_dem, 
+                  effect = "twoways")
+summary(FE_testing)
+summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
+```
+
+# Only Democratic Regimes: Two-Way Fixed Effects Model
+```{r}
+# create plm pdataframe with democratic country data 
+sub_dem <- pdata.frame(sub_dem, index = c("country_code", "year"))
+
+# Load the panel data
+FE_testing <- plm(formula = spi_comp ~ di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) + plm::lag(di_score, 3) + log_gdppc + factor(income_level_recoded),
+                  model = "within", 
+                  data = sub_dem, 
+                  effect = "twoways")
+summary(FE_testing)
+summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
+```
+
+# Only Autocratic Regimes: Two-Way Fixed Effects Model
+```{r}
+# create plm pdataframe with democratic country data 
+sub_aut <- pdata.frame(sub_aut, index = c("country_code", "year"))
+
+# Load the panel data
+FE_testing <- plm(formula = spi_comp ~ di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) + plm::lag(di_score, 3) + log_gdppc + factor(income_level_recoded),
+                  model = "within", 
+                  data = sub_aut, 
+                  effect = "twoways")
+summary(FE_testing)
+summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))
+```
+
+-------------------------------------
 ## Stepwise Check: Moderator/Interaction Terms [Stage 1]
 
 ## EIU DI binary regime type, Subgrouping 
@@ -123,7 +174,6 @@ FE_testing <- plm(formula = spi_comp ~ di_score + dplyr::lag(di_score, 1) + dply
                   model = "within", 
                   index = c("country_code", "year"),
                   data = panel_data, 
-                  subset = di_reg_type_2 == 0, # modifying based on regime type
                   effect = "twoways")
 summary(FE_testing)
 summary(FE_testing, vcov = vcovHC(FE_testing, cluster = "group", type = "HC1"))

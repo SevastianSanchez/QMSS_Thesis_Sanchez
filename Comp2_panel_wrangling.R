@@ -23,13 +23,17 @@ panel_data <- selected_df %>%
     # Lag & lead DI vars
     di_score_lag1 = dplyr::lag(di_score, n = 1),
     di_score_lag2 = dplyr::lag(di_score, n = 2),
+    di_score_lag3 = dplyr::lag(di_score, n = 3),
     di_score_lead1 = dplyr::lead(di_score, n = 1),  # For potential future use
     di_score_lead2 = dplyr::lead(di_score, n = 2),  # For potential future use
+    di_score_lead3 = dplyr::lead(di_score, n = 3),  # For potential future use
     # Lag & lead SPI vars
     spi_comp_lag1 = dplyr::lag(spi_comp, n = 1),
     spi_comp_lag2 = dplyr::lag(spi_comp, n = 2),
+    spi_comp_lag3 = dplyr::lag(spi_comp, n = 3),
     spi_comp_lead1 = dplyr::lead(spi_comp, n = 1),  # For potential future use
     spi_comp_lead2 = dplyr::lead(spi_comp, n = 2),  # For potential future use
+    spi_comp_lead3 = dplyr::lead(spi_comp, n = 3),  # For potential future use
     # Lag & lead log GDP vars
     log_gdppc_lag1 = dplyr::lag(log_gdppc, n = 1),
     log_gdppc_lag2 = dplyr::lag(log_gdppc, n = 2),
@@ -81,8 +85,11 @@ panel_data <- panel_data %>%
         di_score < 5 ~ 0,  # Autocracy
         di_score >= 5 ~ 1,  # Democracy
         TRUE ~ NA_integer_
-      ), # 'eiu_regime_type' created here because it is used in comp 2 analysis.
-         # It's also needed to create regime change variables for further event-history analysis.
+      ),
+    eiu_regime_type = as.factor(eiu_regime_type),
+    # 'eiu_regime_type' created here because it is used in comp 2 analysis.
+    # It's also needed to create regime change variables for further event-history analysis.
+    di_score_reverse = 10 - di_score,  # experimental: Reverse DI score for regime change detection (higher = more autocratic)
     
     # Regime type variables (ERT)
     regime_type_4 = as.factor(regime_type_4),
