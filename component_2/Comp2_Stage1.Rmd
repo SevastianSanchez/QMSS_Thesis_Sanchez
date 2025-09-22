@@ -239,7 +239,7 @@ ebar_fd <- ggplot(coef_fd_df, aes(x = term, y = estimate)) +
   labs(title = "Static & Lagged First Difference (SPI~DI)", x = NULL, y = "Coefficient Estimate") +
   theme_minimal() +
   coord_flip() +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "darkblue") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "steelblue") +
   scale_x_discrete(labels = c("di_score" = "Democracy (DI)", 
                               "plm::lag(di_score, 1)" = "Lagged DI (t-1)", 
                               "plm::lag(di_score, 2)" = "Lagged DI (t-2)", 
@@ -256,7 +256,7 @@ ebar_fd <- ggplot(coef_fd_df, aes(x = term, y = estimate)) +
 ebar_fd
 
 # Save the plot
-#ggsave("component_2/figures/stage1/error_bar_fd_spi_di_L2.png", ebar_fd, width = 10, height = 6)
+ggsave("component_2/figures/stage1/error_bar_fd_spi_di_L2.png", ebar_fd, width = 10, height = 6)
 
 ```
 
@@ -339,7 +339,7 @@ ebar_fe <- ggplot(coef_df, aes(x = term, y = estimate)) +
        y = "Coefficient Estimate") +
   theme_minimal() +
   coord_flip() +  # Flip coordinates for better readability
-  geom_hline(yintercept = 0, linetype = "dashed", color = "darkblue") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "steelblue") +
   # re-labeling x variable lables 
   scale_x_discrete(labels = c("di_score" = "Democracy (DI)", 
                               "plm::lag(di_score, 1)" = "Lagged DI (t-1)", 
@@ -371,7 +371,7 @@ ebar_fe <- ggplot(coef_df, aes(x = term, y = estimate)) +
 ebar_fe
 
 # Save the plot
-#ggsave("component_2/figures/stage1/error_bar_fe_spi_di_L2.png", ebar_fe, width = 10, height = 6)
+ggsave("component_2/figures/stage1/error_bar_fe_spi_di_L2.png", ebar_fe, width = 10, height = 6)
 ```
 
 ## Fixed Effects Summary Table
@@ -446,3 +446,103 @@ bptest(fd_spi_di_L2, studentize = TRUE) # Heteroskedasticity [significant]
 The Breusch-Pagan test indicates the presence of heteroskedasticity in the residuals of the fixed effects model. This suggests that the variance of the errors is not constant across observations, which violates another key assumption of linear regression models.
 
 
+## Residual Diagnostics
+### PLOS Residuals for mediator model: SPI ~ DI + Controls [STAGE 1]
+```{r}
+# Extract the data actually used in the model
+ols_spi_di <- lm(spi_comp ~ di_score + log_gdppc + factor(year), data = panel_data) # regular linear model
+model_data1 <- model.frame(ols_spi_di)
+
+# switch to all stage-one plots 
+png("component_2/figures/stage1/all_s1_residual_plots.png", width = 8, height = 6.5, units = "in", res = 300)
+par(mfrow = c(3, 3))
+
+# Residuals vs Fitted Values plot for ols_spi_di
+plot(ols_spi_di, which = 1,
+     main = "Residuals vs Fitted Model", caption = "ols_spi_di [Stage 1]", pch = 1, cex = 0.35, col = "#595959")
+abline(h = 0, col = "black", lty = 2, lwd = 1)
+fitted_vals <- fitted(ols_spi_di)
+lines(lowess(fitted_vals, resid(ols_spi_di)), col = "red", lwd =  1.5)
+
+# Residuals vs di_score plot
+plot(model_data1$di_score, resid(ols_spi_di),
+     xlab = "di_score",  ylab = "", yaxt = "n", main = "Residuals vs di_score", pch = 1, cex = 0.35, col = "darkred")
+abline(h = 0, col = "black", lty = 2, lwd = 1)
+lines(lowess(model_data1$di_score, resid(ols_spi_di)), col = "red", lwd = 1.5)
+
+# Residuals vs log_gdppc plot
+plot(model_data1$log_gdppc, resid(ols_spi_di),
+     xlab = "log_gdppc",  ylab = "", yaxt = "n", main = "Residuals vs log_gdppc", pch = 1, cex = 0.35, col = "darkgreen")
+abline(h = 0, col = "black", lty = 2, lwd = 1)
+lines(lowess(model_data1$log_gdppc, resid(ols_spi_di)), col = "red", lwd =  1.5)
+
+#dev.off() # to save 
+
+#par(mfrow = c(1, 1))
+```
+
+### First Differences Residuals for mediator model: SPI ~ DI + Controls [STAGE 1]
+```{r}
+# Extract the data actually used in the model
+fd_spi_di <- lm(spi_diff ~ di_diff + log_gdppc_diff, data = fd_data)
+model_data_fd1 <- model.frame(fd_spi_di)
+
+# saving as png
+#png("figures/residual_plots/fd1_residual_plots.png", width = 8, height = 3, units = "in", res = 300)
+#par(mfrow = c(1, 3))
+
+# Residuals vs Fitted Values plot for fd_spi_di
+plot(fd_spi_di, which = 1,
+     main = "FD Residuals vs Fitted Model", caption = "fd_spi_di [Stage 1]", pch = 1, cex = 0.35, col = "#595959")
+abline(h = 0, col = "black", lty = 2, lwd = 1)
+fitted_vals_fd <- fitted(fd_spi_di)
+lines(lowess(fitted_vals_fd, resid(fd_spi_di)), col = "red", lwd =  1.5)
+
+# Residuals vs di_diff plot
+plot(model_data_fd1$di_diff, resid(fd_spi_di),
+     xlab = "di_diff",  ylab = "", yaxt = "n", main = "FD Residuals vs di_diff", pch = 1, cex = 0.35, col = "darkred")
+abline(h = 0, col = "black", lty = 2, lwd = 1)
+lines(lowess(model_data_fd1$di_diff, resid(fd_spi_di)), col = "red", lwd = 1.5)
+
+# Residuals vs log_gdppc_diff plot
+plot(model_data_fd1$log_gdppc_diff, resid(fd_spi_di),
+     xlab = "log_gdppc_diff",  ylab = "", yaxt = "n", main = "FD Residuals vs log_gdppc_diff", pch = 1, cex = 0.35, col = "darkgreen")
+abline(h = 0, col = "black", lty = 2, lwd = 1)
+lines(lowess(model_data_fd1$log_gdppc_diff, resid(fd_spi_di)), col = "red", lwd =  1.5)
+
+#dev.off() # to save
+#par(mfrow = c(1, 1))
+```
+
+### FE Residuals for mediator model: SPI ~ DI + Controls [STAGE 1]
+```{r}
+# Extract the data actually used in the model
+fe_spi_di <- lm(spi_comp ~ di_score + log_gdppc + factor(year) + factor(country_code), data = panel_data)
+model_data_fe1 <- model.frame(fe_spi_di)
+
+# saving as png
+#png("figures/residual_plots/fe1_residual_plots.png", width = 8, height = 3, units = "in", res = 300)
+#par(mfrow = c(1, 3))
+
+# Residuals vs Fitted Values plot for fe_spi_di
+plot(fe_spi_di, which = 1,
+     main = "FE Residuals vs Fitted Model", caption = "fe_spi_di [Stage 1]", pch = 1, cex = 0.35, col = "#595959")
+abline(h = 0, col = "black", lty = 2, lwd = 1)
+fitted_vals_fe <- fitted(fe_spi_di)
+lines(lowess(fitted_vals_fe, resid(fe_spi_di)), col = "red", lwd =  1.5)
+
+# Residuals vs di_score plot
+plot(model_data_fe1$di_score, resid(fe_spi_di),
+     xlab = "di_score",  ylab = "", yaxt = "n", main = "FE Residuals vs di_score", pch = 1, cex = 0.35, col = "darkred")
+abline(h = 0, col = "black", lty = 2, lwd = 1)
+lines(lowess(model_data_fe1$di_score, resid(fe_spi_di)), col = "red", lwd = 1.5)
+
+# Residuals vs log_gdppc plot
+plot(model_data_fe1$log_gdppc, resid(fe_spi_di),
+     xlab = "log_gdppc",  ylab = "", yaxt = "n", main = "FE Residuals vs log_gdppc", pch = 1, cex = 0.35, col = "darkgreen")
+abline(h = 0, col = "black", lty = 2, lwd = 1)
+lines(lowess(model_data_fe1$log_gdppc, resid(fe_spi_di)), col = "red", lwd =  1.5)
+
+dev.off() # to save
+par(mfrow = c(1, 1))
+```
