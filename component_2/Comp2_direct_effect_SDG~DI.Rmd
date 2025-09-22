@@ -1,0 +1,94 @@
+---
+title: "Comp2_direct_effect_SDG~DI"
+title: "Component 2, Direct Effect, SDG ~ DI"
+author: "Sevastian Sanchez"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: no
+    toc_depth: '3'
+    number_sections: yes
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+    number_sections: yes
+    highlight: tango
+    theme: default
+    fig_caption: yes
+    df_print: tibble
+  word_document: default
+  urlcolor: blue
+---
+
+```{r}
+knitr::opts_chunk$set(
+  echo = TRUE, warning = FALSE, message = FALSE,
+  tidy = TRUE, tidy.opts = list(width.cutoff = 60) 
+)
+```
+
+# Set up 
+```{r}
+# set working directory
+setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
+
+#load libraries/packages
+source("packages.R")
+
+# load data
+source("Comp2_panel_wrangling.R")
+
+panel_data <- panel_data %>% 
+  dplyr::select(country_name, country_code, year, sdg_overall, di_score, log_gdppc, income_level_recoded) %>%
+  dplyr::arrange(country_code, year)
+
+# how many countries 
+length(unique(panel_data$country_code)) 
+
+# check dimensions
+dim(panel_data) 
+```
+
+## Converting to panel data frame
+```{r}
+panel_data <- pdata.frame(panel_data, index = c("country_code", "year"))
+pdim(panel_data) # check panel dimensions
+```
+
+# Direct Effect: SDG ~ DI
+```{r}
+# Model POLS: Basic FE model with DI as predictor
+model_pols <- plm(formula = sdg_overall ~ di_score
+              #+ plm::lag(di_score, 1) 
+              #+ plm::lag(di_score, 2) 
+              + log_gdppc 
+              + factor(year),
+              data = panel_data,
+              model = "pooling")
+summary(model_pols)
+summary(model_pols, vcov = vcovHC(model_pols, cluster = "group", type = "HC1"))
+
+# Model FD: Basic FE model with DI as predictor
+model_fd <- plm(formula = sdg_overall ~ di_score
+              #+ plm::lag(di_score, 1) 
+              #+ plm::lag(di_score, 2) 
+              + log_gdppc 
+              + factor(year),
+              data = panel_data,
+              model = "fd")
+summary(model_fd)
+summary(model_fd, vcov = vcovHC(model_fd, cluster = "group", type = "HC1"))
+
+# Model FE: Basic FE model with DI as predictor
+model_fe <- plm(formula = sdg_overall ~ di_score
+              + plm::lag(di_score, 1) 
+              #+ plm::lag(di_score, 2)
+              + log_gdppc 
+              + factor(year),
+              data = panel_data,
+              model = "within")
+summary(model_fe)
+summary(model_fe, vcov = vcovHC(model_fe, cluster = "group", type = "HC1"))
+```
+

@@ -30,7 +30,7 @@ trends <- all_data %>% filter(year >= 2015)
 plot_trend <- function(data, country_code) {
   # Filter data for the specified country
   country_data <- data %>%
-    filter(country_code == !!country_code) %>%
+    filter(country_code == !!country_code) %>% 
     select(year, spi_comp, p1_use, p2_services, p3_products, p4_sources, p5_infra, sdg_overall, di_score)
   
   # Check if the country has data
@@ -95,12 +95,14 @@ plot_trend <- function(data, country_code) {
 
 # Replace with the desired country code
 country_code <- "TUR"
+
 # Plot trend for country
 interactive_trend <- plot_trend(panel_data, country_code)
 print(interactive_trend) #static
 ggplotly(interactive_trend) # interactive
 # Save the plot
-ggsave(paste0("figures/country_trends/trend_", country_code, ".png"), plot = interactive_trend, width = 10, height = 6, dpi = 300)
+ggsave(paste0("figures/country_trends/trend_", country_code, ".png"), 
+       plot = interactive_trend, width = 10, height = 6, dpi = 300)
 ```
 
 # Z-Score Trends
