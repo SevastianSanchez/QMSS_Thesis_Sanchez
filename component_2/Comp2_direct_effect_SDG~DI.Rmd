@@ -60,35 +60,54 @@ pdim(panel_data) # check panel dimensions
 ```{r}
 # Model POLS: Basic FE model with DI as predictor
 model_pols <- plm(formula = sdg_overall ~ di_score
-              #+ plm::lag(di_score, 1) 
-              #+ plm::lag(di_score, 2) 
+              + plm::lag(di_score, 1) 
+              + plm::lag(di_score, 2) 
               + log_gdppc 
               + factor(year),
               data = panel_data,
               model = "pooling")
-summary(model_pols)
 summary(model_pols, vcov = vcovHC(model_pols, cluster = "group", type = "HC1"))
 
 # Model FD: Basic FE model with DI as predictor
 model_fd <- plm(formula = sdg_overall ~ di_score
-              #+ plm::lag(di_score, 1) 
-              #+ plm::lag(di_score, 2) 
+              + plm::lag(di_score, 1) 
+              + plm::lag(di_score, 2) 
               + log_gdppc 
               + factor(year),
               data = panel_data,
               model = "fd")
-summary(model_fd)
 summary(model_fd, vcov = vcovHC(model_fd, cluster = "group", type = "HC1"))
 
 # Model FE: Basic FE model with DI as predictor
 model_fe <- plm(formula = sdg_overall ~ di_score
               + plm::lag(di_score, 1) 
-              #+ plm::lag(di_score, 2)
+              + plm::lag(di_score, 2)
               + log_gdppc 
               + factor(year),
               data = panel_data,
               model = "within")
-summary(model_fe)
 summary(model_fe, vcov = vcovHC(model_fe, cluster = "group", type = "HC1"))
+```
+
+```{r}
+rob_se_total_ef <- list(
+  sqrt(diag(vcovHC(model_pols, cluster = "group", type = "HC1"))),
+  sqrt(diag(vcovHC(model_fd, cluster = "group", type = "HC1"))),
+  sqrt(diag(vcovHC(model_fe, cluster = "group", type = "HC1")))
+)
+# Generate the stargazer table for Lag2 models
+stargazer(model_pols, model_fd, model_fe, 
+          se = rob_se_total_ef,
+          title = " Total Effect: Static & Lagged Effects (SDG ~ DI)",
+          align = TRUE,
+          dep.var.labels = "SDG Overall Score",
+          column.labels = c("POLS", "FD", "FE"),
+          covariate.labels = c("DI Composite", "Lagged DI (t-1)", "Lagged DI (t-2)", "Log(GDP per-capita)", "Intercept"),
+          notes = "Robust standard errors clustered by country in parentheses",
+          type = "html", 
+          report = "vcs*", 
+          #keep.stat = c("n", "rsq", "adj.rsq"),
+          omit = "factor\\(year\\)",  # Omits year FE from display
+          out = "component_2/figures/total_effect/total_ef_L2_mods.html")
 ```
 

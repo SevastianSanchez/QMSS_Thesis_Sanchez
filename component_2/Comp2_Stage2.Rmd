@@ -45,9 +45,6 @@ panel_data1 <- panel_data %>%
 
 # how many countries 
 length(unique(panel_data1$country_code)) 
-
-# check dimensions 
-dim(panel_data1) 
 ```
 
 ## Converting to panel data frame
@@ -103,11 +100,11 @@ sdg_spi_s2_scatter <- ggplot(panel_data1, aes(x = spi_comp, y = sdg_overall)) +
   theme_minimal()
 
 # Save to specific folder
-#ggsave("component_2/figures/stage2/sdg_spi_s2_scatterplot.png", sdg_spi_s2_scatter, width = 8, height = 6)
+ggsave("component_2/figures/stage2/sdg_spi_s2_scatterplot.png", sdg_spi_s2_scatter, width = 8, height = 6)
 
 # Contemporaneous Relationship: SDG ~ DI
 sdg_di_s2_scatter <- ggplot(panel_data1, aes(x = di_score, y = sdg_overall)) + 
-  geom_point(color = "steelblue", size = 1, alpha = 0.65) +
+  geom_point(color = "steelblue4", size = 1, alpha = 0.65) +
   geom_smooth(method = "lm", 
               se = TRUE, color = "#f27405", size = 1) +
   labs(
@@ -119,13 +116,12 @@ sdg_di_s2_scatter <- ggplot(panel_data1, aes(x = di_score, y = sdg_overall)) +
   theme_minimal()
 
 # Save to specific folder
-#ggsave("component_2/figures/stage2/sdg_di_s2_scatterplot.png", sdg_di_s2_scatter, width = 8, height = 6)
-
+ggsave("component_2/figures/stage2/sdg_di_s2_scatterplot.png", sdg_di_s2_scatter, width = 8, height = 6)
 
 # side by side comparison using patchwork 
 library(patchwork)
 sdg_spi_s2_scatter + sdg_di_s2_scatter + plot_layout(ncol = 2)
-#ggsave("component_2/figures/stage2/s2_scatterplots.png", width = 12, height = 8)
+ggsave("component_2/figures/stage2/s2_scatterplots.png", width = 12, height = 8)
 ```
 
 ## Stargazer Table for POLS Models
@@ -312,7 +308,7 @@ ebar_fe <- ggplot(coef_df, aes(x = term, y = estimate)) +
        x = NULL,
        y = "Coefficient Estimate") +
   theme_minimal() +
-  #theme(axis.text.x = element_text(hjust = 1)) +
+  theme(axis.text.x = element_text(hjust = 1)) +
   scale_x_discrete(labels = c("di_score" = "Democracy (DI)", 
                               "plm::lag(di_score, 1)" = "Lagged DI (t-1)", 
                               "plm::lag(di_score, 2)" = "Lagged DI (t-2)", 
@@ -350,7 +346,7 @@ ebar_fe <- ggplot(coef_df, aes(x = term, y = estimate)) +
 ebar_fe
 
 # Save the plot
-#ggsave("component_2/figures/stage2/error_bar_fe_sdg_spi_L2.png", ebar_fe, width = 10, height = 6)
+ggsave("component_2/figures/stage2/error_bar_fe_sdg_spi_L2.png", ebar_fe, width = 10, height = 6)
 ```
 
 ## First Difference Error Bar Visualization

@@ -118,7 +118,7 @@ General relationship between SPI and DI
 ```{r}
 # Contemporaneous Relationship: SPI ~ DI
 spi_di_s1_scatter <- ggplot(panel_data1, aes(x = di_score, y = spi_comp)) + 
-  geom_point(color = "steelblue", size = 1, alpha = 0.65) +
+  geom_point(color = "steelblue4", size = 1, alpha = 0.65) +
   geom_smooth(method = "lm", 
               se = TRUE, color = "darkblue", size = 1) +
   labs(
@@ -135,7 +135,7 @@ spi_di_s1_scatter <- ggplot(panel_data1, aes(x = di_score, y = spi_comp)) +
 
 # Contemporaneous Relationship: SPI ~ DI_Reversed
 spi_di_rev_scatter <- ggplot(panel_data1, aes(x = di_score_reverse, y = spi_comp)) + 
-  geom_point(color = "steelblue", size = 1, alpha = 0.65) +
+  geom_point(color = "steelblue4", size = 1, alpha = 0.65) +
   geom_smooth(method = "lm", 
               se = TRUE, color = "darkblue", size = 1) +
   labs(
@@ -371,7 +371,7 @@ ebar_fe <- ggplot(coef_df, aes(x = term, y = estimate)) +
 ebar_fe
 
 # Save the plot
-ggsave("component_2/figures/stage1/error_bar_fe_spi_di_L2.png", ebar_fe, width = 10, height = 6)
+#ggsave("component_2/figures/stage1/error_bar_fe_spi_di_L2.png", ebar_fe, width = 10, height = 6)
 ```
 
 ## Fixed Effects Summary Table
@@ -412,7 +412,7 @@ stargazer(
     coeftest(fe_spi_di_L2, vcov = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"))[, 2]
   ),
   type = "html",
-  title = "Stage I Models: Lagged Effects (Lag 2)",
+  title = "Stage I Models: Distributive Lagged Effects",
   align = TRUE,
   dep.var.labels = "SPI Overall Score",
   column.labels = c("POLS", "FD", "FE"),
@@ -432,6 +432,7 @@ stargazer(
 # https://search.r-project.org/CRAN/refmans/plm/html/pwartest.html  
 # This is MUCH BETTER for panel data with small T AND unbalanced panels!!!
 pwartest(fe_spi_di_L2) # [significant]
+pwartest(fd_spi_di_L2) # [significant]
 ```
 Significant p-value indicates the presence of autocorrelation in the residuals of the fixed effects model. This suggests that the errors are correlated over time, which violates one of the key assumptions of linear regression models.
 
