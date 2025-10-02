@@ -402,8 +402,9 @@ ebar_fd
 # APPLY Wooldridge Test for AR(1) Errors in FE Panel Models: pwartest()
 # https://search.r-project.org/CRAN/refmans/plm/html/pwartest.html  
 # This is MUCH BETTER for panel data with small T AND unbalanced panels!!!
-pwartest(fe_sdg_spi_L2) # [significant]
-
+pbgtest(fe_sdg_spi_L2) # Panel
+pwartest(fe_sdg_spi_L2) # FE [significant]
+pwfdtest(fd_sdg_spi_L2) # FD [not significant]
 ```
 Significant p-value indicates the presence of autocorrelation in the residuals of the fixed effects model. This suggests that the errors are correlated over time, which violates one of the key assumptions of linear regression models.
 
