@@ -67,7 +67,10 @@ model_pols <- plm(formula = sdg_overall ~ di_score
               data = panel_data,
               model = "pooling")
 summary(model_pols, vcov = vcovHC(model_pols, cluster = "group", type = "HC1"))
+```
 
+
+```{r}
 # Model FD: Basic FE model with DI as predictor
 model_fd <- plm(formula = sdg_overall ~ di_score
               + plm::lag(di_score, 1) 
@@ -78,6 +81,17 @@ model_fd <- plm(formula = sdg_overall ~ di_score
               model = "fd")
 summary(model_fd, vcov = vcovHC(model_fd, cluster = "group", type = "HC1"))
 
+# CI for FD model with Lag2
+coef <- coef(model_fd)
+se <- sqrt(diag(vcovHC(model_fd, cluster = "group", type = "HC1")))  # Get standard errors
+crit_value <- qt(0.975, df = nobs(model_fd)-length(coef(model_fd)))
+ci_low <- coef - crit_value * se
+ci_high <- coef + crit_value * se
+cbind(ci_low, ci_high)
+```
+
+
+```{r}
 # Model FE: Basic FE model with DI as predictor
 model_fe <- plm(formula = sdg_overall ~ di_score
               + plm::lag(di_score, 1) 
@@ -87,7 +101,16 @@ model_fe <- plm(formula = sdg_overall ~ di_score
               data = panel_data,
               model = "within")
 summary(model_fe, vcov = vcovHC(model_fe, cluster = "group", type = "HC1"))
+
+# CI for FE model with Lag2
+coef <- coef(model_fe)
+se <- sqrt(diag(vcovHC(model_fe, cluster = "group", type = "HC1")))  # Get standard errors
+crit_value <- qt(0.975, df = nobs(model_fe)-length(coef(model_fe)))
+ci_low <- coef - crit_value * se
+ci_high <- coef + crit_value * se
+cbind(ci_low, ci_high)
 ```
+
 
 ```{r}
 rob_se_total_ef <- list(

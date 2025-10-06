@@ -179,6 +179,15 @@ fd_sdg_spi_L2 <- plm(formula = sdg_overall ~ spi_comp
                model = "fd", 
                data = fd_data)
 summary(fd_sdg_spi_L2, vcov = vcovHC(fd_sdg_spi_L2, cluster = "group", type = "HC1"))
+
+
+# CI 
+coef <- coef(fd_sdg_spi_L2)
+se <- sqrt(diag(vcovHC(fd_sdg_spi_L2, cluster = "group", type = "HC1")))  # Get standard errors
+crit_value <- qt(0.975, df = nobs(fd_sdg_spi_L2)-length(coef(fd_sdg_spi_L2)))
+ci_low <- coef - crit_value * se
+ci_high <- coef + crit_value * se
+cbind(ci_low, ci_high)
 ```
 
 ## Stargazer Table for FD Models
@@ -236,6 +245,14 @@ fe_sdg_spi_L2 <- plm(formula = sdg_overall ~ spi_comp + plm::lag(spi_comp, 1)
                model = "within", 
                data = panel_data)
 summary(fe_sdg_spi_L2, vcov = vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1"))
+
+# CI for FE model with Lag2
+coef <- coef(fe_sdg_spi_L2)
+se <- sqrt(diag(vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1")))  # Get standard errors
+crit_value <- qt(0.975, df = nobs(fe_sdg_spi_L2)-length(coef(fe_sdg_spi_L2)))
+ci_low <- coef - crit_value * se
+ci_high <- coef + crit_value * se
+cbind(ci_low, ci_high)
 ```
 
 # Stargazer Table for FE Models

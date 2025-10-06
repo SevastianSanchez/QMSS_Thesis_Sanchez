@@ -220,6 +220,14 @@ fd_spi_di_L2 <- plm(
   model = "fd"
 )
 summary(fd_spi_di_L2, vcov = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"))
+
+# CI for FD model with Lag2
+coef <- coef(fd_spi_di_L2)
+se <- sqrt(diag(vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1")))  # Get standard errors
+crit_value <- qt(0.975, df = nobs(fd_spi_di_L2)-length(coef(fd_spi_di_L2)))
+ci_low <- coef - crit_value * se
+ci_high <- coef + crit_value * se
+cbind(ci_low, ci_high)
 ```
 
 ## First Difference Error Bar Visualization 
@@ -318,6 +326,14 @@ fe_spi_di_L2 <- plm(
   data = panel_data,
   model = "within")
 summary(fe_spi_di_L2, vcov = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"))
+
+# CI for FE model with Lag2
+coef <- coef(fe_spi_di_L2)
+se <- sqrt(diag(vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1")))  # Get standard errors
+crit_value <- qt(0.975, df = nobs(fe_spi_di_L2)-length(coef(fe_spi_di_L2)))
+ci_low <- coef - crit_value * se
+ci_high <- coef + crit_value * se
+cbind(ci_low, ci_high)
 ```
 
 ## Fixed Effects Error Bar Visualization 
