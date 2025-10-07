@@ -88,7 +88,17 @@ crit_value <- qt(0.975, df = nobs(model_fd)-length(coef(model_fd)))
 ci_low <- coef - crit_value * se
 ci_high <- coef + crit_value * se
 cbind(ci_low, ci_high)
+
+# joint significance - FD
+linearHypothesis(
+  model_fd,
+  c("di_score = 0", "plm::lag(di_score, 1) = 0", "plm::lag(di_score, 2) = 0"),
+  vcov. = vcovHC(model_fd, cluster = "group", type = "HC1")
+)
+# ensure correct names 
+# names(coef(model_fd))
 ```
+**Results:** The joint significance tests for FD show no evidence that DI variables are jointly significant in explaining changes in SDG overall scores (Chisq = 4.3277, p = 0.2282). This suggests that DI may not have a meaningful immediate impact on SDG outcomes when considering both current and lagged effects.
 
 
 ```{r}
@@ -109,7 +119,17 @@ crit_value <- qt(0.975, df = nobs(model_fe)-length(coef(model_fe)))
 ci_low <- coef - crit_value * se
 ci_high <- coef + crit_value * se
 cbind(ci_low, ci_high)
+
+# joint significance - FE
+linearHypothesis(
+  model_fe,
+  c("di_score = 0", "plm::lag(di_score, 1) = 0", "plm::lag(di_score, 2) = 0"),
+  vcov. = vcovHC(model_fe, cluster = "group", type = "HC1")
+)
+# ensure correct names 
+# names(coef(model_fe))
 ```
+**Result:** The joint significance tests for FE show that the DI variables are jointly significant in explaining changes in SDG overall scores (Chisq = 7.8736, p = 0.0487). This suggests that DI has a meaningful incremental impact on SDG outcomes when considering both current and lagged effects.
 
 
 ```{r}

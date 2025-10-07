@@ -228,7 +228,17 @@ crit_value <- qt(0.975, df = nobs(fd_spi_di_L2)-length(coef(fd_spi_di_L2)))
 ci_low <- coef - crit_value * se
 ci_high <- coef + crit_value * se
 cbind(ci_low, ci_high)
+
+# joint significance 
+linearHypothesis(
+  fd_spi_di_L2,
+  c("di_score = 0", "plm::lag(di_score, 1) = 0", "plm::lag(di_score, 2) = 0"),
+  vcov. = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1")
+)
+# ensure correct names 
+# names(coef(fd_spi_di_L2))
 ```
+**Result:** The joint significance tests for FD show that the DI variables are jointly significant in explaining changes in SPI overall scores (Chisq = 25.898, p = 1.002e-05). This suggests that shifts in democracy levels may have a meaningful immediate impact on statistical capacity (SPI) performance when considering both current and lagged effects.
 
 ## First Difference Error Bar Visualization 
 ```{r}
@@ -334,7 +344,17 @@ crit_value <- qt(0.975, df = nobs(fe_spi_di_L2)-length(coef(fe_spi_di_L2)))
 ci_low <- coef - crit_value * se
 ci_high <- coef + crit_value * se
 cbind(ci_low, ci_high)
+
+# Test for joint significance: are all di_score coefficients zero?
+linearHypothesis(
+  fe_spi_di_L2,
+  c("di_score = 0", "plm::lag(di_score, 1) = 0", "plm::lag(di_score, 2) = 0"),
+  vcov. = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1")
+)
+# ensure correct names 
+# names(coef(fe_spi_di_L2))
 ```
+**Results:** The joint significance tests for FE show no evidence that DI variables are jointly significant in explaining changes in SPI scores (Chisq = 3.5345, p = 0.3163). This suggests that DI may not have a meaningful incremental impact on SDG outcomes when considering both current and lagged effects.
 
 ## Fixed Effects Error Bar Visualization 
 ```{r}
