@@ -207,7 +207,7 @@ linearHypothesis(
 # ensure correct names 
 # names(coef(fd_sdg_spi_L2))
 ```
-**Result (DI Variables):** The joint significance tests for FD show no evidence that DI variables are jointly significant in explaining changes in SDG overall scores (Chisq = 25.898, p = 1.002e-05), holding SPI terms and all else constant. This suggests that shifts in democracy levels may not have a meaningful immediate impact on SDG performance when considering both current and lagged effects, and accounting for SPI and other controls.
+**Result (DI Variables):** The joint significance tests for FD show no evidence that DI variables are jointly significant in explaining changes in SDG overall scores (Chisq = 5.9731, p = 0.1129), holding SPI terms and all else constant. This suggests that shifts in democracy levels may not have a meaningful immediate impact on SDG performance when considering both current and lagged effects, and accounting for SPI and other controls.
 
 **Result (SPI Variables):** The joint significance tests for FD show marginal evidence that SPI variables are jointly significant in explaining changes in SDG overall scores (Chisq = 7.2282, alpha = 0.1, p = 0.06497), holding DI terms and all else constant. This suggests that shifts in statistical capacity may negligibly have a legitimate immediate impact on SDG performance when considering both current and lagged effects, and accounting for DI and other controls.
 
