@@ -189,7 +189,7 @@ ci_low <- coef - crit_value * se
 ci_high <- coef + crit_value * se
 cbind(ci_low, ci_high)
 
-# Joint significance FD - DI scores
+# Joint significance of DI scores - FD
 linearHypothesis(
   fd_sdg_spi_L2,
   c("di_score = 0", "plm::lag(di_score, 1) = 0", "plm::lag(di_score, 2) = 0"),
@@ -198,7 +198,14 @@ linearHypothesis(
 # ensure correct names 
 # names(coef(fd_sdg_spi_L2))
 
-# Joint significance FD - SPI scores
+# cumulative effects of DI scores - FD
+linearHypothesis(
+  fd_sdg_spi_L2,
+  c("di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) = 0"),
+  vcov. = vcovHC(fd_sdg_spi_L2, cluster = "group", type = "HC1")
+)
+
+# Joint significance of SPI scores - FD
 linearHypothesis(
   fd_sdg_spi_L2,
   c("spi_comp = 0", "plm::lag(spi_comp, 1) = 0", "plm::lag(spi_comp, 2) = 0"),
@@ -206,11 +213,21 @@ linearHypothesis(
 )
 # ensure correct names 
 # names(coef(fd_sdg_spi_L2))
+
+# cumulative effects of SPI scores - FD
+linearHypothesis(
+  fd_sdg_spi_L2,
+  c("spi_comp + plm::lag(spi_comp, 1) + plm::lag(spi_comp, 2) = 0"),
+  vcov. = vcovHC(fd_sdg_spi_L2, cluster = "group", type = "HC1")
+)
 ```
-**Result (DI Variables):** The joint significance tests for FD show no evidence that DI variables are jointly significant in explaining changes in SDG overall scores (Chisq = 5.9731, p = 0.1129), holding SPI terms and all else constant. This suggests that shifts in democracy levels may not have a meaningful immediate impact on SDG performance when considering both current and lagged effects, and accounting for SPI and other controls.
+**Result (DI Variables):** The *joint significance* tests for FD show no evidence that DI variables are jointly significant in explaining changes in SDG overall scores (Chisq = 5.9731, p = 0.1129), holding SPI terms and all else constant. This suggests that shifts in democracy levels may not have a meaningful immediate impact on SDG performance when considering both current and lagged effects, and accounting for SPI and other controls.
 
-**Result (SPI Variables):** The joint significance tests for FD show marginal evidence that SPI variables are jointly significant in explaining changes in SDG overall scores (Chisq = 7.2282, alpha = 0.1, p = 0.06497), holding DI terms and all else constant. This suggests that shifts in statistical capacity may negligibly have a legitimate immediate impact on SDG performance when considering both current and lagged effects, and accounting for DI and other controls.
+In terms of *cumulative impact*, based on the FD model and panel data, there is no detectable total impact of changes in di_score (at current, lag 1, or lag 2) on SDG performance—over these periods (stat = 0.3872, p = 0.5338).
 
+**Result (SPI Variables):** The *joint significance* tests for FD show marginal evidence that SPI variables are jointly significant in explaining changes in SDG overall scores (Chisq = 7.2282, alpha = 0.1, p = 0.06497), holding DI terms and all else constant. This suggests that shifts in statistical capacity may negligibly have a legitimate immediate impact on SDG performance when considering both current and lagged effects, and accounting for DI and other controls.
+
+In terms of *cumulative impact*, based on the FD model and panel data, there is a detectable total impact of changes in spi_comp (at current, lag 1, or lag 2) on SDG performance—over these periods (stat = 6.4111, p = 0.01134)
 
 ## Stargazer Table for FD Models
 ```{r eval=FALSE, include=FALSE}
@@ -234,6 +251,52 @@ stargazer(fd_sdg_spi, fd_sdg_spi_L1, fd_sdg_spi_L2,
           #keep.stat = c("n", "rsq", "adj.rsq"),
           omit = "factor\\(year\\)",  # Omits year FE from display
           out = "component_2/figures/stage2/s2_fd_lags.html")
+```
+
+## First Difference Error Bar Visualization
+```{r}
+# Extract coefficients and robust standard errors from the FD model
+coefs_fd <- summary(fd_sdg_spi_L2, vcov = vcovHC(fd_sdg_spi_L2, cluster = "group", type = "HC1"))$coefficients
+# Create a data frame for visualization
+coef_df_fd <- data.frame(
+  term = rownames(coefs_fd),
+  estimate = coefs_fd[, "Estimate"],
+  std.error = coefs_fd[, "Std. Error"]
+)
+# Create a ggplot error bar chart for the FD model
+ebar_fd <- ggplot(coef_df_fd, aes(x = term, y = estimate)) +
+  geom_point() +
+  coord_flip() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "steelblue") +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error), 
+                width = 0.2) +
+  labs(title = "Stage II: Static & Lagged TWFE (SDG ~ SPI + DI)",
+       x = NULL,
+       y = "Coefficient Estimate") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_x_discrete(labels = c("di_score" = "Democracy (DI)", 
+                              "plm::lag(di_score, 1)" = "Lagged DI (t-1)", 
+                              "plm::lag(di_score, 2)" = "Lagged DI (t-2)", 
+                              "spi_comp" = "Statistical Performance (SPI)",
+                              "plm::lag(spi_comp, 1)" = "Lagged SPI (t-1)",
+                              "plm::lag(spi_comp, 2)" = "Lagged SPI (t-2)",
+                              "log_gdppc" = "Log(GDP per capita)"
+                              ),
+                   limits = c(
+                   "di_score", 
+                   "plm::lag(di_score, 1)",
+                   "plm::lag(di_score, 2)",
+                   "spi_comp",
+                   "plm::lag(spi_comp, 1)",
+                   "plm::lag(spi_comp, 2)",
+                   "log_gdppc"
+                 ))
+
+ebar_fd
+
+# Save the plot
+#ggsave("component_2/figures/stage2/error_bar_fd_sdg_spi_L2.png", ebar_fd, width = 10, height = 6)
 ```
 
 # 2.3) Fixed Effects [Stage 2]
@@ -268,7 +331,7 @@ fe_sdg_spi_L2 <- plm(formula = sdg_overall ~ spi_comp + plm::lag(spi_comp, 1)
                data = panel_data)
 summary(fe_sdg_spi_L2, vcov = vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1"))
 
-# CI for FE model with Lag2
+# CI for all variables (L2 model)
 coef <- coef(fe_sdg_spi_L2)
 se <- sqrt(diag(vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1")))  # Get standard errors
 crit_value <- qt(0.975, df = nobs(fe_sdg_spi_L2)-length(coef(fe_sdg_spi_L2)))
@@ -285,18 +348,39 @@ linearHypothesis(
 # ensure correct names 
 # names(coef(fe_sdg_spi_L2))
 
+# cumulative effects of DI scores - FE
+linearHypothesis(
+  fe_sdg_spi_L2,
+  c("di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) = 0"),
+  vcov. = vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1")
+)
+
 # Joint significance FE - DI scores
 linearHypothesis(
   fe_sdg_spi_L2,
   c("spi_comp = 0", "plm::lag(spi_comp, 1) = 0", "plm::lag(spi_comp, 2) = 0"),
   vcov. = vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1")
 )
+
+# cumulative effects of SPI scores - FE
+linearHypothesis(
+  fe_sdg_spi_L2,
+  c("spi_comp + plm::lag(spi_comp, 1) + plm::lag(spi_comp, 2) = 0"),
+  vcov. = vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1")
+)
 # ensure correct names 
 # names(coef(fe_sdg_spi_L2))
 ```
-**Result (DI Variables):** The joint significance tests for FE show evidence that DI variables are jointly significant in explaining changes in SDG overall scores (Chisq = 10.873, p = 0.01244), holding SPI terms and all else constant. This suggests that shifts in democracy levels have a meaningful incremental impact on SDG performance when considering both current and lagged effects, and accounting for SPI and other controls.
+**Result (DI Variables):** The *joint significance* tests for FE show evidence that DI variables are jointly significant in explaining changes in SDG overall scores (Chisq = 10.873, p = 0.01244), holding SPI terms and all else constant. This suggests that shifts in democracy levels have a meaningful incremental impact on SDG performance when considering both current and lagged effects, and accounting for SPI and other controls.
 
-**Result (SPI Variables):** The joint significance tests for FE show evidence that SPI variables are jointly significant in explaining changes in SDG overall scores (Chisq = 10.214, p = 0.01683), holding DI terms and all else constant. This suggests that shifts in statistical capacity have a legitimate incremental impact on SDG performance when considering both current and lagged effects, and accounting for DI and other controls.
+In terms of *cumulative impact*, based on the FE model and panel data, there is no detectable total impact of changes in di_score (at current, lag 1, or lag 2) on SDG performance—over these periods (stat = 0.4482, p = 0.5032).
+
+Interestingly, this suggest that the effect is not consistent over time, with short term impacts lasting up to 2 years, but not accumulating over time.
+
+
+**Result (SPI Variables):** The *joint significance* tests for FE show evidence that SPI variables are jointly significant in explaining changes in SDG overall scores (Chisq = 10.214, p = 0.01683), holding DI terms and all else constant. This suggests that shifts in statistical capacity have a legitimate incremental impact on SDG performance when considering both current and lagged effects, and accounting for DI and other controls.
+
+In terms of *cumulative impact*, based on the FE model and panel data, there is relatively stong evidence of detectable total impact of changes in spi_comp (at current, lag 1, or lag 2) on SDG performance—over these periods (stat = 9.3778, p = 0.002196 **)
 
 # Stargazer Table for FE Models
 ```{r eval=FALSE, include=FALSE}
@@ -320,30 +404,6 @@ stargazer(fe_sdg_spi, fe_sdg_spi_L1, fe_sdg_spi_L2,
           #keep.stat = c("n", "rsq", "adj.rsq"),
           omit = "factor\\(year\\)",  # Omits year FE from display
           out = "component_2/figures/stage2/s2_fe_lags.html")
-```
-
-## make a stargazer table of all Lag2 models for POLS, FD and FE
-```{r eval=FALSE, include=FALSE}
-# Extracting robust standard errors for the three models
-rob_se_lag2 <- list(
-  sqrt(diag(vcovHC(ols_sdg_spi_L2, cluster = "group", type = "HC1"))),
-  sqrt(diag(vcovHC(fd_sdg_spi_L2, cluster = "group", type = "HC1"))),
-  sqrt(diag(vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1")))
-)
-# Generate the stargazer table for Lag2 models
-stargazer(ols_sdg_spi_L2, fd_sdg_spi_L2, fe_sdg_spi_L2, 
-          se = rob_se_lag2,
-          title = "Stage II Models: Static & Lagged Effects (SDG ~ SPI + DI)",
-          align = TRUE,
-          dep.var.labels = "SDG Overall Score",
-          column.labels = c("POLS", "FD", "FE"),
-          covariate.labels = c("SPI Composite", "Lagged SPI (t-1)", "Lagged SPI (t-2)", "DI Composite", "Lagged DI (t-1)", "Lagged DI (t-2)",  "Log(GDPper-capita)", "Intercept"),
-          notes = "Robust standard errors clustered by country in parentheses",
-          type = "html", 
-          report = "vcs*", 
-          #keep.stat = c("n", "rsq", "adj.rsq"),
-          omit = "factor\\(year\\)",  # Omits year FE from display
-          out = "component_2/figures/stage2/s2_lag2_mods.html")
 ```
 
 ## Fixed Effects Error Bar Visualization 
@@ -409,53 +469,30 @@ ebar_fe
 ggsave("component_2/figures/stage2/error_bar_fe_sdg_spi_L2.png", ebar_fe, width = 10, height = 6)
 ```
 
-## First Difference Error Bar Visualization
-```{r}
-# Extract coefficients and robust standard errors from the FD model
-coefs_fd <- summary(fd_sdg_spi_L2, vcov = vcovHC(fd_sdg_spi_L2, cluster = "group", type = "HC1"))$coefficients
-# Create a data frame for visualization
-coef_df_fd <- data.frame(
-  term = rownames(coefs_fd),
-  estimate = coefs_fd[, "Estimate"],
-  std.error = coefs_fd[, "Std. Error"]
+## make a stargazer table of all Lag2 models for POLS, FD and FE
+```{r eval=FALSE, include=FALSE}
+# Extracting robust standard errors for the three models
+rob_se_lag2 <- list(
+  sqrt(diag(vcovHC(ols_sdg_spi_L2, cluster = "group", type = "HC1"))),
+  sqrt(diag(vcovHC(fd_sdg_spi_L2, cluster = "group", type = "HC1"))),
+  sqrt(diag(vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1")))
 )
-# Create a ggplot error bar chart for the FD model
-ebar_fd <- ggplot(coef_df_fd, aes(x = term, y = estimate)) +
-  geom_point() +
-  coord_flip() +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "steelblue") +
-  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error), 
-                width = 0.2) +
-  labs(title = "Stage II: Static & Lagged TWFE (SDG ~ SPI + DI)",
-       x = NULL,
-       y = "Coefficient Estimate") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
-  scale_x_discrete(labels = c("di_score" = "Democracy (DI)", 
-                              "plm::lag(di_score, 1)" = "Lagged DI (t-1)", 
-                              "plm::lag(di_score, 2)" = "Lagged DI (t-2)", 
-                              "spi_comp" = "Statistical Performance (SPI)",
-                              "plm::lag(spi_comp, 1)" = "Lagged SPI (t-1)",
-                              "plm::lag(spi_comp, 2)" = "Lagged SPI (t-2)",
-                              "log_gdppc" = "Log(GDP per capita)", 
-                              "Intercept" = "Intercept"
-                              ),
-                   limits = c(
-                   "di_score", 
-                   "plm::lag(di_score, 1)",
-                   "plm::lag(di_score, 2)",
-                   "spi_comp",
-                   "plm::lag(spi_comp, 1)",
-                   "plm::lag(spi_comp, 2)",
-                   "log_gdppc",
-                   "Intercept"
-                 ))
-
-ebar_fd
-
-# Save the plot
-#ggsave("component_2/figures/stage2/error_bar_fd_sdg_spi_L2.png", ebar_fd, width = 10, height = 6)
+# Generate the stargazer table for Lag2 models
+stargazer(ols_sdg_spi_L2, fd_sdg_spi_L2, fe_sdg_spi_L2, 
+          se = rob_se_lag2,
+          title = "Stage II Models: Static & Lagged Effects (SDG ~ SPI + DI)",
+          align = TRUE,
+          dep.var.labels = "SDG Overall Score",
+          column.labels = c("POLS", "FD", "FE"),
+          covariate.labels = c("SPI Composite", "Lagged SPI (t-1)", "Lagged SPI (t-2)", "DI Composite", "Lagged DI (t-1)", "Lagged DI (t-2)",  "Log(GDPper-capita)", "Intercept"),
+          notes = "Robust standard errors clustered by country in parentheses",
+          type = "html", 
+          report = "vcs*", 
+          #keep.stat = c("n", "rsq", "adj.rsq"),
+          omit = "factor\\(year\\)",  # Omits year FE from display
+          out = "component_2/figures/stage2/s2_lag2_mods.html")
 ```
+
 
 ## Check for Autocorrelation 
 ```{r}
