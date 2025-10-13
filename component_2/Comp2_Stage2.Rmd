@@ -100,7 +100,7 @@ sdg_spi_s2_scatter <- ggplot(panel_data1, aes(x = spi_comp, y = sdg_overall)) +
   theme_minimal()
 
 # Save to specific folder
-ggsave("component_2/figures/stage2/sdg_spi_s2_scatterplot.png", sdg_spi_s2_scatter, width = 8, height = 6)
+#ggsave("component_2/figures/stage2/sdg_spi_s2_scatterplot.png", sdg_spi_s2_scatter, width = 8, height = 6)
 
 # Contemporaneous Relationship: SDG ~ DI
 sdg_di_s2_scatter <- ggplot(panel_data1, aes(x = di_score, y = sdg_overall)) + 
@@ -116,12 +116,12 @@ sdg_di_s2_scatter <- ggplot(panel_data1, aes(x = di_score, y = sdg_overall)) +
   theme_minimal()
 
 # Save to specific folder
-ggsave("component_2/figures/stage2/sdg_di_s2_scatterplot.png", sdg_di_s2_scatter, width = 8, height = 6)
+#ggsave("component_2/figures/stage2/sdg_di_s2_scatterplot.png", sdg_di_s2_scatter, width = 8, height = 6)
 
 # side by side comparison using patchwork 
 library(patchwork)
 sdg_spi_s2_scatter + sdg_di_s2_scatter + plot_layout(ncol = 2)
-ggsave("component_2/figures/stage2/s2_scatterplots.png", width = 12, height = 8)
+#ggsave("component_2/figures/stage2/s2_scatterplots.png", width = 12, height = 8)
 ```
 
 ## Stargazer Table for POLS Models
@@ -466,7 +466,7 @@ ebar_fe <- ggplot(coef_df, aes(x = term, y = estimate)) +
 ebar_fe
 
 # Save the plot
-ggsave("component_2/figures/stage2/error_bar_fe_sdg_spi_L2.png", ebar_fe, width = 10, height = 6)
+#ggsave("component_2/figures/stage2/error_bar_fe_sdg_spi_L2.png", ebar_fe, width = 10, height = 6)
 ```
 
 ## make a stargazer table of all Lag2 models for POLS, FD and FE

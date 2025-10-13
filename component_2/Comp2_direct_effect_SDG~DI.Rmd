@@ -1,5 +1,4 @@
 ---
-title: "Comp2_direct_effect_SDG~DI"
 title: "Component 2, Direct Effect, SDG ~ DI"
 author: "Sevastian Sanchez"
 date: "`r Sys.Date()`"
@@ -148,7 +147,7 @@ linearHypothesis(
 In terms of *cumulative impact*, based on the FE model and panel data, results detected a total impact of changes in di_score (at current, lag 1, or lag 2) on SPI —over these periods (stat = 0.3742, p = 0.5407)
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 rob_se_total_ef <- list(
   sqrt(diag(vcovHC(model_pols, cluster = "group", type = "HC1"))),
   sqrt(diag(vcovHC(model_fd, cluster = "group", type = "HC1"))),

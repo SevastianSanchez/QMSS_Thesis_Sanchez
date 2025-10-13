@@ -309,7 +309,7 @@ ebar_fd <- ggplot(coef_fd_df, aes(x = term, y = estimate)) +
 ebar_fd
 
 # Save the plot
-ggsave("component_2/figures/stage1/error_bar_fd_spi_di_L2.png", ebar_fd, width = 10, height = 6)
+#ggsave("component_2/figures/stage1/error_bar_fd_spi_di_L2.png", ebar_fd, width = 10, height = 6)
 
 ```
 
