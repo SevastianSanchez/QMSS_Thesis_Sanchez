@@ -14,7 +14,7 @@ source("packages.R")
 source("Comp2_panel_wrangling.R")
 
 #selecting vars
-event_data <- all_data %>% 
+event_data <- panel_data %>% 
   dplyr::select(country_code, year, sdg_overall, spi_comp, di_score, aut_ep, dem_ep, regch_event, regime_type_2, regime_type_4, elect_dem, lib_dem, part_dem, delib_dem, egal_dem, academ_free, income_level, income_level_lab, log_gdppc, population) %>% 
   arrange(country_code, year) %>%  # Critical for correct lagging
   filter(year >= 2016)
@@ -101,7 +101,7 @@ country_events_summary <- data.frame(
 ))
 
 # write to csv
-write_csv(country_events_summary, "results_csv/country_events_summary.csv")
+#write_csv(country_events_summary, "results_csv/country_events_summary.csv")
 
 # creating stargazer table object
 country_events_table <- stargazer(country_events_summary, 

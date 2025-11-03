@@ -73,7 +73,7 @@ gini <- WDI(country = "all", indicator = "SI.POV.GINI", start = 2000, end = NULL
 # % urban population
 #WDIsearch(string='SP.URB.TOTL.IN.ZS', field='indicator')
 
-# % total population 
+# total population 
 #WDIsearch(string='SP.POP.TOTL', field='indicator')
 
 # % population with secondary education

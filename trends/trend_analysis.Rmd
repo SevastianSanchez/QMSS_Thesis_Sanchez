@@ -21,7 +21,7 @@ source("packages.R")
 # load data
 source("Comp2_panel_wrangling.R")
 
-trends <- all_data %>% filter(year >= 2015)
+trends <- panel_data %>% filter(year >= 2015)
 ```
 
 # Regular year-to-year trend function
