@@ -91,8 +91,9 @@ firstD <- function(var, group, df){
   unlist(D.var)
 }
 
-
-lab <- ddply(lab, "idnum", mutate, d.equalize = firstD(equalize), d.realinc = firstD(realinc), d.bills = firstD(bills)) ## some first differences ##
+## some first differences ##
+lab <- ddply(lab, "idnum", mutate, d.equalize = firstD(equalize), 
+             d.realinc = firstD(realinc), d.bills = firstD(bills)) 
 
 table(lab$d.equalize)
 
