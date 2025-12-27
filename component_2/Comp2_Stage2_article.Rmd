@@ -55,23 +55,6 @@ pdim(panel_data) # check panel dimensions
 
 # 2.1) POLS SDG ~ SPI [Stage 2]
 ```{r}
-# Contemporaneous Effect: SDG ~ SPI + DI
-ols_sdg_spi <- plm(formula = sdg_overall ~ spi_comp + di_score + log_gdppc 
-                   + factor(income_level_recoded) + factor(year), 
-               model = "pooling", 
-               data = panel_data)
-summary(ols_sdg_spi, vcov = vcovHC(ols_sdg_spi, cluster = "group", type = "HC1"))
-
-# Adding Lag1: SPI ~ DI
-ols_sdg_spi_L1 <- plm(formula = sdg_overall ~ spi_comp + plm::lag(spi_comp, 1) 
-                      + di_score + plm::lag(di_score, 1) 
-                      + log_gdppc 
-                      #+ factor(income_level_recoded) 
-                      + factor(year), 
-               model = "pooling", 
-               data = panel_data)
-summary(ols_sdg_spi_L1, vcov = vcovHC(ols_sdg_spi_L1, cluster = "group", type = "HC1"))
-
 # Adding Lag2: SPI ~ DI
 ols_sdg_spi_L2 <- plm(formula = sdg_overall ~ spi_comp + plm::lag(spi_comp, 1) 
                       + plm::lag(spi_comp, 2) + di_score + plm::lag(di_score, 1) 
@@ -82,6 +65,19 @@ ols_sdg_spi_L2 <- plm(formula = sdg_overall ~ spi_comp + plm::lag(spi_comp, 1)
                data = panel_data)
 summary(ols_sdg_spi_L2, vcov = vcovHC(ols_sdg_spi_L2, cluster = "group", type = "HC1"))
 ```
+
+## Checking which countries are dropped due to missingness
+```{r}
+# rows actually used in the model
+model_rows <- rownames(model.frame(ols_sdg_spi_L2))
+used_ids <- unique(panel_data[model_rows, "country_code"])
+dropped_ids <- setdiff(unique(panel_data1$country_code), used_ids)
+
+length(used_ids)      # should be 155
+length(dropped_ids)   # should be 7
+dropped_ids           # which countries are excluded
+```
+
 
 ## POLS Scatterplots
 General relationship between SDG and Main Xs: SPI & DI
@@ -124,53 +120,9 @@ sdg_spi_s2_scatter + sdg_di_s2_scatter + plot_layout(ncol = 2)
 #ggsave("component_2/figures/stage2/s2_scatterplots.png", width = 12, height = 8)
 ```
 
-## Stargazer Table for POLS Models
-```{r eval=FALSE, include=FALSE}
-# --- POLS MODELS TABLE ---
-# Extracting robust standard errors for the three POLS models
-rob_se_pols <- list(
-  sqrt(diag(vcovHC(ols_sdg_spi, cluster = "group", type = "HC1"))),
-  sqrt(diag(vcovHC(ols_sdg_spi_L1, cluster = "group", type = "HC1"))),
-  sqrt(diag(vcovHC(ols_sdg_spi_L2, cluster = "group", type = "HC1")))
-)
-# Generate the stargazer table for POLS models
-stargazer(ols_sdg_spi, ols_sdg_spi_L1, ols_sdg_spi_L2, 
-          se = rob_se_pols,
-          title = "Stage 2: Naive Pooled OLS (SDG ~ SPI + DI)",
-          align = TRUE,
-          dep.var.labels = "SDG Overall Score",
-          column.labels = c("Contemporaneous", "Lag 1", "Lag 2"),
-          covariate.labels = c("SPI Composite", "Lagged SPI (t-1)", "Lagged SPI (t-2)", "DI Composite", "Lagged DI (t-1)", "Lagged DI (t-2)",  "Log(GDPper-capita)", "Intercept"),
-          notes = "Robust standard errors clustered by country in parentheses",
-          type = "html", 
-          report = "vcs*", 
-          model.numbers = FALSE,
-          #keep.stat = c("n", "rsq", "adj.rsq"),
-          omit = "factor\\(year\\)",  # Omits year FE from display
-          out = "component_2/figures/stage2/s2_pols_lags.html") 
-
-```
-
 # 2.2) First Difference [Stage 2]
 ```{r}
-# Contemporaneous Effect: SDG ~ SPI + DI
-fd_sdg_spi <- plm(formula = sdg_overall ~ spi_comp + di_score 
-                  + log_gdppc,
-                  #+ factor(income_level_recoded), 
-               model = "fd", 
-               data = panel_data)
-summary(fd_sdg_spi, vcov = vcovHC(fd_sdg_spi, cluster = "group", type = "HC1"))
-
-# Adding Lag1: SPI ~ DI
-fd_sdg_spi_L1 <- plm(formula = sdg_overall ~ spi_comp + plm::lag(spi_comp, 1) 
-                     + di_score + plm::lag(di_score, 1) 
-                     + log_gdppc,
-                     #+ factor(income_level_recoded), 
-               model = "fd", 
-               data = panel_data)
-summary(fd_sdg_spi_L1, vcov = vcovHC(fd_sdg_spi_L1, cluster = "group", type = "HC1"))
-
-# Adding Lag2: SPI ~ DI
+# Lag2: SPI ~ DI [REPORTED]
 fd_sdg_spi_L2 <- plm(formula = sdg_overall ~ spi_comp 
                      + plm::lag(spi_comp, 1) + plm::lag(spi_comp, 2) 
                      + di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) 
@@ -229,30 +181,6 @@ In terms of *cumulative impact*, based on the FD model and panel data, there is 
 
 In terms of *cumulative impact*, based on the FD model and panel data, there is a detectable total impact of changes in spi_comp (at current, lag 1, or lag 2) on SDG performance—over these periods (stat = 6.4111, p = 0.01134)
 
-## Stargazer Table for FD Models
-```{r eval=FALSE, include=FALSE}
-# Extracting robust standard errors for the three FD models
-rob_se_fd <- list(
-  sqrt(diag(vcovHC(fd_sdg_spi, cluster = "group", type = "HC1"))),
-  sqrt(diag(vcovHC(fd_sdg_spi_L1, cluster = "group", type = "HC1"))),
-  sqrt(diag(vcovHC(fd_sdg_spi_L2, cluster = "group", type = "HC1")))
-)
-# Generate the stargazer table for FD models
-stargazer(fd_sdg_spi, fd_sdg_spi_L1, fd_sdg_spi_L2, 
-          se = rob_se_fd,
-          title = "Stage II: Static & Lagged First Difference (SDG ~ SPI + DI)",
-          align = TRUE,
-          dep.var.labels = "SDG Overall Score",
-          column.labels = c("Contemporaneous", "Lag 1", "Lag 2"),
-          covariate.labels = c("SPI Composite", "Lagged SPI (t-1)", "Lagged SPI (t-2)", "DI Composite", "Lagged DI (t-1)", "Lagged DI (t-2)", "Log(GDPper-capita)", "Intercept"),
-          notes = "Robust standard errors clustered by country in parentheses",
-          type = "html", 
-          report = "vcs*", 
-          #keep.stat = c("n", "rsq", "adj.rsq"),
-          omit = "factor\\(year\\)",  # Omits year FE from display
-          out = "component_2/figures/stage2/s2_fd_lags.html")
-```
-
 ## First Difference Error Bar Visualization
 ```{r}
 # Extract coefficients and robust standard errors from the FD model
@@ -301,26 +229,6 @@ ebar_fd
 
 # 2.3) Fixed Effects [Stage 2]
 ```{r}
-# Contemporaneous Effect: SDG ~ SPI + DI
-fe_sdg_spi <- plm(formula = sdg_overall ~ spi_comp + di_score 
-                  + log_gdppc 
-                  #+ factor(income_level_recoded) 
-                  + factor(year),
-                  data = panel_data,
-                  model = "within" #FE
-)
-summary(fe_sdg_spi, vcov = vcovHC(fe_sdg_spi, cluster = "group", type = "HC1")) # Robust SEs
-
-# Adding Lag1: SPI ~ DI
-fe_sdg_spi_L1 <- plm(formula = sdg_overall ~ spi_comp + plm::lag(spi_comp, 1) 
-                     + di_score + plm::lag(di_score, 1) 
-                     + log_gdppc 
-                     #+ factor(income_level_recoded) 
-                     + factor(year), 
-               model = "within", 
-               data = panel_data)
-summary(fe_sdg_spi_L1, vcov = vcovHC(fe_sdg_spi_L1, cluster = "group", type = "HC1"))
-
 # Adding Lag2: SPI ~ DI
 fe_sdg_spi_L2 <- plm(formula = sdg_overall ~ spi_comp + plm::lag(spi_comp, 1) 
                      + plm::lag(spi_comp, 2) + di_score + plm::lag(di_score, 1) 
@@ -381,30 +289,6 @@ Interestingly, this suggest that the effect is not consistent over time, with sh
 **Result (SPI Variables):** The *joint significance* tests for FE show evidence that SPI variables are jointly significant in explaining changes in SDG overall scores (Chisq = 10.214, p = 0.01683), holding DI terms and all else constant. This suggests that shifts in statistical capacity have a legitimate incremental impact on SDG performance when considering both current and lagged effects, and accounting for DI and other controls.
 
 In terms of *cumulative impact*, based on the FE model and panel data, there is relatively stong evidence of detectable total impact of changes in spi_comp (at current, lag 1, or lag 2) on SDG performance—over these periods (stat = 9.3778, p = 0.002196 **)
-
-# Stargazer Table for FE Models
-```{r eval=FALSE, include=FALSE}
-# Extracting robust standard errors for the three FE models
-rob_se_fe <- list(
-  sqrt(diag(vcovHC(fe_sdg_spi, cluster = "group", type = "HC1"))),
-  sqrt(diag(vcovHC(fe_sdg_spi_L1, cluster = "group", type = "HC1"))),
-  sqrt(diag(vcovHC(fe_sdg_spi_L2, cluster = "group", type = "HC1")))
-)
-# Generate the stargazer table for FE models
-stargazer(fe_sdg_spi, fe_sdg_spi_L1, fe_sdg_spi_L2, 
-          se = rob_se_fe,
-          title = "Stage II: Static & Lagged TWFE (SDG ~ SPI + DI)",
-          align = TRUE,
-          dep.var.labels = "SDG Overall Score",
-          column.labels = c("Contemporaneous", "Lag 1", "Lag 2"),
-          covariate.labels = c("SPI Composite", "Lagged SPI (t-1)", "Lagged SPI (t-2)", "DI Composite", "Lagged DI (t-1)", "Lagged DI (t-2)",  "Log(GDPper-capita)", "Intercept"),
-          notes = "Robust standard errors clustered by country in parentheses",
-          type = "html", 
-          report = "vcs*", 
-          #keep.stat = c("n", "rsq", "adj.rsq"),
-          omit = "factor\\(year\\)",  # Omits year FE from display
-          out = "component_2/figures/stage2/s2_fe_lags.html")
-```
 
 ## Fixed Effects Error Bar Visualization 
 ```{r}
@@ -491,6 +375,319 @@ stargazer(ols_sdg_spi_L2, fd_sdg_spi_L2, fe_sdg_spi_L2,
           #keep.stat = c("n", "rsq", "adj.rsq"),
           omit = "factor\\(year\\)",  # Omits year FE from display
           out = "component_2/figures/stage2/s2_lag2_mods.html")
+```
+
+```{r}
+# Results from the main regression table
+
+## DIRECT EFFECTS MODEL ###
+# First Difference
+fd_coef_de <- c(-0.184, 0.148, 0.035)   # t-2, t-1, t
+fd_se_de   <- c(0.127, 0.074, 0.091)    # corresponding SEs
+
+# Two-Way Fixed Effects
+twfe_coef_de <- c(-0.201, 0.167, 0.096)  # t-2, t-1, t
+twfe_se_de   <- c(0.128, 0.100, 0.080)   # corresponding SEs
+
+# Calculate 95% CIs (±1.96*SE)
+fd_lower <- fd_coef_de - 1.96 * fd_se_de
+fd_upper <- fd_coef_de + 1.96 * fd_se_de
+
+twfe_lower <- twfe_coef_de - 1.96 * twfe_se_de
+twfe_upper <- twfe_coef_de + 1.96 * twfe_se_de
+
+# Calculate cumulative effects
+fd_cumul <- cumsum(fd_coef_de)
+twfe_cumul <- cumsum(twfe_coef_de)
+
+# Calculate cumulative CIs (uncertainty compounds)
+# For cumulative: Var(sum) = sum of variances (assuming independence)
+fd_cumul_se <- sqrt(cumsum(fd_se_de^2))
+fd_cumul_lower <- fd_cumul - 1.96 * fd_cumul_se
+fd_cumul_upper <- fd_cumul + 1.96 * fd_cumul_se
+
+twfe_cumul_se <- sqrt(cumsum(twfe_se_de^2))
+twfe_cumul_lower <- twfe_cumul - 1.96 * twfe_cumul_se
+twfe_cumul_upper <- twfe_cumul + 1.96 * twfe_cumul_se
+
+# Create data frames
+periods <- c(0, 1, 2)
+period_labels <- c("Lag t-2", "Lag t-1", "Current (t)")
+
+# Instantaneous effects data
+instant_data <- data.frame(
+  period = rep(periods, 2),
+  label = rep(period_labels, 2),
+  effect = c(fd_coef_de, twfe_coef_de),
+  lower = c(fd_lower, twfe_lower),
+  upper = c(fd_upper, twfe_upper),
+  model = rep(c("FD", "TWFE"), each = 3)
+)
+
+# Cumulative effects data
+cumul_data <- data.frame(
+  period = rep(periods, 2),
+  label = rep(period_labels, 2),
+  effect = c(fd_cumul, twfe_cumul),
+  lower = c(fd_cumul_lower, twfe_cumul_lower),
+  upper = c(fd_cumul_upper, twfe_cumul_upper),
+  model = rep(c("FD", "TWFE"), each = 3)
+)
+
+# Plot 1: Instantaneous Effects
+p1_de <- ggplot(instant_data, aes(x = factor(period, labels = period_labels), 
+                                y = effect, color = model, fill = model, group = model)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+  geom_line(linewidth = 1) +
+  geom_vline(xintercept = "Current (t)", linewidth = 0.25, color = "gray15") +
+  geom_point(size = 3) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  scale_color_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
+  scale_fill_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
+  labs(x = "", 
+       y = "Effect per Period",
+       title = "Instantaneous Effects (Period-by-Period)") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom",
+        plot.title = element_text(size = 11, face = "bold"))
+
+# Plot 2: Cumulative Effects
+p2_de <- ggplot(cumul_data, aes(x = factor(period, labels = period_labels), 
+                              y = effect, color = model, fill = model, group = model)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+  geom_line(linewidth = 1) +
+  geom_vline(xintercept = "Current (t)", linewidth = 0.25, color = "gray15") +
+  geom_point(size = 3) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  scale_color_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
+  scale_fill_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
+  labs(x = "", 
+       y = "Cumulative Effect",
+       title = "Cumulative Effects Over Time") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom",
+        plot.title = element_text(size = 11, face = "bold"))
+
+# Combine plots
+combined_plot_de <- p1_de + p2_de + 
+  plot_layout(guides = "collect") +
+  plot_annotation(title = "Dynamic Effects of Democracy on SDG Performance\n(with 95% Confidence Intervals)",
+    theme = theme(
+      plot.title = element_text(hjust = 0.5, size = 14),
+      plot.margin = margin(t = 10, r = 10, b = 10, l = 10)
+    )
+  ) &
+  theme(
+    plot.margin = margin(5, 5, 5, 5),  # inner margins around each subplot
+    legend.position = "bottom",              
+    legend.title = element_blank()
+  )
+combined_plot_de
+
+# Save normally
+ggsave("component_2/figures/stage2/twfe_fd_dynamic_effects_de_s2_color.png", 
+       plot = combined_plot_de, 
+       width = 12, height = 6)
+
+## Creating + saving black and white version
+p1_de_bw <- p1_de +
+  scale_color_manual(values = c("FD" = "grey20", "TWFE" = "grey45")) +
+  scale_fill_manual(values = c("FD" = "grey20", "TWFE" = "grey45"))
+p2_de_bw <- p2_de +
+  scale_color_manual(values = c("FD" = "grey20", "TWFE" = "grey45")) +
+  scale_fill_manual(values = c("FD" = "grey20", "TWFE" = "grey45"))
+
+#  Combine bw plots 
+combined_plot_de_bw <- p1_de_bw + p2_de_bw +
+  plot_layout(guides = "collect") +
+  plot_annotation(title = "Dynamic Effects of Democracy on SDG Performance\n(with 95% Confidence Intervals)",
+    theme = theme(
+      plot.title = element_text(hjust = 0.5, size = 14),
+      plot.margin = margin(t = 10, r = 10, b = 10, l = 10)
+    )
+  ) &
+  theme(
+    plot.margin = margin(5, 5, 5, 5),  # inner margins around each subplot
+    legend.position = "bottom",              
+    legend.title = element_blank()
+  )
+combined_plot_de_bw
+
+# Save bw version 
+ggsave("component_2/figures/stage2/twfe_fd_dynamic_effects_de_s2_bw.png", 
+       plot = combined_plot_de_bw, 
+       width = 12, height = 6)
+```
+
+## MEDIATION EFFECTS MODEL: SPI CONTROL APPLIED
+```{r}
+### MEDIATION MODEL ###
+# First Difference
+fd_coef_me <- c(-0.175, 0.185, 0.049)   # t-2, t-1, t
+fd_se_me   <- c(0.125, 0.076, 0.096)    # corresponding SEs
+
+# Two-Way Fixed Effects
+twfe_coef_me <- c(-0.236, 0.175, 0.126)  # t-2, t-1, t
+twfe_se_me   <- c(0.128, 0.097, 0.080)   # corresponding SEs
+
+# Calculate 95% CIs (±1.96*SE)
+fd_lower <- fd_coef_me - 1.96 * fd_se_me
+fd_upper <- fd_coef_me + 1.96 * fd_se_me
+
+twfe_lower <- twfe_coef_me - 1.96 * twfe_se_me
+twfe_upper <- twfe_coef_me + 1.96 * twfe_se_me
+
+# Calculate cumulative effects
+fd_cumul <- cumsum(fd_coef_me)
+twfe_cumul <- cumsum(twfe_coef_me)
+
+# Calculate cumulative CIs (uncertainty compounds)
+# For cumulative: Var(sum) = sum of variances (assuming independence)
+fd_cumul_se <- sqrt(cumsum(fd_se_me^2))
+fd_cumul_lower <- fd_cumul - 1.96 * fd_cumul_se
+fd_cumul_upper <- fd_cumul + 1.96 * fd_cumul_se
+
+twfe_cumul_se <- sqrt(cumsum(twfe_se_me^2))
+twfe_cumul_lower <- twfe_cumul - 1.96 * twfe_cumul_se
+twfe_cumul_upper <- twfe_cumul + 1.96 * twfe_cumul_se
+
+# Create data frames
+periods <- c(0, 1, 2)
+period_labels <- c("Lag t-2", "Lag t-1", "Current (t)")
+
+# Instantaneous effects data
+instant_data <- data.frame(
+  period = rep(periods, 2),
+  label = rep(period_labels, 2),
+  effect = c(fd_coef_me, twfe_coef_me),
+  lower = c(fd_lower, twfe_lower),
+  upper = c(fd_upper, twfe_upper),
+  model = rep(c("FD", "TWFE"), each = 3)
+)
+
+# Cumulative effects data
+cumul_data <- data.frame(
+  period = rep(periods, 2),
+  label = rep(period_labels, 2),
+  effect = c(fd_cumul, twfe_cumul),
+  lower = c(fd_cumul_lower, twfe_cumul_lower),
+  upper = c(fd_cumul_upper, twfe_cumul_upper),
+  model = rep(c("FD", "TWFE"), each = 3)
+)
+
+# Plot 1: Instantaneous Effects
+p1_me <- ggplot(instant_data, aes(x = factor(period, labels = period_labels), 
+                                y = effect, color = model, fill = model, group = model)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+  geom_line(linewidth = 1) +
+  geom_vline(xintercept = "Current (t)", linewidth = 0.25, color = "gray15") +
+  geom_point(size = 3) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  scale_color_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
+  scale_fill_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
+  labs(x = "", 
+       y = "Effect per Period",
+       title = "Instantaneous Effects (Period-by-Period)") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom",
+        plot.title = element_text(size = 11, face = "bold"))
+
+# Plot 2: Cumulative Effects
+p2_me <- ggplot(cumul_data, aes(x = factor(period, labels = period_labels), 
+                              y = effect, color = model, fill = model, group = model)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+  geom_line(linewidth = 1) +
+  geom_vline(xintercept = "Current (t)", linewidth = 0.25, color = "gray15") +
+  geom_point(size = 3) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  scale_color_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
+  scale_fill_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
+  labs(x = "", 
+       y = "Cumulative Effect",
+       title = "Cumulative Effects Over Time") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom",
+        plot.title = element_text(size = 11, face = "bold"))
+
+# Combine plots
+combined_plot_me <- p1_me + p2_me + 
+  plot_layout(guides = "collect") +
+  plot_annotation(title = "Dynamic Effects of Democracy on SDG Performance\n(with 95% Confidence Intervals)",
+    theme = theme(
+      plot.title = element_text(hjust = 0.5, size = 14),
+      plot.margin = margin(t = 10, r = 10, b = 10, l = 10)
+    )
+  ) &
+  theme(
+    plot.margin = margin(5, 5, 5, 5),  # inner margins
+    legend.position = "bottom",              
+    legend.title = element_blank()
+  )
+combined_plot_me
+
+# Save normally
+ggsave("component_2/figures/stage2/twfe_fd_dynamic_effects_me_s2_color.png", 
+       plot = combined_plot_me, 
+       width = 12, height = 6)
+
+## Creating + saving black and white version
+p1_me_bw <- p1_me +
+  scale_color_manual(values = c("FD" = "grey20", "TWFE" = "grey45")) +
+  scale_fill_manual(values = c("FD" = "grey20", "TWFE" = "grey45"))
+p2_me_bw <- p2_me +
+  scale_color_manual(values = c("FD" = "grey20", "TWFE" = "grey45")) +
+  scale_fill_manual(values = c("FD" = "grey20", "TWFE" = "grey45"))
+
+#  Combine bw plots 
+combined_plot_me_bw <- p1_me_bw + p2_me_bw +
+  plot_layout(guides = "collect") +
+  plot_annotation(title = "Dynamic Effects of Democracy on SDG Performance\n(with 95% Confidence Intervals)",
+    theme = theme(
+      plot.title = element_text(hjust = 0.5, size = 14),
+      plot.margin = margin(t = 10, r = 10, b = 10, l = 10)
+    )
+  ) &
+  theme(
+    plot.margin = margin(5, 5, 5, 5),  # inner margins 
+    legend.position = "bottom",              
+    legend.title = element_blank()
+  )
+combined_plot_me_bw
+
+# Save bw version 
+ggsave("component_2/figures/stage2/twfe_fd_dynamic_effects_me_s2_bw.png", 
+       plot = combined_plot_de_bw, 
+       width = 12, height = 6)
+```
+
+## ALL TOGETHER: DIRECT + MEDIATION EFFECTS ###
+```{r}
+### Creating + saving black and white version
+p1_me_bw <- p1_me_bw +
+  labs(x = "", y = "Effect per Period", title = NULL)
+p2_me_bw <- p2_me_bw +
+  labs(x = "", y = "Cumulative Effect", title = NULL)
+
+### ALL TOGETHER: DIRECT + MEDIATION EFFECTS ###
+combined_s2_bw <- (p1_de_bw | p2_de_bw) / (p1_me_bw | p2_me_bw) +
+  plot_layout(guides = "collect") +
+  plot_annotation(title = "Direct & Mediation Effects of Democracy on SDG Performance\n(with 95% Confidence Intervals)", 
+      theme = theme(
+      plot.title = element_text(hjust = 0.5, size = 18),
+      plot.margin = margin(t = 10, r = 10, b = 10, l = 10)
+    )
+  ) &
+  theme(
+    plot.margin = margin(5, 5, 5, 5),  # inner margins 
+    legend.position = "bottom",              
+    legend.title = element_blank()
+  )
+combined_s2_bw
+
+# Save bw version
+ggsave("component_2/figures/stage2/twfe_fd_dynamic_effects_s2_all_bw.png", 
+       plot = combined_s2_bw, 
+       width = 12, height = 9)
 ```
 
 
@@ -630,3 +827,6 @@ par(mfrow = c(1, 1))
 - No obvious outliers.
 - Residuals appear roughly normally distributed.
 - Overall, the residual diagnostics suggest that the linear regression assumptions are reasonably met for both models.
+
+
+
