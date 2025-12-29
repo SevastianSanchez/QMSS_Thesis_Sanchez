@@ -381,19 +381,11 @@ stargazer(
 
 # DI Coefficients and standard errors 
 # Order: Lag t-2, Lag t-1, Current (t)
-fd_coef <- c(1.338, -0.887, -1.311)   # t-2, t-1, t
-fd_se   <- c(0.451, 0.444, 0.371)     # corresponding SEs
+fd_coef <- c(-1.311, -0.887, 1.338)   # Year 0, Year 1, Year 2
+fd_se   <- c(0.371, 0.444, 0.451)
 
-twfe_coef <- c(0.712, -0.334, -0.449)  # t-2, t-1, t
-twfe_se   <- c(0.550, 0.368, 0.525)    # corresponding SEs
-
-# #### TESTINGGGGG #####
-# fd_coef <- c(1.338, -0.887, -1.311) # Contemp, 1st lag, 2nd lag
-# fd_se <- c(0.451, 0.444, 0.371)
-# 
-# twfe_coef <- c(0.712, -0.334, -0.449)
-# twfe_se <- c(0.550, 0.368, 0.525)
-########################
+twfe_coef <- c(-0.449, -0.334, 0.712)  # Year 0, Year 1, Year 2
+twfe_se   <- c(0.525, 0.368, 0.550)
 
 # Calculate 95% CIs (±1.96*SE)
 fd_lower <- fd_coef - 1.96 * fd_se
@@ -418,8 +410,7 @@ twfe_cumul_upper <- twfe_cumul + 1.96 * twfe_cumul_se
 
 # Create data frames
 periods <- c(0, 1, 2)
-#period_labels <- c("Current (t)", "Lag t-1", "Lag t-2")
-period_labels <- c("Lag t-2", "Lag t-1", "Current (t)")
+period_labels <- c("Year 0", "Year 1", "Year 2")
 
 # Instantaneous effects data
 instant_data <- data.frame(
@@ -446,14 +437,14 @@ p1 <- ggplot(instant_data, aes(x = factor(period, labels = period_labels),
                                 y = effect, color = model, fill = model, group = model)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(linewidth = 1) +
-  geom_vline(xintercept = "Current (t)", linewidth = 0.25, color = "gray15") +
+  geom_vline(xintercept = "Year 0", linewidth = 0.25, color = "gray15") +
   geom_point(size = 3) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   scale_color_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
   scale_fill_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
-  labs(x = "", 
+  labs(x = "Time Since Democracy Increase", 
        y = "Effect per Period",
-       title = "Instantaneous Effects (Period-by-Period)") +
+       title = "Period-Specific Effects") +
   theme_minimal(base_size = 12) +
   theme(legend.position = "bottom",
         plot.title = element_text(size = 11, face = "bold"))
@@ -463,12 +454,12 @@ p2 <- ggplot(cumul_data, aes(x = factor(period, labels = period_labels),
                               y = effect, color = model, fill = model, group = model)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(linewidth = 1) +
-  geom_vline(xintercept = "Current (t)", linewidth = 0.25, color = "gray15") +
+  geom_vline(xintercept = "Year 0", linewidth = 0.25, color = "gray15") +
   geom_point(size = 3) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   scale_color_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
   scale_fill_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
-  labs(x = "", 
+  labs(x = "Time Since Democracy Increase", 
        y = "Cumulative Effect",
        title = "Cumulative Effects Over Time") +
   theme_minimal(base_size = 12) +
@@ -478,7 +469,9 @@ p2 <- ggplot(cumul_data, aes(x = factor(period, labels = period_labels),
 # Combine plots
 combined_plot <- p1 + p2 + 
   plot_layout(guides = "collect") +
-  plot_annotation(title = "Dynamic Effects of Democracy on Statistical Capacity\n(with 95% Confidence Intervals)",
+  plot_annotation(
+    title = "Dynamic Effects of Democracy on Statistical Capacity\n(with 95% Confidence Intervals)",
+    subtitle = "Tracking effects over time following a one-unit increase in democracy",
     theme = theme(
       plot.title = element_text(hjust = 0.5, size = 14),
       plot.margin = margin(t = 10, r = 10, b = 10, l = 10)

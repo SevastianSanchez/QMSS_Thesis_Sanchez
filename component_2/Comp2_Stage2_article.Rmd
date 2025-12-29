@@ -377,17 +377,19 @@ stargazer(ols_sdg_spi_L2, fd_sdg_spi_L2, fe_sdg_spi_L2,
           out = "component_2/figures/stage2/s2_lag2_mods.html")
 ```
 
+## GRAPH 2: DIRECT EFFECTS MODEL ###
+Forward looking vizualization 
 ```{r}
 # Results from the main regression table
 
 ## DIRECT EFFECTS MODEL ###
 # First Difference
-fd_coef_de <- c(-0.184, 0.148, 0.035)   # t-2, t-1, t
-fd_se_de   <- c(0.127, 0.074, 0.091)    # corresponding SEs
+fd_coef_de <- c(0.035, 0.148, -0.184)   # Year 0, Year 1, Year 2
+fd_se_de   <- c(0.091, 0.074, 0.127)    # corresponding SEs
 
 # Two-Way Fixed Effects
-twfe_coef_de <- c(-0.201, 0.167, 0.096)  # t-2, t-1, t
-twfe_se_de   <- c(0.128, 0.100, 0.080)   # corresponding SEs
+twfe_coef_de <- c(0.096, 0.167, -0.201)  # Year 0, Year 1, Year 2
+twfe_se_de   <- c(0.080, 0.100, 0.128)   # corresponding SEs
 
 # Calculate 95% CIs (±1.96*SE)
 fd_lower <- fd_coef_de - 1.96 * fd_se_de
@@ -412,7 +414,7 @@ twfe_cumul_upper <- twfe_cumul + 1.96 * twfe_cumul_se
 
 # Create data frames
 periods <- c(0, 1, 2)
-period_labels <- c("Lag t-2", "Lag t-1", "Current (t)")
+period_labels <- c("Year 0", "Year 1", "Year 2")
 
 # Instantaneous effects data
 instant_data <- data.frame(
@@ -439,14 +441,14 @@ p1_de <- ggplot(instant_data, aes(x = factor(period, labels = period_labels),
                                 y = effect, color = model, fill = model, group = model)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(linewidth = 1) +
-  geom_vline(xintercept = "Current (t)", linewidth = 0.25, color = "gray15") +
+  geom_vline(xintercept = "Year 0", linewidth = 0.25, color = "gray15") +
   geom_point(size = 3) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   scale_color_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
   scale_fill_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
-  labs(x = "", 
+  labs(x = "Time Since Democracy Increase", 
        y = "Effect per Period",
-       title = "Instantaneous Effects (Period-by-Period)") +
+       title = "Period-Specific Effects") +
   theme_minimal(base_size = 12) +
   theme(legend.position = "bottom",
         plot.title = element_text(size = 11, face = "bold"))
@@ -456,12 +458,12 @@ p2_de <- ggplot(cumul_data, aes(x = factor(period, labels = period_labels),
                               y = effect, color = model, fill = model, group = model)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(linewidth = 1) +
-  geom_vline(xintercept = "Current (t)", linewidth = 0.25, color = "gray15") +
+  geom_vline(xintercept = "Year 0", linewidth = 0.25, color = "gray15") +
   geom_point(size = 3) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   scale_color_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
   scale_fill_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
-  labs(x = "", 
+  labs(x = "Time Since Democracy Increase", 
        y = "Cumulative Effect",
        title = "Cumulative Effects Over Time") +
   theme_minimal(base_size = 12) +
@@ -519,16 +521,17 @@ ggsave("component_2/figures/stage2/twfe_fd_dynamic_effects_de_s2_bw.png",
        width = 12, height = 6)
 ```
 
-## MEDIATION EFFECTS MODEL: SPI CONTROL APPLIED
+## GRAPH 3: MEDIATION EFFECTS MODEL: SPI CONTROL APPLIED
+Forward looking vizualization 
 ```{r}
 ### MEDIATION MODEL ###
 # First Difference
-fd_coef_me <- c(-0.175, 0.185, 0.049)   # t-2, t-1, t
-fd_se_me   <- c(0.125, 0.076, 0.096)    # corresponding SEs
+fd_coef_me <- c(0.049, 0.185, -0.175)   # Year 0, Year 1, Year 2
+fd_se_me   <- c(0.096, 0.076, 0.125)    # corresponding SEs
 
 # Two-Way Fixed Effects
-twfe_coef_me <- c(-0.236, 0.175, 0.126)  # t-2, t-1, t
-twfe_se_me   <- c(0.128, 0.097, 0.080)   # corresponding SEs
+twfe_coef_me <- c(0.126, 0.175, -0.236)  # Year 0, Year 1, Year 2
+twfe_se_me   <- c(0.080, 0.097, 0.128)   # corresponding SEs
 
 # Calculate 95% CIs (±1.96*SE)
 fd_lower <- fd_coef_me - 1.96 * fd_se_me
@@ -553,7 +556,7 @@ twfe_cumul_upper <- twfe_cumul + 1.96 * twfe_cumul_se
 
 # Create data frames
 periods <- c(0, 1, 2)
-period_labels <- c("Lag t-2", "Lag t-1", "Current (t)")
+period_labels <- c("Year 0", "Year 1", "Year 2")
 
 # Instantaneous effects data
 instant_data <- data.frame(
@@ -580,14 +583,14 @@ p1_me <- ggplot(instant_data, aes(x = factor(period, labels = period_labels),
                                 y = effect, color = model, fill = model, group = model)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(linewidth = 1) +
-  geom_vline(xintercept = "Current (t)", linewidth = 0.25, color = "gray15") +
+  geom_vline(xintercept = "Year 0", linewidth = 0.25, color = "gray15") +
   geom_point(size = 3) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   scale_color_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
   scale_fill_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
-  labs(x = "", 
+  labs(x = "Time Since Democracy Increase", 
        y = "Effect per Period",
-       title = "Instantaneous Effects (Period-by-Period)") +
+       title = "Period-Specific Effects") +
   theme_minimal(base_size = 12) +
   theme(legend.position = "bottom",
         plot.title = element_text(size = 11, face = "bold"))
@@ -597,12 +600,12 @@ p2_me <- ggplot(cumul_data, aes(x = factor(period, labels = period_labels),
                               y = effect, color = model, fill = model, group = model)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(linewidth = 1) +
-  geom_vline(xintercept = "Current (t)", linewidth = 0.25, color = "gray15") +
+  geom_vline(xintercept = "Year 0", linewidth = 0.25, color = "gray15") +
   geom_point(size = 3) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   scale_color_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
   scale_fill_manual(values = c("FD" = "#3182bd", "TWFE" = "#e6550d")) +
-  labs(x = "", 
+  labs(x = "Time Since Democracy Increase", 
        y = "Cumulative Effect",
        title = "Cumulative Effects Over Time") +
   theme_minimal(base_size = 12) +
@@ -664,9 +667,9 @@ ggsave("component_2/figures/stage2/twfe_fd_dynamic_effects_me_s2_bw.png",
 ```{r}
 ### Creating + saving black and white version
 p1_me_bw <- p1_me_bw +
-  labs(x = "", y = "Effect per Period", title = NULL)
+  labs(x = "Time Since Democracy Increase", y = "Effect per Period")
 p2_me_bw <- p2_me_bw +
-  labs(x = "", y = "Cumulative Effect", title = NULL)
+  labs(x = "Time Since Democracy Increase", y = "Cumulative Effect")
 
 ### ALL TOGETHER: DIRECT + MEDIATION EFFECTS ###
 combined_s2_bw <- (p1_de_bw | p2_de_bw) / (p1_me_bw | p2_me_bw) +
