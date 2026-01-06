@@ -97,7 +97,7 @@ sapply(panel_data_comp3 %>%
        function(x) sum(is.na(x)))
 ```
 
-## filtering out transitioning regimes & keeping only stable regimes 
+## filtering out transition regimes & keeping only stable regimes 
 ```{r}
 # removing transitioning regimes
 panel_data_stable <- panel_data_comp3 %>%

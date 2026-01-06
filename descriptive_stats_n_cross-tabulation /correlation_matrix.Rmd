@@ -99,7 +99,7 @@ correlation_plot <- ggplot(data = melted_correlation, aes(x = Var2, y = Var1, fi
 correlation_plot
 
 # save the plot
-ggsave("figures/correlation_matrix_main_vars.png", plot = correlation_plot, width = 5, height = 4, dpi = 300)
+ggsave("descriptive_stats_n_cross-tabulation/figures/correlation_matrix_main_vars.png", plot = correlation_plot, width = 5, height = 4, dpi = 300)
 
 ```
 
@@ -132,7 +132,7 @@ correlation_plot_sdg <- ggplot(data = melted_cor_sdg, aes(x = Var2, y = Var1, fi
 correlation_plot_sdg
 
 # save
-ggsave("figures/correlation_matrix_sdg_disaggregated.png", plot = correlation_plot_sdg, width = 6, height = 5, dpi = 300)
+ggsave("descriptive_stats_n_cross-tabulation/figures/correlation_matrix_sdg_disaggregated.png", plot = correlation_plot_sdg, width = 6, height = 5, dpi = 300)
 ```
 
 
@@ -253,5 +253,9 @@ matrix_spi_sdg <- ggplot(data = melted_cormat, aes(x = Var2, y = Var1, fill = va
 
 #show
 matrix_spi_sdg
+
+# save 
+ggsave("descriptive_stats_n_cross-tabulation/figures/partial_correlation_matrix_spi_sdg.png", 
+       plot = matrix_spi_sdg, width = 7, height = 5, dpi = 300)
 ```
 

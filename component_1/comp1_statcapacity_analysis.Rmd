@@ -16,8 +16,6 @@ output:
     theme: default
     fig_caption: yes
     df_print: tibble
-  word_document: default
-  urlcolor: blue
 ---
 
 # All Countries, Preliminary Analysis (SPI x SDGs)
@@ -285,7 +283,7 @@ attr(robust_mods_df$t.statistic, "label") <- "Robust Std. Errors Adjusted"
 attr(robust_mods_df$p.value, "label") <- "Robust Std. Errors Adjusted"
 
 #save to results_csv folder
-#write.csv(robust_mods_df, file = "component_1/figures/pols_mods_results.csv")
+#write.csv(robust_mods_df, file = "component_1/results_csv/pols_mods_results.csv")
 
 # View the result
 print(robust_mods_df)
@@ -342,7 +340,7 @@ tidy_vif <- enframe(vif_vals, name = "term", value = "vif")
 
 print(tidy_vif)
 
-#write.csv(tidy_vif, file = "component_1/figures/vif_results.csv")
+#write.csv(tidy_vif, file = "component_1/results_csv/vif_multiple_mod_3_results.csv")
 ```
 
 **Colinearity:** The correlation between SCI and SPI is about 0.8277. When placed within the same model, SCI inflated the standard error of SPI from 0.013079 to 0.027054. SCI had a similar reaction from the SPI with its standard error increasing from 0.0095864 to 0.024096.
@@ -380,7 +378,7 @@ bptests_results <- bp_tests %>%
 
 print(bptests_results)
 
-#write.csv(bptests_results, file = "component_1/figures/bp_heterosked_results.csv")
+#write.csv(bptests_results, file = "component_1/results_csv/bp_heterosked_results.csv")
 ```
 Model:         BP statistic      p-value
 ols_spi           207.         = 7.05e-39       
@@ -450,7 +448,7 @@ aic_bic_comp1_results <- data.frame(
 print(aic_bic_comp1_results)
 
 # saving to results_csv
-#write.csv(aic_bic_comp1_results, file = "component_1/figures/aic_bic_results.csv")
+#write.csv(aic_bic_comp1_results, file = "component_1/results_csv/aic_bic_results.csv")
 ```
 **AIC/BIC Results**
      model          AIC       BIC
@@ -481,7 +479,7 @@ spi_line <- "steelblue4"
 sci_line <- "darkgoldenrod"
 
 # Creating scatterplot with both SPI and SCI on the same plot
-Compare_fit <- ggplot(merged, aes(x = spi_comp, y = sdg_overall))+
+compare_fit <- ggplot(merged, aes(x = spi_comp, y = sdg_overall))+
   geom_smooth(aes(x = spi_comp, y = sdg_overall), 
               color = spi_line, 
               method = "lm", 
@@ -511,10 +509,10 @@ Compare_fit <- ggplot(merged, aes(x = spi_comp, y = sdg_overall))+
         plot.title = element_text(hjust= 0.4, size = 12, face = "bold")) # title size and position
 
 # Print the plot
-Compare_fit
+compare_fit
 
 # Save to specific folder
-#ggsave("component_1/figures/spi&sci_scatterplot.png", Compare_fit, width = 8, height = 6)
+#ggsave("component_1/figures/spi_n_sci_scatterplot.png", compare_fit, width = 8, height = 6)
 ```
 
 *Note* The SPI regression line is expected to appear higher in terms of SDG Score compared the SCI model because SPI countries include higher-income countries. As previously mentioned, the SCI soley focuses on lower to upper-middle income countries (146 countries over 17 years). 

@@ -185,7 +185,8 @@ ggsave("component_2/figures/other/combined_scatter_bw.png",
 # Lag2: SPI ~ DI [REPORTED]
 fd_spi_di_L2 <- plm(
   formula = spi_comp ~ di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) 
-  + log_gdppc,
+  + log_gdppc
+  + factor(year),
   data = panel_data, 
   model = "fd"
 )
@@ -205,19 +206,21 @@ cbind(ci_low, ci_high)
 linearHypothesis(
   fd_spi_di_L2,
   c("di_score = 0", "plm::lag(di_score, 1) = 0", "plm::lag(di_score, 2) = 0"),
-  vcov. = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1")
+  vcov. = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"), 
+  test = "F"
 )
 
 # cumulative effects 
 linearHypothesis(
   fd_spi_di_L2,
   c("di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) = 0"),
-  vcov. = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1")
+  vcov. = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"), 
+  test = "F"
 )
 ```
-**Result:** The joint significance tests for FD show that the DI variables are jointly significant in explaining changes in SPI overall scores (Chisq = 25.898, p = 1.002e-05). This suggests that shifts in democracy levels may have a meaningful immediate impact on statistical capacity (SPI) performance when considering both current and lagged effects.
+**Result:**
 
-In terms of *cumulative impact*, based on the FD model and panel data, there is no detectable total impact of changes in di_score (at current, lag 1, or lag 2) on SPI —over these periods (stat = 2.5181 p = 0.1125)
+In terms of *cumulative impact*, based on the FD model and panel data, there is no detectable total impact of changes in di_score (at current, lag 1, or lag 2) on SPI —over these periods.
 
 ## First Difference Error Bar Visualization (L2)
 ```{r}
@@ -262,11 +265,28 @@ ebar_fd
 fe_spi_di_L2 <- plm(
   formula = spi_comp ~ di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) 
   + log_gdppc 
-  #+ factor(income_level_recoded) 
   + factor(year),
   data = panel_data,
   model = "within")
 summary(fe_spi_di_L2, vcov = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"))
+
+# joint significance: is there an effect between these three variables? 
+linearHypothesis(
+  fe_spi_di_L2,
+  c("di_score = 0", "plm::lag(di_score, 1) = 0", "plm::lag(di_score, 2) = 0"),
+  vcov. = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"), 
+  test = "F"
+)
+# ensure correct names 
+names(coef(fe_spi_di_L2))
+
+# cumulative effects
+linearHypothesis(
+  fe_spi_di_L2,
+  c("di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) = 0"),
+  vcov. = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"), 
+  test = "F"
+)
 
 # CI for all variables (L2 model)
 coef <- coef(fe_spi_di_L2)
@@ -275,26 +295,10 @@ crit_value <- qt(0.975, df = nobs(fe_spi_di_L2)-length(coef(fe_spi_di_L2)))
 ci_low <- coef - crit_value * se
 ci_high <- coef + crit_value * se
 cbind(ci_low, ci_high)
-
-# joint significance: is there an effect between these three variables? 
-linearHypothesis(
-  fe_spi_di_L2,
-  c("di_score = 0", "plm::lag(di_score, 1) = 0", "plm::lag(di_score, 2) = 0"),
-  vcov. = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1")
-)
-# ensure correct names 
-# names(coef(fe_spi_di_L2))
-
-# cumulative effects
-linearHypothesis(
-  fe_spi_di_L2,
-  c("di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) = 0"),
-  vcov. = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1")
-)
 ```
-**Results:** The joint significance tests for FE show no evidence that DI variables are jointly significant in explaining changes in SPI scores (Chisq = 3.5345, p = 0.3163). This suggests that DI may not have a meaningful incremental impact on SDG outcomes when considering both current and lagged effects.
+**Results:** The joint significance tests for FE show no evidence that DI variables are jointly significant in explaining changes in SPI scores (F = 0.0107, p = 0.9175). This suggests that DI may not have a meaningful incremental impact on SDG outcomes when considering both current and lagged effects.
 
-In terms of *cumulative impact*, based on the FE model and panel data, there is no detectable total impact of changes in di_score (at current, lag 1, or lag 2) on SPI —over these periods. (stat = 0.0107, p = 0.9175)
+In terms of *cumulative impact*, based on the FE model and panel data, there is no detectable total impact of changes in di_score (at current, lag 1, or lag 2) on SPI —over these periods. (F = 0.0107, p = 0.9175)
 
 ## Fixed Effects Error Bar Visualization 
 ```{r}
@@ -381,8 +385,8 @@ stargazer(
 
 # DI Coefficients and standard errors 
 # Order: Lag t-2, Lag t-1, Current (t)
-fd_coef <- c(-1.311, -0.887, 1.338)   # Year 0, Year 1, Year 2
-fd_se   <- c(0.371, 0.444, 0.451)
+fd_coef <- c(-0.216740, -0.632255, 0.664082)   # Year 0, Year 1, Year 2
+fd_se   <- c(0.323727, 0.310471, 0.418547)
 
 twfe_coef <- c(-0.449, -0.334, 0.712)  # Year 0, Year 1, Year 2
 twfe_se   <- c(0.525, 0.368, 0.550)

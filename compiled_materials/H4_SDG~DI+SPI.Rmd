@@ -38,7 +38,6 @@ FE_no_spi <- plm(formula = sdg_overall ~ di_score + dplyr::lag(di_score, 1) + dp
               data = panel_data, 
               subset = autocratized == 1, # modifying based on regime stability
               effect = "twoways")
-summary(FE_no_spi)
 summary(FE_no_spi, vcov = vcovHC(FE_no_spi, cluster = "group", type = "HC1"))
 ```
 

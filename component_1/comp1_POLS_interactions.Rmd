@@ -220,7 +220,7 @@ stargazer(
   spi_x_reg_eps,
   se = robust_se_list,
   type = "html",
-  out = "figures/pooled_ols_interactions.html",
+  out = "component_1/figures/pooled_ols_interactions.html",
   title = "Pooled OLS Interaction Models",
   align = TRUE,
   column.labels = c("Income Level", "Regime Binary", "Regime Categ", "Regime Change Episode"),
@@ -353,7 +353,7 @@ gni_classes_ols
 #datatable(gni_classes_ols, caption = "Regression Results, by GNI Country Classifications")
 
 # write to directory 
-write.csv(gni_classes_ols, "results_csv/gni_classes_ols.csv")
+write.csv(gni_classes_ols, "component_1/results_csv/gni_classes_ols.csv")
 ```
 
 
@@ -389,7 +389,7 @@ viz_gni_class
 #ggplotly(viz_gni_class)
 
 # Save to specific folder
-ggsave("figures/gni_subgroups_ols.png", viz_gni_class, width = 10, height = 6)
+ggsave("component_1/figures/gni_subgroups_ols.png", viz_gni_class, width = 10, height = 6)
 ```
 [more results TBD]
 
@@ -436,5 +436,5 @@ coef_inter_spi_plot <- ggplot(spi_plot_data, aes(x = estimate, y = model)) +
 
 coef_inter_spi_plot
 
-ggsave("figures/coef_inter_spi_plot.png", coef_inter_spi_plot, width = 9, height = 5)
+ggsave("component_1/figures/coef_inter_spi_plot.png", coef_inter_spi_plot, width = 9, height = 5)
 ```

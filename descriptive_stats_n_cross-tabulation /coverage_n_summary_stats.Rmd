@@ -60,12 +60,6 @@ key_vars <- c("sdg_overall", "spi_comp", "sci_overall", "di_score",
 
 *SDG VARIABLE NOTE: While all member states have a country profile, only those with less than 20% missing data are ranked in the SDG Index, resulting in 167 countries being ranked in the 2024 report.*
 
-**Reason to remove GINI from study [Explained in paper]:**
-
-
-**Reason to remove Population from models [Explained in paper]**
-
-
 # 2. Dataset Coverage
 
 ## Coverage Statistics Function 
@@ -107,7 +101,7 @@ coverage_table <- kable(coverage_stats,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(coverage_table, file = "figures/data coverage & summary stats/full_coverage_stats_table.html")
+save_kable(coverage_table, file = "descriptive_stats_n_cross-tabulation/figures/full_coverage_stats_table.html")
 
 # Display the table in the document
 coverage_table
@@ -132,7 +126,7 @@ year_coverage_table <- kable(year_coverage,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(year_coverage_table, file = "figures/data coverage & summary stats/full_year_coverage_table.html")
+save_kable(year_coverage_table, file = "descriptive_stats_n_cross-tabulation/figures/full_year_coverage_table.html")
 
 # Display the table in the document
 year_coverage_table
@@ -155,7 +149,7 @@ coverage_table <- kable(coverage_stats,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(coverage_table, file = "figures/data coverage & summary stats/final_coverage_stats_table.html")
+save_kable(coverage_table, file = "descriptive_stats_n_cross-tabulation/figures/final_coverage_stats_table.html")
 
 # Display the table in the document
 coverage_table
@@ -180,7 +174,7 @@ year_coverage_table <- kable(year_coverage,
   column_spec(1, bold = FALSE)
 
 # Save the table as HTML
-save_kable(year_coverage_table, file = "figures/data coverage & summary stats/final_year_coverage_table.html")
+save_kable(year_coverage_table, file = "descriptive_stats_n_cross-tabulation/figures/final_year_coverage_table.html")
 
 # Display the table in the document
 year_coverage_table
@@ -265,7 +259,7 @@ summary_stats_table <- kable(merged_stats_long,
 
 # Save the table as HTML
 save_kable(summary_stats_table, 
-file = paste("figures/data coverage & summary stats/summary", if(gni_filter == "all"){"_all_gni"} else {paste0("_", gni_filter)}, if(regime_filter == "all"){"_all_regime"} else {paste0("_", regime_filter)}, sep = "", ".html"))
+file = paste("descriptive_stats_n_cross-tabulation/figures/summary", if(gni_filter == "all"){"_all_gni"} else {paste0("_", gni_filter)}, if(regime_filter == "all"){"_all_regime"} else {paste0("_", regime_filter)}, sep = "", ".html"))
 
 # Display the table in the document
 summary_stats_table
@@ -329,7 +323,7 @@ p4 <- ggplot(merged, aes(x = sdg_overall)) +
 (p1 + p2) / (p3 + p4)
 
 # Save combined plot
-ggsave("figures/data coverage & summary stats/hist_combined.png", (p1 + p2) / (p3 + p4), width = 10, height = 8, dpi = 300)
+ggsave("descriptive_stats_n_cross-tabulation/figures/hist_combined.png", (p1 + p2) / (p3 + p4), width = 10, height = 8, dpi = 300)
 ```
 
 ### GDP & Log(GDP) Distributions
@@ -418,12 +412,12 @@ boxplot_combined <- (b1 + b2) / (b3 + b4)
 boxplot_combined
 
 # Save combined plot
-ggsave("figures/data coverage & summary stats/boxplots_combined.png", boxplot_combined, width = 10, height = 8, dpi = 300)
+ggsave("descriptive_stats_n_cross-tabulation/figures/boxplots_combined.png", boxplot_combined, width = 10, height = 8, dpi = 300)
 ```
 
 
 # 5. Summary Table of Findings
-- remove di_score from summary table as it is not a key variable in the analysis
+- removing di_score from summary table as it is not a key variable in this particular analysis
 - include counts of democracies and autocracies in the summary table
 ```{r}
 # Create a summary table of key findings
@@ -478,7 +472,7 @@ summary_findings_table <- kable(summary_findings,
            general = "Source: Author's calculations using filtered dataset.")
 
 # Save the table as HTML
-#save_kable(summary_findings_table, file = "figures/data coverage & summary stats/summary_findings_table.html")
+#save_kable(summary_findings_table, file = "descriptive_stats_n_cross-tabulation/figures/summary_findings_table.html")
 
 # Display the table in the document
 summary_findings_table
