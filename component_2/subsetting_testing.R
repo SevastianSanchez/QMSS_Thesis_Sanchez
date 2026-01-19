@@ -113,6 +113,9 @@ regime_data_testing <- get_regime_data(c("Full democracy", "Flawed democracy", "
 # Authoritarian regimes with regime transitions only
 # regime_data <- get_regime_data("Authoritarian", stable = FALSE)
 
+# All regimes
+regime_data <- get_regime_data(c("Full democracy", "Flawed democracy", "Hybrid regime", "Authoritarian"))
+
 
 ## MISC TESTING: MULTIPLE DEPENDENT VARIABLES WITH fixest PACKAGE ##
 library(fixest)
@@ -130,4 +133,28 @@ models <- feols(c(goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9,
 # View all results
 etable(models, cluster = ~country_code + year)
 
+
+##### TESTING MODERATOR TERMS ####
+regime_data_plm <- pdata.frame(regime_data, index = c("country_code", "year"))
+
+# FE interaction model
+sdg_spixdi_fe <- plm(formula = sdg_overall ~ spi_comp*di_score + log_gdppc + factor(year),
+                      model = "within", 
+                      data = regime_data_plm)
+summary(sdg_spixdi_fe, vcov = vcovHC(sdg_spixdi_fe, cluster = "group", type = "HC1"))
+
+# RE interaction model
+sdg_spixdi_re <- plm(formula = sdg_overall ~ spi_comp*di_score + log_gdppc,
+                      model = "random", 
+                      data = regime_data_plm)
+summary(sdg_spixdi_re, vcov = vcovHC(sdg_spixdi_re, cluster = "group", type = "HC1"))
+
+# hausman test 
+phtest(sdg_spixdi_fe, sdg_spixdi_re)
+
+# FE interaction model with regime type as moderator
+sdg_spixregime_fe <- plm(formula = sdg_overall ~ spi_comp*factor(regime_type_eiu) + log_gdppc + factor(year),
+                     model = "within", 
+                     data = regime_data_plm)
+summary(sdg_spixregime_fe, vcov = vcovHC(sdg_spixregime_fe, cluster = "group", type = "HC1"))
 

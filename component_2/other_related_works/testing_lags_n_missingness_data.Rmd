@@ -60,22 +60,6 @@ model2 <- plm(sdg_overall ~
 summary(model2, vcov = vcovHC(model2, cluster = "group", type = "HC1"))
 ```
 
-# Model 3: SDG ~ SPI + DI + Controls (Random Effects)
-```{r}
-model3 <- plm(sdg_overall ~ 
-              + di_var 
-              #+ lag(di_var, 1) 
-              #+ plm::lag(di_var, 2) 
-              + spi_comp 
-              #+ plm::lag(spi_comp, 1) 
-              #+ plm::lag(spi_comp, 2) 
-              + log_gdppc,
-              data = panel_data, 
-              model = "random")
-summary(model3, vcov = vcovHC(model3, cluster = "group", type = "HC1"))
-
-phtest(model2, model3)
-```
 
 ## Testing with Missigness Data 
 ```{r}
@@ -110,15 +94,3 @@ model4 <- plm(prop_sdg_missing ~
 summary(model4, vcov = vcovHC(model4, cluster = "group", type = "HC1"))
 
 ```
-
-
-# Model Observations 
-Function that extracts model data for plm models
-```{r}
-# load the extract_plm_data function
-source("functions/extract_plm_data_function.R")
-
-model1_data <- extract_plm_data(model1)
-model2_data <- extract_plm_data(model2)
-```
-

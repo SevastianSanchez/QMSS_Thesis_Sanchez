@@ -218,14 +218,6 @@ fd_spi_di_L2 <- plm(
 )
 summary(fd_spi_di_L2, vcov = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"))
 
-# CI for all variables (L2 model)
-coef <- coef(fd_spi_di_L2)
-se <- sqrt(diag(vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1")))  # Get standard errors
-crit_value <- qt(0.975, df = nobs(fd_spi_di_L2)-length(coef(fd_spi_di_L2)))
-ci_low <- coef - crit_value * se
-ci_high <- coef + crit_value * se
-cbind(ci_low, ci_high)
-
 # joint significance 
 # names(coef(fd_spi_di_L2)) # ensure correct names 
 linearHypothesis(
@@ -240,6 +232,14 @@ linearHypothesis(
   c("di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) = 0"),
   vcov. = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1")
 )
+
+# CI for all variables (L2 model)
+coef <- coef(fd_spi_di_L2)
+se <- sqrt(diag(vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1")))  # Get standard errors
+crit_value <- qt(0.975, df = nobs(fd_spi_di_L2)-length(coef(fd_spi_di_L2)))
+ci_low <- coef - crit_value * se
+ci_high <- coef + crit_value * se
+cbind(ci_low, ci_high)
 ```
 **Result:** The joint significance tests for FD show that the DI variables are jointly significant in explaining changes in SPI overall scores (Chisq = 25.898, p = 1.002e-05). This suggests that shifts in democracy levels may have a meaningful immediate impact on statistical capacity (SPI) performance when considering both current and lagged effects.
 

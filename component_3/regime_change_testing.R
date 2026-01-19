@@ -64,7 +64,7 @@ panel_data1 <- panel_data %>%
 
 # View results for a specific country
 panel_data1 %>%
-  filter(country_code == "HUN") %>%  # Venezuela as example
+  filter(country_code == "HUN") %>%  # Hungary as example
   select(country_name, year, di_score, di_score_diff_next, di_score_change_2yr,
          di_score_change_3yr, di_score_change_4yr, di_score_change_5yr, pre_backsliding_year) %>%
   print()

@@ -80,13 +80,16 @@ panel_data <- panel_data %>%
     ),
     income_level_recoded = as.factor(income_level_recoded),
     
-    # Regime Type (EUI): regime type classification based on 5.0 threshold of di_score
-      eiu_regime_type = case_when(
-        di_score < 5 ~ 0,  # Autocracy
-        di_score >= 5 ~ 1,  # Democracy
-        TRUE ~ NA_integer_
+    # Regime Type (EUI): regime type classifications based on EIU Methodology
+    regime_type_eiu = case_when(
+      #[DECIDE TO MAYBE CHANGE TO NUMBERS 0-3]
+      di_score >= 8.0 ~ "Full democracy", #[DECIDE TO MAYBE CHANGE TO NUMBERS 0-3]
+      di_score >= 6.0 & di_score < 8.0 ~ "Flawed democracy",
+      di_score >= 4.0 & di_score < 6.0 ~ "Hybrid regime",
+      di_score < 4.0 ~ "Authoritarian",
+      TRUE ~ NA_character_
       ),
-    eiu_regime_type = as.factor(eiu_regime_type),
+    regime_type_eiu = as.factor(regime_type_eiu),
     # 'eiu_regime_type' created here because it is used in comp 2 analysis.
     # It's also needed to create regime change variables for further event-history analysis.
     di_score_reverse = 10 - di_score,  # experimental: Reverse DI score for regime change detection (higher = more autocratic)
@@ -100,7 +103,7 @@ panel_data <- panel_data %>%
     ert_regch_event = as.factor(regch_event)
   ) %>%
   
-  # Country-level episode indicators
+  # Country-level episode indicators (ERT)
   group_by(country_code) %>%
   mutate(
     ert_has_aut_ep = as.factor(ifelse(any(ert_aut_ep == 1, na.rm = TRUE), 1, 0)),
@@ -120,35 +123,10 @@ panel_data <- panel_data %>%
 panel_data <- panel_data %>%
   filter(year >= 2016) %>%
   select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, di_score_lag1, di_score_lag2,
-         eiu_regime_type, log_gdppc, income_level_recoded, p1_use:p5_infra, goal1:goal17, everything())
+         regime_type_eiu, log_gdppc, income_level_recoded, p1_use:p5_infra, goal1:goal17, everything())
 
 # remove selected_df to free up memory
 rm(selected_df)
 
-# First difference data for FD models
-fd_data <- panel_data %>%
-  select(country_code, year, sdg_overall, di_score, spi_comp, log_gdppc, income_level, aut_ep, 
-         dem_ep, income_level_recoded, regch_event, di_score_lag1, di_score_lag2, spi_comp_lag1, 
-         spi_comp_lag2, log_gdppc_lag1, log_gdppc_lag2) %>%
-  filter(!is.na(di_score) & !is.na(spi_comp) | !is.na(spi_comp) & !is.na(sdg_overall)) %>% 
-  group_by(country_code) %>%
-  arrange(year) %>%
-  mutate(
-    # First differences
-    sdg_diff = sdg_overall - dplyr::lag(sdg_overall, n = 1),
-    di_diff = di_score - di_score_lag1,
-    spi_diff = spi_comp - spi_comp_lag1,
-    log_gdppc_diff = log_gdppc - log_gdppc_lag1,
-    # Lagged first differences 
-    di_diff_lag1 = dplyr::lag(di_diff, n = 1),
-    di_diff_lag2 = dplyr::lag(di_diff, n = 2),
-    spi_diff_lag1 = dplyr::lag(spi_diff, n = 1),
-    spi_diff_lag2 = dplyr::lag(spi_diff, n = 2),
-    log_gdppc_diff_lag1 = dplyr::lag(log_gdppc_diff, n = 1),
-    log_gdppc_diff_lag2 = dplyr::lag(log_gdppc_diff, n = 2)
-  ) %>%
-  ungroup()
-
 # Optional: Save to CSV (uncommented when needed)
 # write_csv(panel_data, "data/Main CSV Outputs/panel_data.csv")
-# write_csv(fd_data, "data/Main CSV Outputs/fd_data.csv")

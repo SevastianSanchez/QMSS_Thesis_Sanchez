@@ -7,7 +7,7 @@ source("packages.R")
 # Function to identify regime changes and episodes using EIU data
 eiu_identify_regime_changes <- function(data) {
   # Validate all columns exist in DF
-  required_cols <- c("country_code", "year", "di_score", "eiu_regime_type")
+  required_cols <- c("country_code", "year", "di_score", "regime_type_eiu")
   missing_cols <- setdiff(required_cols, names(data)) 
   if (length(missing_cols) > 0) {
     stop("Missing required columns: ", paste(missing_cols, collapse = ", "))
@@ -18,7 +18,7 @@ eiu_identify_regime_changes <- function(data) {
     group_by(country_code) %>%
     mutate(
       # Lag variables for regime type and score
-      eiu_regime_type_lag1 = dplyr::lag(eiu_regime_type, 1),
+      regime_type_eiu_lag1 = dplyr::lag(regime_type_eiu, 1),
       di_score_lag1 = dplyr::lag(di_score, 1),
       
       #------------------------------------------------------------
@@ -76,12 +76,12 @@ eiu_identify_regime_changes <- function(data) {
       
       eiu_regch_event = case_when(
         # Democratization event (crossing 5.0 threshold upward)
-        eiu_regime_type == 1 & eiu_regime_type_lag1 == 0 &
-          dplyr::lead(eiu_regime_type) == 1 & dplyr::lead(eiu_regime_type, 2) == 1 ~ 1,
+        regime_type_eiu == 1 & regime_type_eiu_lag1 == 0 &
+          dplyr::lead(regime_type_eiu) == 1 & dplyr::lead(regime_type_eiu, 2) == 1 ~ 1,
         
         # Autocratization event (crossing 5.0 threshold downward)
-        eiu_regime_type == 0 & eiu_regime_type_lag1 == 1 &
-          dplyr::lead(eiu_regime_type) == 0 & dplyr::lead(eiu_regime_type, 2) == 0 ~ -1,
+        regime_type_eiu == 0 & regime_type_eiu_lag1 == 1 &
+          dplyr::lead(regime_type_eiu) == 0 & dplyr::lead(regime_type_eiu, 2) == 0 ~ -1,
         
         # No regime transition
         TRUE ~ 0

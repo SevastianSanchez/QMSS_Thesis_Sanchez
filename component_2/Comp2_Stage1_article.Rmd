@@ -182,24 +182,27 @@ ggsave("component_2/figures/other/combined_scatter_bw.png",
 
 # 1.2) First Difference [Stage 1]: SPI ~ DI
 ```{r}
-# Lag2: SPI ~ DI [REPORTED]
+# Contemporaneous Effects: SPI ~ DI [REPORTED]
+fd_spi_di_current <- plm(
+  formula = spi_comp ~ di_score
+  + log_gdppc
+  + factor(year),
+  data = panel_data, 
+  model = "fd"
+)
+summary(fd_spi_di_current, vcov = vcovHC(fd_spi_di_current, cluster = "group", type = "HC1"))
+
+# Delayed Lag2: SPI ~ DI [REPORTED]
 fd_spi_di_L2 <- plm(
-  formula = spi_comp ~ di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) 
+  formula = spi_comp ~ di_score 
+  + plm::lag(di_score, 1) 
+  + plm::lag(di_score, 2) 
   + log_gdppc
   + factor(year),
   data = panel_data, 
   model = "fd"
 )
 summary(fd_spi_di_L2, vcov = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"))
-
-# CI for all variables (L2 model)
-coef <- coef(fd_spi_di_L2)
-se <- sqrt(diag(vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"))) # Get standard errors
-
-crit_value <- qt(0.975, df = nobs(fd_spi_di_L2)-length(coef(fd_spi_di_L2)))
-ci_low <- coef - crit_value * se
-ci_high <- coef + crit_value * se
-cbind(ci_low, ci_high)
 
 # joint significance 
 # names(coef(fd_spi_di_L2)) # ensure correct names 
@@ -222,32 +225,48 @@ linearHypothesis(
 
 In terms of *cumulative impact*, based on the FD model and panel data, there is no detectable total impact of changes in di_score (at current, lag 1, or lag 2) on SPI —over these periods.
 
-## First Difference Error Bar Visualization (L2)
+## First Difference CI Results & Error Bar Visualization (L2)
 ```{r}
-# Extract coefficients and robust standard errors from the FD model
-fd_spi_di_L2_results <- summary(fd_spi_di_L2, vcov = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"))
-# Create a data frame for visualization
+# CI for all variables (L2 model)
+robust_results_fd <- coeftest(fd_spi_di_L2, vcov = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"))
+
+# Extract 95% CIs
+ci_low <- robust_results_fd[, 1] - 1.96 * robust_results_fd[, 2]
+ci_high <- robust_results_fd[, 1] + 1.96 * robust_results_fd[, 2]
+cbind(ci_low, ci_high)
+
+# Create data frame for plotting
 coef_fd_df <- data.frame(
-  term = rownames(fd_spi_di_L2_results$coefficients),
-  estimate = fd_spi_di_L2_results$coefficients[, "Estimate"],
-  std.error = fd_spi_di_L2_results$coefficients[, "Std. Error"]
+  term = rownames(robust_results_fd),
+  estimate = robust_results_fd[, 1],
+  ci_low = ci_low,
+  ci_high = ci_high
 )
-# Create a ggplot error bar chart
-ebar_fd <- ggplot(coef_fd_df, aes(x = term, y = estimate)) +
+
+# filter to only the first four rows (variables of interest)
+coef_fd_plot_df <- coef_fd_df %>%
+  filter(term %in% c("di_score", 
+                     "plm::lag(di_score, 1)", 
+                     "plm::lag(di_score, 2)", 
+                     "log_gdppc"))
+
+# Plot with 95% CIs
+ebar_fd <- ggplot(coef_fd_plot_df, aes(x = term, y = estimate)) +
   geom_point() +
-  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error), width = 0.2) +
-  labs(title = "Stage I: Static & Lagged First Difference (SPI~DI)", x = NULL, y = "Coefficient Estimate") +
+  geom_errorbar(aes(ymin = ci_low, ymax = ci_high), width = 0.2) +
+  labs(title = "Stage I: Dynamic First Difference (SPI ~ DI)", 
+       x = NULL, 
+       y = "Coefficient Estimate",
+       caption = "Error bars represent 95% confidence intervals") +
   theme_minimal() +
   coord_flip() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "steelblue") +
   scale_x_discrete(labels = c("di_score" = "Democracy (DI)", 
-                              "plm::lag(di_score, 1)" = "Lagged DI (t-1)", 
+                              "plm::lag(di_score, 1)" = "Lagged DI (t-1)**", 
                               "plm::lag(di_score, 2)" = "Lagged DI (t-2)", 
-                              "log_gdppc" = "Log(GDP per capita)",
-                              "(Intercept)" = "Intercept"
+                              "log_gdppc" = "Log(GDP per capita)"
                               ),
                    limits = c(
-                   "(Intercept)",
                    "log_gdppc",
                     "plm::lag(di_score, 2)",
                     "plm::lag(di_score, 1)",
@@ -255,13 +274,20 @@ ebar_fd <- ggplot(coef_fd_df, aes(x = term, y = estimate)) +
                  ))
 ebar_fd
 
-# Save the plot
-#ggsave("component_2/figures/stage1/error_bar_fd_spi_di_L2.png", ebar_fd, width = 10, height = 6)
 ```
 
 # 1.3) Fixed Effects [Stage 1]: SPI ~ DI
 ```{r}
-# Lag2: SPI ~ DI
+# Contemporaneous Effects: SPI ~ DI [REPORTED]
+fe_spi_di_current <- plm(
+  formula = spi_comp ~ di_score 
+  + log_gdppc 
+  + factor(year),
+  data = panel_data,
+  model = "within")
+summary(fe_spi_di_current, vcov = vcovHC(fe_spi_di_current, cluster = "group", type = "HC1"))
+
+# Lag2: SPI ~ DI [REPORTED]
 fe_spi_di_L2 <- plm(
   formula = spi_comp ~ di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) 
   + log_gdppc 
@@ -287,14 +313,6 @@ linearHypothesis(
   vcov. = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"), 
   test = "F"
 )
-
-# CI for all variables (L2 model)
-coef <- coef(fe_spi_di_L2)
-se <- sqrt(diag(vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1")))  # Get standard errors
-crit_value <- qt(0.975, df = nobs(fe_spi_di_L2)-length(coef(fe_spi_di_L2)))
-ci_low <- coef - crit_value * se
-ci_high <- coef + crit_value * se
-cbind(ci_low, ci_high)
 ```
 **Results:** The joint significance tests for FE show no evidence that DI variables are jointly significant in explaining changes in SPI scores (F = 0.0107, p = 0.9175). This suggests that DI may not have a meaningful incremental impact on SDG outcomes when considering both current and lagged effects.
 
@@ -302,47 +320,45 @@ In terms of *cumulative impact*, based on the FE model and panel data, there is 
 
 ## Fixed Effects Error Bar Visualization 
 ```{r}
-# Extract coefficients and robust standard errors from the FE model
-fe_spi_di_L2_results <- summary(fe_spi_di_L2, vcov = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"))
-# Create a data frame for visualization
-coef_df <- data.frame(
-  term = rownames(fe_spi_di_L2_results$coefficients),
-  estimate = fe_spi_di_L2_results$coefficients[, "Estimate"],
-  std.error = fe_spi_di_L2_results$coefficients[, "Std. Error"]
+# CI for all variables (L2 model)
+robust_results_fe <- coeftest(fe_spi_di_L2, vcov = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"))
+
+# Extract 95% CIs
+ci_low <- robust_results_fe[, 1] - 1.96 * robust_results_fe[, 2]
+ci_high <- robust_results_fe[, 1] + 1.96 * robust_results_fe[, 2]
+
+# Create data frame for plotting
+coef_fe_df <- data.frame(
+  term = rownames(robust_results_fe),
+  estimate = robust_results_fe[, 1],
+  ci_low = ci_low,
+  ci_high = ci_high
 )
-# Create a ggplot error bar chart
-ebar_fe <- ggplot(coef_df, aes(x = term, y = estimate)) +
+
+# filter to only the first four rows (variables of interest)
+coef_fe_plot_df <- coef_fe_df %>%
+  filter(term %in% c("di_score", 
+                     "plm::lag(di_score, 1)", 
+                     "plm::lag(di_score, 2)", 
+                     "log_gdppc"))
+
+# Create a ggplot error bar chart with 95% CIs
+ebar_fe <- ggplot(coef_fe_plot_df, aes(x = term, y = estimate)) +
   geom_point() +
-  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error), width = 0.2) +
-  labs(title = "Stage I: Static & Lagged Two-Way Fixed Effects (SPI ~ DI)", 
+  geom_errorbar(aes(ymin = ci_low, ymax = ci_high), width = 0.2) +
+  labs(title = "Stage I: Dynamic Two-Way Fixed Effects (SPI ~ DI)", 
        x = NULL, 
-       y = "Coefficient Estimate") +
+       y = "Coefficient Estimate",
+       caption = "Error bars represent 95% confidence intervals") +
   theme_minimal() +
-  coord_flip() +  # Flip coordinates for better readability
+  coord_flip() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "steelblue") +
-  # re-labeling x variable lables 
   scale_x_discrete(labels = c("di_score" = "Democracy (DI)", 
                               "plm::lag(di_score, 1)" = "Lagged DI (t-1)", 
                               "plm::lag(di_score, 2)" = "Lagged DI (t-2)", 
-                              "log_gdppc" = "Log(GDP per capita)", 
-                              "factor(year)2017" = "Year 2017",
-                              "factor(year)2018" = "Year 2018",
-                              "factor(year)2019" = "Year 2019",
-                              "factor(year)2020" = "Year 2020",
-                              "factor(year)2021" = "Year 2021",
-                              "factor(year)2022" = "Year 2022",
-                              "factor(year)2023" = "Year 2023",
-                              "Intercept" = "Intercept"
+                              "log_gdppc" = "Log(GDP per capita)" 
                               ),
                    limits = c(
-                   "(Intercept)",
-                   "factor(year)2023",
-                   "factor(year)2022",
-                   "factor(year)2021",
-                   "factor(year)2020",
-                   "factor(year)2019",
-                   "factor(year)2018",
-                   "factor(year)2017",
                    "log_gdppc",
                    "plm::lag(di_score, 2)",
                    "plm::lag(di_score, 1)",
@@ -352,34 +368,73 @@ ebar_fe
 
 # Save the plot
 #ggsave("component_2/figures/stage1/error_bar_fe_spi_di_L2.png", ebar_fe, width = 10, height = 6)
+
+
+common_ylim <- c(-2.5, 2.2)
+
+# Remove individual titles and captions from both plots
+ebar_fd_clean <- ebar_fd + 
+  labs(title = "First Difference", caption = NULL) +
+  theme(plot.title = element_text(hjust = 0.5, size = 14)) +
+  ylim(common_ylim)
+
+ebar_fe_clean <- ebar_fe + 
+  labs(title = "Two-Way Fixed Effects", caption = NULL) +
+  theme(plot.title = element_text(hjust = 0.5, size = 14)) +
+  ylim(common_ylim)
+
+# Combine plots side by side with single caption
+combined_stage1_plot <- ebar_fd_clean + ebar_fe_clean +
+  plot_layout(guides = "collect") +
+  plot_annotation(
+    title = "Stage I: Dynamic Effects of Democracy on Statistical Capacity",
+    caption = "Note: Error bars represent 95% confidence intervals with robust standard errors clustered by country.",
+    theme = theme(
+      plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+      plot.caption = element_text(hjust = 0.5, size = 12),
+      plot.margin = margin(t = 10, r = 10, b = 10, l = 10)
+    )
+  ) &
+  theme(
+    plot.margin = margin(5, 5, 5, 5),
+    legend.position = "none"  # Remove legend since there isn't one
+  )
+
+combined_stage1_plot
+
+# Save the combined plot
+ggsave("component_2/figures/stage1/combined_error_bars_spi_di_L2.png", 
+       combined_stage1_plot, width = 12, height = 8, dpi = 300)
+
 ```
 
 ### stargazer table of lag2 models 
 ```{r eval=FALSE, include=FALSE}
 # stargazer table for only lag2 models
 stargazer(
-  ols_spi_di_L2, fd_spi_di_L2, fe_spi_di_L2,
+  fd_spi_di_current, fd_spi_di_L2, fe_spi_di_current, fe_spi_di_L2,
   se = list(
-    coeftest(ols_spi_di_L2, vcov = vcovHC(ols_spi_di_L2, cluster = "group", type = "HC1"))[, 2],
+    coeftest(fd_spi_di_current, vcov = vcovHC(fd_spi_di_current, cluster = "group", type = "HC1"))[, 2],
     coeftest(fd_spi_di_L2, vcov = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"))[, 2],
+    coeftest(fe_spi_di_current, vcov = vcovHC(fe_spi_di_current, cluster = "group", type = "HC1"))[, 2],
     coeftest(fe_spi_di_L2, vcov = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"))[, 2]
   ),
   type = "html",
-  title = "Stage I Models: Distributive Lagged Effects",
+  title = "Stage I Models: Dynamic & Contemporaneous Effects",
   align = TRUE,
   dep.var.labels = "SPI Overall Score",
-  column.labels = c("POLS", "FD", "FE"),
-  covariate.labels = c("DI Composite", "Lagged DI (t-1)", "Lagged DI (t-2)", "Log(GDPper-capita)", "Intercept"),
+  column.labels = c("FD", "FD", "TWFE", "TWFE"),
+  covariate.labels = c("Democracy Index (DI) (Composite)", "Lagged DI (t-1)", "Lagged DI (t-2)", "(Log) GDP per-capita", "Intercept"),
   report = "vcs*",
   notes = "Robust standard errors clustered by country in parentheses",
   omit = "factor\\(year\\)",
   model.names = FALSE,
-  out = "component_2/figures/stage1/s1_lag2_mods.html"
+  out = "component_2/figures/stage1/s1_fd_twfe_mods.html"
 )
 
 ```
 
-## Effect Sizes Visualization
+## (Dynamic) Effect Sizes Visualization
 ```{r}
 # Results from the main regression table
 
