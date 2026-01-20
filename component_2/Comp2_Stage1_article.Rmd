@@ -239,6 +239,7 @@ cbind(ci_low, ci_high)
 coef_fd_df <- data.frame(
   term = rownames(robust_results_fd),
   estimate = robust_results_fd[, 1],
+  std_error = robust_results_fd[, 2],
   ci_low = ci_low,
   ci_high = ci_high
 )
@@ -289,7 +290,9 @@ summary(fe_spi_di_current, vcov = vcovHC(fe_spi_di_current, cluster = "group", t
 
 # Lag2: SPI ~ DI [REPORTED]
 fe_spi_di_L2 <- plm(
-  formula = spi_comp ~ di_score + plm::lag(di_score, 1) + plm::lag(di_score, 2) 
+  formula = spi_comp ~ di_score 
+  + plm::lag(di_score, 1) 
+  + plm::lag(di_score, 2) 
   + log_gdppc 
   + factor(year),
   data = panel_data,
@@ -303,8 +306,6 @@ linearHypothesis(
   vcov. = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"), 
   test = "F"
 )
-# ensure correct names 
-names(coef(fe_spi_di_L2))
 
 # cumulative effects
 linearHypothesis(
@@ -331,6 +332,7 @@ ci_high <- robust_results_fe[, 1] + 1.96 * robust_results_fe[, 2]
 coef_fe_df <- data.frame(
   term = rownames(robust_results_fe),
   estimate = robust_results_fe[, 1],
+  std_error = robust_results_fe[, 2],
   ci_low = ci_low,
   ci_high = ci_high
 )
@@ -368,8 +370,10 @@ ebar_fe
 
 # Save the plot
 #ggsave("component_2/figures/stage1/error_bar_fe_spi_di_L2.png", ebar_fe, width = 10, height = 6)
+```
 
-
+## Combined Error Bar Plot for FD and FE Models
+```{r}
 common_ylim <- c(-2.5, 2.2)
 
 # Remove individual titles and captions from both plots
@@ -408,57 +412,41 @@ ggsave("component_2/figures/stage1/combined_error_bars_spi_di_L2.png",
 
 ```
 
-### stargazer table of lag2 models 
-```{r eval=FALSE, include=FALSE}
-# stargazer table for only lag2 models
-stargazer(
-  fd_spi_di_current, fd_spi_di_L2, fe_spi_di_current, fe_spi_di_L2,
-  se = list(
-    coeftest(fd_spi_di_current, vcov = vcovHC(fd_spi_di_current, cluster = "group", type = "HC1"))[, 2],
-    coeftest(fd_spi_di_L2, vcov = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"))[, 2],
-    coeftest(fe_spi_di_current, vcov = vcovHC(fe_spi_di_current, cluster = "group", type = "HC1"))[, 2],
-    coeftest(fe_spi_di_L2, vcov = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"))[, 2]
-  ),
-  type = "html",
-  title = "Stage I Models: Dynamic & Contemporaneous Effects",
-  align = TRUE,
-  dep.var.labels = "SPI Overall Score",
-  column.labels = c("FD", "FD", "TWFE", "TWFE"),
-  covariate.labels = c("Democracy Index (DI) (Composite)", "Lagged DI (t-1)", "Lagged DI (t-2)", "(Log) GDP per-capita", "Intercept"),
-  report = "vcs*",
-  notes = "Robust standard errors clustered by country in parentheses",
-  omit = "factor\\(year\\)",
-  model.names = FALSE,
-  out = "component_2/figures/stage1/s1_fd_twfe_mods.html"
-)
-
-```
-
-## (Dynamic) Effect Sizes Visualization
+## (Dynamic) Effect Sizes Visualization [REVISED - AI]
 ```{r}
-# Results from the main regression table
+# Use existing dataframes created earlier:  coef_fd_plot_df and coef_fe_plot_df
+# These already contain estimates and 95% CIs for DI variables (current, lag1, lag2)
 
-# DI Coefficients and standard errors 
-# Order: Lag t-2, Lag t-1, Current (t)
-fd_coef <- c(-0.216740, -0.632255, 0.664082)   # Year 0, Year 1, Year 2
-fd_se   <- c(0.323727, 0.310471, 0.418547)
+# Extract DI coefficients only (exclude log_gdppc)
+fd_di_data <- coef_fd_plot_df %>%
+  filter(term %in% c("di_score", "plm::lag(di_score, 1)", "plm::lag(di_score, 2)"))
 
-twfe_coef <- c(-0.449, -0.334, 0.712)  # Year 0, Year 1, Year 2
-twfe_se   <- c(0.525, 0.368, 0.550)
+fe_di_data <- coef_fe_plot_df %>%
+  filter(term %in% c("di_score", "plm::lag(di_score, 1)", "plm::lag(di_score, 2)"))
 
-# Calculate 95% CIs (±1.96*SE)
-fd_lower <- fd_coef - 1.96 * fd_se
-fd_upper <- fd_coef + 1.96 * fd_se
+# Reorder from lag2 -> lag1 -> current to match Year 0, Year 1, Year 2 timeline
+fd_di_data <- fd_di_data %>%
+  arrange(desc(term))  # This will order:  plm::lag(2) -> plm::lag(1) -> di_score
 
-twfe_lower <- twfe_coef - 1.96 * twfe_se
-twfe_upper <- twfe_coef + 1.96 * twfe_se
+fe_di_data <- fe_di_data %>%
+  arrange(desc(term))
+
+# Extract vectors for calculations
+fd_coef <- fd_di_data$estimate
+fd_se <- fd_di_data$std_error 
+fd_lower <- fd_di_data$ci_low
+fd_upper <- fd_di_data$ci_high
+
+twfe_coef <- fe_di_data$estimate
+twfe_se <- fe_di_data$std_error
+twfe_lower <- fe_di_data$ci_low
+twfe_upper <- fe_di_data$ci_high
 
 # Calculate cumulative effects
 fd_cumul <- cumsum(fd_coef)
 twfe_cumul <- cumsum(twfe_coef)
 
 # Calculate cumulative CIs (uncertainty compounds)
-# For cumulative: Var(sum) = sum of variances (assuming independence)
 fd_cumul_se <- sqrt(cumsum(fd_se^2))
 fd_cumul_lower <- fd_cumul - 1.96 * fd_cumul_se
 fd_cumul_upper <- fd_cumul + 1.96 * fd_cumul_se
@@ -579,6 +567,32 @@ ggsave("component_2/figures/stage1/twfe_fd_dynamic_effects_s1_bw.png",
 ```
 
 
+### stargazer table of lag2 models 
+```{r eval=FALSE, include=FALSE}
+# stargazer table for only lag2 models
+stargazer(
+  fd_spi_di_current, fd_spi_di_L2, fe_spi_di_current, fe_spi_di_L2,
+  se = list(
+    coeftest(fd_spi_di_current, vcov = vcovHC(fd_spi_di_current, cluster = "group", type = "HC1"))[, 2],
+    coeftest(fd_spi_di_L2, vcov = vcovHC(fd_spi_di_L2, cluster = "group", type = "HC1"))[, 2],
+    coeftest(fe_spi_di_current, vcov = vcovHC(fe_spi_di_current, cluster = "group", type = "HC1"))[, 2],
+    coeftest(fe_spi_di_L2, vcov = vcovHC(fe_spi_di_L2, cluster = "group", type = "HC1"))[, 2]
+  ),
+  type = "html",
+  title = "Stage I Models: Dynamic & Contemporaneous Effects",
+  align = TRUE,
+  dep.var.labels = "SPI Overall Score",
+  column.labels = c("FD", "FD", "TWFE", "TWFE"),
+  covariate.labels = c("Democracy Index (DI) (Composite)", "Lagged DI (t-1)", "Lagged DI (t-2)", "(Log) GDP per-capita", "Intercept"),
+  report = "vcs*",
+  notes = "Robust standard errors clustered by country in parentheses",
+  omit = "factor\\(year\\)",
+  model.names = FALSE,
+  out = "component_2/figures/stage1/s1_fd_twfe_mods.html"
+)
+
+```
+
 ## Check for Autocorrelation 
 ```{r}
 # APPLY Wooldridge Test for AR(1) Errors in FE Panel Models: pwartest()
@@ -586,7 +600,7 @@ ggsave("component_2/figures/stage1/twfe_fd_dynamic_effects_s1_bw.png",
 # This is MUCH BETTER for panel data with small T AND unbalanced panels!!!
 pbgtest(fe_spi_di_L2) # Panel
 pwartest(fe_spi_di_L2) # FE [significant]
-pwfdtest(fd_spi_di_L2) # FD [significant]
+pwfdtest(fd_spi_di_L2) # FD [Not significant: NO EVIDENCE OF AUTOCORRELATION]
 ```
 Significant p-value indicates the presence of autocorrelation in the residuals of the fixed effects model. This suggests that the errors are correlated over time, which violates one of the key assumptions of linear regression models.
 
@@ -595,8 +609,8 @@ This is corrected by using robust standard errors clustered by country, which ac
 ## Check for Heteroskedasticity
 ```{r}
 # Apply Breusch-Pagan test for heteroskedasticity
-bptest(fe_spi_di_L2, studentize = TRUE) # Heteroskedasticity [significant]
-bptest(fd_spi_di_L2, studentize = TRUE) # Heteroskedasticity [significant]
+bptest(fe_spi_di_L2, studentize = TRUE) # [significant]
+bptest(fd_spi_di_L2, studentize = TRUE) # [significant]
 ```
 The Breusch-Pagan test indicates the presence of heteroskedasticity in the residuals of the fixed effects model. This suggests that the variance of the errors is not constant across observations, which violates another key assumption of linear regression models.
 
