@@ -1,0 +1,37 @@
+---
+title: "event_history_analysis"
+output: html_document
+---
+
+```{r}
+# set working directory
+setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
+
+#load libraries/packages
+source("packages.R")
+
+# load data
+source("Comp2_panel_wrangling.R")
+
+# select only the relevant columns for the analysis
+panel_data <- panel_data %>%
+  select(country_name, country_code, year, spi_comp, di_score, eiu_aut_ep, eiu_dem_ep, eiu_regch_event, eiu_aut_event_time, eiu_dem_event_time, eiu_autocratized, eiu_democratized, log_gdppc, income_level_recoded) %>%
+  arrange(country_code, year)
+```
+
+
+```{r}
+# Event study with DI interaction
+aut_event_model <- plm(spi_comp ~ di_score*factor(eiu_aut_event_time) + 
+                   log_gdppc + income_level_recoded,
+                   data = df_autocrat,
+                   index = c("country_code", "year"), 
+                   model = "within", 
+                   effect = "twoways")
+
+summary(aut_event_model)
+coeftest(aut_event_model, vcov = vcovHC(aut_event_model, cluster = "group", type = "HC1"))
+#summary(aut_event_model, vcov = vcovHC(aut_event_model, cluster = "group", type = "HC1"))
+```
+
+- AI Question: Do I need to check my analysis with more than one democracy variable? what if the regime change variable is not the same as the democracy variable? could this affect the results?

@@ -1,14 +1,12 @@
 # set working directory
-setwd("~/Documents/GitHub/stat_casualties_study")
+setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
 
 # load libraries/packages
 source("packages.R")
 
 # load data [Cleaned SPI & SDG Datasets]
-selected_df <- read_csv("data/output_datasets/merged_exclusive.csv") 
-
-# used for sensitivity analysis (different datasets)
-#selected_df <- read_csv(file.choose())
+selected_df <- read_csv("data/Main CSV Outputs/merged_exclusive.csv") 
+#selected_df <- read_csv(file.choose()) # used for sensitivity analysis (different datasets)
 
 # REFERENCE FOR COVERAGE OF COUNTRIES IN DATASETS
 COUNTRIES_BY_DF_REFERENCE <- read_csv("wrangling/adjust_outputs_diagnostics/all_countries_studied_comparison.csv")
@@ -17,7 +15,7 @@ COUNTRIES_BY_DF_REFERENCE <- read_csv("wrangling/adjust_outputs_diagnostics/all_
 panel_data <- selected_df %>% 
   arrange(country_code, year) %>%
   
-  # Creating all transformations in a single grouped operation
+  # Create all transformations in a single grouped operation
   group_by(country_code) %>%
   arrange(year) %>%
   mutate(
@@ -69,9 +67,7 @@ panel_data <- selected_df %>%
   ) %>%
   ungroup()
 
-#===============================================================================
 # Income level & regime type variables
-#===============================================================================
 panel_data <- panel_data %>% 
   mutate(
     # Income level recoding
@@ -85,26 +81,26 @@ panel_data <- panel_data %>%
     income_level_recoded = as.factor(income_level_recoded),
     
     # Regime Type (EUI): regime type classifications based on EIU Methodology
-    di_reg_cat = case_when(
+    regime_type_eiu = case_when(
       #[DECIDE TO MAYBE CHANGE TO NUMBERS 0-3]
-      di_score >= 8.0 ~ 3,                   # Full democracy
-      di_score >= 6.0 & di_score < 8.0 ~ 2,  # Flawed democracy
-      di_score >= 4.0 & di_score < 6.0 ~ 1,  # Hybrid regime
-      di_score < 4.0 ~ 0,                    # Authoritarian
-      TRUE ~ NA_integer_
+      di_score >= 8.0 ~ "Full democracy", #[DECIDE TO MAYBE CHANGE TO NUMBERS 0-3]
+      di_score >= 6.0 & di_score < 8.0 ~ "Flawed democracy",
+      di_score >= 4.0 & di_score < 6.0 ~ "Hybrid regime",
+      di_score < 4.0 ~ "Authoritarian",
+      TRUE ~ NA_character_
       ),
-    di_reg_cat = as.factor(di_reg_cat),
-    # 'di_reg_cat' created here because it is used in panel analysis.
-    # It's also needed to create regime change variables for future event-history analysis.
-
+    regime_type_eiu = as.factor(regime_type_eiu),
+    # 'eiu_regime_type' created here because it is used in comp 2 analysis.
+    # It's also needed to create regime change variables for further event-history analysis.
+    di_score_reverse = 10 - di_score,  # experimental: Reverse DI score for regime change detection (higher = more autocratic)
+    
     # Regime type variables (ERT)
     regime_type_4 = as.factor(regime_type_4),
     ert_autocracy = as.factor(ifelse(regime_type_4 %in% c(0, 1), 1, 0)),
     ert_democracy = as.factor(ifelse(regime_type_4 %in% c(2, 3), 1, 0)),
     ert_aut_ep = as.factor(aut_ep),
     ert_dem_ep = as.factor(dem_ep),
-    ert_regch_event = as.factor(regch_event),
-    
+    ert_regch_event = as.factor(regch_event)
   ) %>%
   
   # Country-level episode indicators (ERT)
@@ -122,16 +118,15 @@ panel_data <- panel_data %>%
   ) %>% 
   ungroup()
 
-# Panel Analysis Dataset 
+# Component 2 dataset 
 # re-arranging columns to have key variables first for easier viewing
 panel_data <- panel_data %>%
   filter(year >= 2016) %>%
-  select(country_name, country_code, year, sdg_overall, spi_comp, di_score,
-         di_reg_cat, log_gdppc, income_level_recoded, p1_use:p5_infra, 
-         goal1:goal17, everything())
-
-# Optional: Save to CSV (uncommented when needed)
-# write_csv(panel_data, "data/Main CSV Outputs/panel_data.csv")
+  select(country_name, country_code, year, sdg_overall, spi_comp, sci_overall, di_score, di_score_lag1, di_score_lag2,
+         regime_type_eiu, log_gdppc, income_level_recoded, p1_use:p5_infra, goal1:goal17, everything())
 
 # remove selected_df to free up memory
 rm(selected_df)
+
+# Optional: Save to CSV (uncommented when needed)
+# write_csv(panel_data, "data/Main CSV Outputs/panel_data.csv")

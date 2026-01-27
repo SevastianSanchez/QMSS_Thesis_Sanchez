@@ -1,3 +1,6 @@
+#Set Directory
+#setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez/data/misc")
+
 #vdem = country_text_id, country_name, [COWcode]
 #spi = iso3c
 #sdg = country_code, country_name
@@ -639,7 +642,7 @@ process_datasets <- function(df_lists, dataset_names = NULL) {
   all_years <- unique(unlist(lapply(processed_data, function(df) df$year)))
   all_years <- all_years[!is.na(all_years)]
   
-  message(paste("Identified", length(all_countries), "unique countries across all datasets"))
+  message(paste("Found", length(all_countries), "unique countries across all datasets"))
   
   # Create a reference grid of all country-year combinations
   reference_grid <- expand.grid(
@@ -760,8 +763,8 @@ process_datasets <- function(df_lists, dataset_names = NULL) {
   
   # Print summary information
   message("Country matching statistics:")
-  message(paste("  - Total matched country-years:", nrow(all_matched)))
-  message(paste("  - Total unmatched country-years:", nrow(all_unmatched)))
+  message(paste("Total matched countries:", nrow(all_matched)))
+  message(paste("Total unmatched countries:", nrow(all_unmatched)))
   
   # Write logs to CSV files - do this AFTER all processing is complete
   write.csv(all_matched, "wrangling/df_years2.0_diagnostics/country_matches.csv", row.names = FALSE)
@@ -769,9 +772,9 @@ process_datasets <- function(df_lists, dataset_names = NULL) {
   write.csv(matching_summary, "wrangling/df_years2.0_diagnostics/country_matching_summary.csv", row.names = FALSE)
   
   message("Created country matching logs:")
-  message("  - df_years2.0_diagnostics/country_matches.csv")
-  message("  - df_years2.0_diagnostics/country_unmatched.csv")
-  message("  - df_years2.0_diagnostics/country_matching_summary.csv")
+  message("  - country_matches.csv")
+  message("  - country_unmatched.csv")
+  message("  - country_matching_summary.csv")
   
   # Add logs as attributes to the final dataframe
   attr(final_df, "matched_countries") <- all_matched
@@ -843,7 +846,7 @@ process_datasets <- function(df_lists, dataset_names = NULL) {
   }
   
   # Remove redundant country columns
-  country_cols_to_keep <- c("country_code", "country_name", "year")
+  country_cols_to_keep <- c("country_code", "country_name", "year", "year_fct")
   redundant_cols <- grep("country|Country|iso3|ISO3|original_country", 
                         names(final_df), value = TRUE)
   redundant_cols <- setdiff(redundant_cols, country_cols_to_keep)
@@ -854,8 +857,9 @@ process_datasets <- function(df_lists, dataset_names = NULL) {
   }
   
   # Ensure core columns are present
-  if ("year" %in% names(final_df)) {
-    message("year column sustained")
+  if (!"year_fct" %in% names(final_df) && "year" %in% names(final_df)) {
+    final_df$year_fct <- as.factor(final_df$year)
+    message("Added year_fct column")
   }
   
   return(final_df)
@@ -916,8 +920,8 @@ df_years2.0 <- function(x, y) {
   factor_cols_exist <- cols_to_factor[cols_to_factor %in% names(processed)]
   numeric_cols_exist <- cols_to_numeric[cols_to_numeric %in% names(processed)]
   
-  # renamed to data for clarity
-  data <- processed
+  data <- processed %>% 
+    dplyr::mutate(year_fct = as.factor(year))
   
   # Only apply transformations to columns that exist
   if(length(factor_cols_exist) > 0) {
@@ -935,7 +939,7 @@ df_years2.0 <- function(x, y) {
   
   # For the remaining columns, try to maintain a sensible order
   priority_cols <- c("income_level", "sdg_overall", "spi_comp", "sci_overall", 
-                    "di_score", "log_gdppc", "log_pop", "gini_score")
+                    "di_score", "di_reg_type_2", "log_gdppc", "log_pop", "gini_score")
   
   # Find which priority columns exist
   priority_exist <- priority_cols[priority_cols %in% names(data)]

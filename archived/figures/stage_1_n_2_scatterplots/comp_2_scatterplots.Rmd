@@ -1,0 +1,116 @@
+---
+title: "comp_2_scatterplots"
+output: html_document
+---
+# Set up and Wrangling 
+```{r}
+# set working directory
+setwd("~/Documents/GitHub/QMSS_Thesis_Sanchez")
+
+#load libraries/packages
+source("packages.R")
+
+# load data
+source("Comp2_panel_wrangling.R")
+
+panel_data <- panel_data %>% 
+  dplyr::select(country_name, country_code, year, sdg_overall, spi_comp, di_score, log_gdppc, income_level_recoded, di_score_reverse) %>%
+  dplyr::arrange(country_code, year)
+```
+
+# Stage 1 Scatterplots
+```{r}
+# Create a scatterplot for the relationship between DI and SPI
+
+# Contemporaneous Relationship: SPI ~ DI
+spi_di_s1_scatter <- ggplot(panel_data, aes(x = di_score, y = spi_comp)) + 
+  geom_point(color = "steelblue", size = 1, alpha = 0.65) +
+  geom_smooth(method = "lm", 
+              se = TRUE, color = "darkblue", size = 1) +
+  labs(
+    title = "Effect of Democracy Levels on Statistical Capacity",
+    x = "Democracy Index (0-10 Scale)",
+    y = "SPI Composite (0-100 Scale)"
+  ) +
+  theme_minimal()
+
+spi_di_s1_scatter
+
+# Save to specific folder
+ggsave("figures/stage_1_n_2_scatterplots/spi_di_s1_scatterplot.png", spi_di_s1_scatter, width = 8, height = 6)
+
+# Delayed Relationship: SPI ~ LAGGED DI
+spi_di_L1_s1_scatter <- ggplot(panel_data, aes(x = di_score_reverse, y = spi_comp)) + 
+  geom_point(color = "steelblue", size = 1, alpha = 0.65) +
+  geom_smooth(method = "lm", 
+              se = TRUE, color = "darkblue", size = 1) +
+  labs(
+    title = "Effect of Autocracy Levels on Statistical Capacity (reversed DI)",
+    x = "Democracy Index (0-10 Scale) [Higher = More Autocratic]",
+    y = "SPI Composite (0-100 Scale)"
+  ) +
+  theme_minimal()
+
+spi_di_L1_s1_scatter
+
+# Save to specific folder
+ggsave("figures/stage_1_n_2_scatterplots/spi_di_L1_s1_scatterplot.png", spi_di_L1_s1_scatter, width = 8, height = 6)
+```
+
+# Stage II Scatterplots
+```{r}
+# Contemporaneous Relationship: SDG ~ SPI
+sdg_spi_s2_scatter <- ggplot(panel_data1, aes(x = spi_comp, y = sdg_overall)) + 
+  geom_point(color = "steelblue4", size = 1, alpha = 0.65) +
+  geom_smooth(method = "lm", 
+              se = TRUE, color = "darkgreen", size = 1) +
+  labs(
+    title = "Effect of Statistical Capacity on SDG Performance",
+    x = "SPI Composite (0-100 Scale)",
+    y = "SDG Composite (0-100 Scale)"
+  ) +
+  theme_minimal()
+
+sdg_spi_s2_scatter
+
+# Save to specific folder
+ggsave("figures/stage_1_n_2_scatterplots/sdg_spi_s2_scatterplot.png", sdg_spi_s2_scatter, width = 8, height = 6)
+```
+
+# Direct Effect of Democracy Index on SDG Performance
+```{r}
+# Contemporaneous Relationship: SDG ~ DI
+sdg_di_s2_scatter <- ggplot(panel_data, aes(x = di_score, y = sdg_overall)) + 
+  geom_point(color = "steelblue", size = 1, alpha = 0.65) +
+  geom_smooth(method = "lm", 
+              se = TRUE, color = "#f27405", size = 1) +
+  labs(
+    title = "Effect of Democracy Levels on SDG Performance",
+    x = "DI Composite (0-100 Scale)",
+    y = "SDG Composite (0-100 Scale)"
+  ) +
+  theme_minimal()
+
+sdg_di_s2_scatter
+
+# Save to specific folder
+ggsave("figures/stage_1_n_2_scatterplots/sdg_di_scatter.png", sdg_di_s2_scatter, width = 8, height = 6)
+
+# Delayed Relationship: SDG ~ LAGGED SPI
+sdg_di_L1_s2_scatter <- ggplot(panel_data, aes(x = di_score_reverse, y = sdg_overall)) + 
+  geom_point(color = "steelblue", size = 1, alpha = 0.65) +
+  geom_smooth(method = "lm", 
+              se = TRUE, color = "darkred", size = 1) +
+  labs(
+    title = "Effect of Autocracy Levels on SDG Performance (reversed DI)",
+    x = "DI Composite (0-10 Scale) [Higher = More Autocratic]",
+    y = "SDG Composite (0-100 Scale)"
+  ) +
+  theme_minimal()
+
+sdg_di_L1_s2_scatter
+
+# Save to specific folder
+ggsave("figures/stage_1_n_2_scatterplots/sdg_di_rev_scatter.png", sdg_di_L1_s2_scatter, width = 8, height = 6)
+```
+
