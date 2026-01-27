@@ -20,7 +20,7 @@ library(dplyr)
 library(patchwork) 
 library(reshape2)
 library(ggcorrplot)
-library(jsonlite) #loadining gini
+library(jsonlite) #loading gini
 library(lmtest)
 library(sandwich)
 library(DT)

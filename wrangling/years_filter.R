@@ -21,12 +21,12 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
   #VDEM DATASET
   
   name1 <- df1 %>%
-    dplyr::select(country_name, country_text_id, year, v2x_regime, v2x_regime_amb, v2x_polyarchy, 
-                  v2x_libdem, v2x_partipdem, v2x_delibdem, v2x_egaldem, v2xel_frefair, v2x_accountability, 
-                  v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, v2x_freexp_altinf, 
-                  e_wb_pop) %>%
-    rename(#country_code = country_text_id, #renaming country code (new_name = old_name)
-           regime_type_4 = v2x_regime, # MAIN RoW Regime Type Variable 
+    dplyr::select(country_name, country_text_id, year, v2x_regime, 
+                  v2x_regime_amb, v2x_polyarchy, v2x_libdem, v2x_partipdem, 
+                  v2x_delibdem, v2x_egaldem, v2xel_frefair, v2x_accountability, 
+                  v2x_veracc, v2x_horacc, v2x_diagacc, v2xca_academ, 
+                  v2x_freexp_altinf, e_wb_pop) %>%
+    rename(regime_type_4 = v2x_regime, # MAIN RoW Regime Type Variable 
            regime_type_10 = v2x_regime_amb,
            elect_dem = v2x_polyarchy,
            lib_dem = v2x_libdem,
@@ -47,8 +47,9 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
   
   #SPI DATASET
   name2 <- df2 %>% 
-    dplyr::select(country, iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, SPI.INDEX.PIL2, SPI.INDEX.PIL3, 
-                  SPI.INDEX.PIL4, SPI.INDEX.PIL5, income, region, weights) %>% 
+    dplyr::select(country, iso3c, date, SPI.INDEX, SPI.INDEX.PIL1, 
+                  SPI.INDEX.PIL2, SPI.INDEX.PIL3, SPI.INDEX.PIL4, 
+                  SPI.INDEX.PIL5, income, region, weights) %>% 
     #rename(country_code = iso3c) %>% 
     rename(year = date,
            spi_comp = SPI.INDEX,
@@ -64,12 +65,15 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
   
   #SDG DATASET
   name3 <- df3 %>% 
-    dplyr::select(country_name, country_code, year, sdg_overall, goal1, goal2, goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, goal11, goal12, goal13, goal14, goal15, goal16, goal17) %>% 
+    dplyr::select(country_name, country_code, year, sdg_overall, goal1, goal2, 
+                  goal3, goal4, goal5, goal6, goal7, goal8, goal9, goal10, 
+                  goal11, goal12, goal13, goal14, goal15, goal16, goal17) %>% 
     dplyr::filter(year >= start_yr, year <= end_yr)
   
   #SCI DATASET
   name4 <- df4 %>% 
-    dplyr::select(country_name, country_code, Year, IQ.SCI.OVRL, IQ.SCI.MTHD, IQ.SCI.PRDC, IQ.SCI.SRCE) %>% 
+    dplyr::select(country_name, country_code, Year, IQ.SCI.OVRL, IQ.SCI.MTHD, 
+                  IQ.SCI.PRDC, IQ.SCI.SRCE) %>% 
     # Replacing ".." with NA explicitly
     dplyr::mutate(across(c(IQ.SCI.OVRL, IQ.SCI.MTHD, IQ.SCI.PRDC, IQ.SCI.SRCE), 
                          ~ ifelse(. == "..", NA_character_, .))) %>%
@@ -80,15 +84,17 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
       sci_method = as.numeric(IQ.SCI.MTHD), 
       sci_periodicity = as.numeric(IQ.SCI.PRDC),
       sci_source = as.numeric(IQ.SCI.SRCE)) %>% 
-  # Select only the columns you want to keep
-  dplyr::select(country_name, country_code, year, sci_overall, sci_method, sci_periodicity, sci_source) %>%
+  # Selecting relevant columns
+  dplyr::select(country_name, country_code, year, sci_overall, sci_method, 
+                sci_periodicity, sci_source) %>%
   dplyr::filter(year >= start_yr, year <= end_yr)
 
   #ERT DATASET 
   name5 <- df5 %>%
-    dplyr::select(country_name, country_text_id, country_id, year, reg_type, v2x_polyarchy, 
-                  row_regch_event, reg_trans, dem_ep, dem_pre_ep_year, dem_ep_start_year, 
-                  dem_ep_end_year, aut_ep, aut_pre_ep_year, aut_ep_start_year, aut_ep_end_year) %>%
+    dplyr::select(country_name, country_text_id, country_id, year, reg_type, 
+                  v2x_polyarchy, row_regch_event, reg_trans, dem_ep, 
+                  dem_pre_ep_year, dem_ep_start_year, dem_ep_end_year, aut_ep, 
+                  aut_pre_ep_year, aut_ep_start_year, aut_ep_end_year) %>%
     dplyr::filter(year >= start_yr, year <= end_yr) %>% 
     rename(regime_type_2 = reg_type,
            elect_dem_ert = v2x_polyarchy,
@@ -108,7 +114,8 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
     dplyr::filter(year >= start_yr, year <= end_yr)
    
   #INFO CAPACITY
-  #name7 <- df7 %>% dplyr::select(country_id, year, infcap_irt, infcap_pca, everything()) %>% filter(year >= start_yr, year <= end_yr)
+  #name7 <- df7 %>% dplyr::select(country_id, year, infcap_irt, infcap_pca, 
+  #everything()) %>% filter(year >= start_yr, year <= end_yr)
   
  #WB Income Classifications 
   name8 <- df8 %>% 
@@ -125,10 +132,6 @@ years_filter <- function(start_yr = 2005, end_yr = 2023,
   
   #EIU Democracy Index  
   name9 <- df9 %>% 
-    dplyr::mutate(di_reg_type_2 = case_when(
-      di_score < 5 ~ 0,  # Autocracy
-      di_score >= 5 ~ 1  # Democracy
-    )) %>% 
     filter(year >= start_yr, year <= end_yr)
   
   #GINI Coefficient 
